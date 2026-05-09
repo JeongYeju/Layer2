@@ -5,6 +5,13 @@
 export const SignalLog = [];
 export const signalBus = new EventTarget();
 
+let _trailEnabled = true;
+let _clearTrail = null; // set by initMouseTrailVisual
+export function setTrailEnabled(v) {
+  _trailEnabled = v;
+  if (!v && _clearTrail) _clearTrail();
+}
+
 export function pushSignal(sig) {
   const enriched = { t: performance.now(), ...sig };
   SignalLog.push(enriched);
@@ -127,7 +134,15 @@ function initMouseTrailVisual() {
   let fadeTimer = null;
   let circleTimer = null;
 
+  _clearTrail = () => {
+    if (fadeTimer) clearTimeout(fadeTimer);
+    trailPts = [];
+    path.setAttribute("d", "");
+    path.classList.remove("mouse-trail--fading", "mouse-trail--circle");
+  };
+
   window.addEventListener("mousemove", (e) => {
+    if (!_trailEnabled) return;
     const now = performance.now();
     trailPts.push({ x: e.clientX, y: e.clientY, t: now });
     trailPts = trailPts.filter((p) => now - p.t < TRAIL_MS);
