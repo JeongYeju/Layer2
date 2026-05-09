@@ -27,6 +27,7 @@ export function initBaselineCollectors({ readerEl }) {
   initDwellAndReread(readerEl);
   initScroll();
   initMouseTrail();
+  initGestureDetector();
 }
 
 function initDwellAndReread(readerEl) {
@@ -106,6 +107,71 @@ function initMouseTrail() {
       type: "mouse_trail",
       x: e.clientX,
       y: e.clientY,
+    });
+  });
+}
+
+function initGestureDetector() {
+  // Sliding window of recent mouse positions used for shape recognition.
+  // A gesture fires when points in the last WINDOW_MS form a near-complete circle:
+  //   - consistent distance from centroid  (std/mean < CIRCULARITY_THRESHOLD)
+  //   - sweeps >= COVERAGE_DEG degrees
+  //   - radius >= MIN_RADIUS px  (filters out tiny wiggles)
+  const WINDOW_MS = 2000;
+  const MIN_POINTS = 20;
+  const MIN_RADIUS = 30;
+  const CIRCULARITY_THRESHOLD = 0.35;
+  const COVERAGE_DEG = 300;
+  const COOLDOWN_MS = 1500;
+
+  let trail = [];
+  let lastFiredT = -Infinity;
+
+  window.addEventListener("mousemove", (e) => {
+    const now = performance.now();
+    trail.push({ x: e.clientX, y: e.clientY, t: now });
+
+    // Drop points outside the window
+    const cutoff = now - WINDOW_MS;
+    trail = trail.filter((p) => p.t >= cutoff);
+
+    if (trail.length < MIN_POINTS) return;
+    if (now - lastFiredT < COOLDOWN_MS) return;
+
+    // Centroid
+    let cx = 0, cy = 0;
+    for (const p of trail) { cx += p.x; cy += p.y; }
+    cx /= trail.length;
+    cy /= trail.length;
+
+    // Radius consistency
+    const radii = trail.map((p) => Math.hypot(p.x - cx, p.y - cy));
+    const meanR = radii.reduce((a, b) => a + b, 0) / radii.length;
+    if (meanR < MIN_RADIUS) return;
+    const stdR = Math.sqrt(
+      radii.map((r) => (r - meanR) ** 2).reduce((a, b) => a + b, 0) / radii.length,
+    );
+    if (stdR / meanR > CIRCULARITY_THRESHOLD) return;
+
+    // Angular coverage — find the largest gap between consecutive angles
+    const angles = trail
+      .map((p) => (Math.atan2(p.y - cy, p.x - cx) * 180) / Math.PI)
+      .sort((a, b) => a - b);
+    let maxGap = angles[0] + 360 - angles[angles.length - 1];
+    for (let i = 1; i < angles.length; i++) {
+      maxGap = Math.max(maxGap, angles[i] - angles[i - 1]);
+    }
+    const coverage = 360 - maxGap;
+    if (coverage < COVERAGE_DEG) return;
+
+    lastFiredT = now;
+    pushSignal({
+      type: "circle_gesture",
+      cx: Math.round(cx),
+      cy: Math.round(cy),
+      radius: Math.round(meanR),
+      coverage_deg: Math.round(coverage),
+      point_count: trail.length,
     });
   });
 }
