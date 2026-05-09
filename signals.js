@@ -28,6 +28,7 @@ export function initBaselineCollectors({ readerEl }) {
   initScroll();
   initMouseTrail();
   initGestureDetector();
+  initMouseTrailVisual();
 }
 
 function initDwellAndReread(readerEl) {
@@ -109,6 +110,64 @@ function initMouseTrail() {
       y: e.clientY,
     });
   });
+}
+
+function initMouseTrailVisual() {
+  const inkLayer = document.getElementById("ink-layer");
+  if (!inkLayer) return;
+
+  const TRAIL_MS = 1500;
+  const FADE_AFTER_MS = 1200; // start fading this long after last movement
+
+  const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  path.setAttribute("class", "mouse-trail");
+  inkLayer.appendChild(path);
+
+  let trailPts = [];
+  let fadeTimer = null;
+  let circleTimer = null;
+
+  window.addEventListener("mousemove", (e) => {
+    const now = performance.now();
+    trailPts.push({ x: e.clientX, y: e.clientY, t: now });
+    trailPts = trailPts.filter((p) => now - p.t < TRAIL_MS);
+
+    path.classList.remove("mouse-trail--fading");
+    redraw();
+
+    if (fadeTimer) clearTimeout(fadeTimer);
+    fadeTimer = setTimeout(() => {
+      path.classList.add("mouse-trail--fading");
+      // after fade animation completes, clear the path data
+      setTimeout(() => {
+        trailPts = [];
+        path.setAttribute("d", "");
+        path.classList.remove("mouse-trail--fading");
+      }, 600);
+    }, FADE_AFTER_MS);
+  });
+
+  signalBus.addEventListener("signal", (e) => {
+    if (e.detail.type !== "circle_gesture") return;
+    path.classList.add("mouse-trail--circle");
+    if (circleTimer) clearTimeout(circleTimer);
+    circleTimer = setTimeout(() => {
+      path.classList.remove("mouse-trail--circle");
+    }, 1500);
+  });
+
+  function redraw() {
+    if (trailPts.length < 2) { path.setAttribute("d", ""); return; }
+    let d = `M ${trailPts[0].x} ${trailPts[0].y}`;
+    for (let i = 1; i < trailPts.length; i++) {
+      const p = trailPts[i];
+      const prev = trailPts[i - 1];
+      const mx = (p.x + prev.x) / 2;
+      const my = (p.y + prev.y) / 2;
+      d += ` Q ${prev.x} ${prev.y} ${mx} ${my}`;
+    }
+    path.setAttribute("d", d);
+  }
 }
 
 function initGestureDetector() {

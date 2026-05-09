@@ -297,3 +297,23 @@ html, body {
 .chip[data-type="bookmark"] { background: #2f6b2f; }
 .chip[data-type="capture"] { background: #6b3a8a; }
 .chip[data-type="reread"] { background: #b85c00; }
+.chip[data-type="circle_gesture"] { background: #2e9e72; }
+
+/* ---------- Mouse trail ---------- */
+
+.mouse-trail {
+  fill: none;
+  stroke: rgba(150, 135, 120, 0.45);
+  stroke-width: 2px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+  transition: opacity 0.55s ease, stroke 0.25s ease, stroke-width 0.25s ease;
+}
+.mouse-trail--fading {
+  opacity: 0;
+}
+.mouse-trail--circle {
+  stroke: #2e9e72;
+  stroke-width: 2.5px;
+}
