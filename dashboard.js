@@ -21,6 +21,7 @@ const TIMELINE_TYPES = new Set([
   "capture",
   "highlight_underline",
   "highlight_annotation",
+  "circle_gesture",
 ]);
 
 let metricsRoot, recentRoot, timelineRoot;
@@ -127,6 +128,8 @@ function chipLabel(sig) {
       return `밑줄 ${sig.text_length}자`;
     case "highlight_annotation":
       return `주석 "${truncate(sig.annotation_text, 8)}"`;
+    case "circle_gesture":
+      return `◯ r${sig.radius}px`;
     default:
       return sig.type;
   }
