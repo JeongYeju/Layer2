@@ -75,14 +75,35 @@ html, body {
   /* underline applied as a pseudo-element so it matches the descender line */
 }
 
+/* Permanent faded underline kept after a highlight is annotated (confirmed).
+   Fixed thin height so old speed-thickness doesn't carry over.
+   Defined FIRST so the active .is-underlined rule below wins via CSS cascade
+   when a new drag re-highlights an already-annotated span. */
+.para .g.is-annotated::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -2px;
+  height: 1.5px;
+  background: var(--ink);
+  opacity: 0.45;
+  mix-blend-mode: multiply;
+  pointer-events: none;
+  border-radius: 1px;
+}
+
 .para .g.is-underlined::after {
   content: "";
   position: absolute;
   left: 0;
   right: 0;
   bottom: -2px;
-  height: 2px;
+  /* Thickness is set inline per-span based on drawing speed
+     (slower drag → thicker line). Default for fallback / static use. */
+  height: var(--underline-thickness, 2px);
   background: var(--ink);
+  opacity: 1;
   mix-blend-mode: multiply;
   pointer-events: none;
   border-radius: 1px;
@@ -90,34 +111,56 @@ html, body {
   filter: url(#ink-jitter);
 }
 
-/* annotation marker rendered next to text after confirm */
+/* Annotation marker — inserted as inline sibling of the anchor word's last
+   grapheme span. Flowing inline-block means it never overlaps text. */
 .anno-marker {
-  position: absolute;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
+  display: inline-block;
+  width: 6px;
+  height: 6px;
   background: var(--ink);
-  mix-blend-mode: multiply;
-  pointer-events: auto;
+  border-radius: 50%;
+  vertical-align: super;
+  margin: 0 2px;
   cursor: help;
-  transform: translate(-50%, -50%);
-  opacity: 0.85;
+  position: relative;
+  mix-blend-mode: multiply;
 }
-.anno-marker:hover::after {
-  content: attr(data-text);
+
+.anno-tooltip {
+  display: none;
   position: absolute;
-  left: 14px;
-  top: -4px;
-  white-space: nowrap;
+  bottom: 140%;
+  left: 50%;
+  transform: translateX(-50%);
   background: white;
   border: 1px solid var(--ink);
-  color: var(--text);
+  padding: 6px 10px;
   font-family: "Inter", sans-serif;
   font-size: 12px;
-  padding: 4px 8px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  color: var(--text);
+  white-space: pre-wrap;
+  max-width: 220px;
+  min-width: 80px;
   z-index: 30;
+  border-radius: 2px;
+  box-shadow: 0 2px 10px rgba(217, 54, 43, 0.15);
+  pointer-events: none;
+  line-height: 1.5;
+  word-break: keep-all;
 }
+
+.anno-tooltip::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: var(--ink);
+}
+
+.anno-marker:hover .anno-tooltip,
+.anno-marker:focus .anno-tooltip { display: block; }
 
 /* ---------- Ink overlay ---------- */
 
@@ -134,19 +177,19 @@ html, body {
   fill: none;
   stroke: var(--ink);
   stroke-width: 2;
+  stroke-linecap: round;
   mix-blend-mode: multiply;
-  transform-box: fill-box;
-  transform-origin: center;
-  transition: transform 0.8s cubic-bezier(0.2, 0.7, 0.2, 1),
-              opacity 0.4s ease-out;
+  /* stroke-dashoffset transition is set inline by drawAnchorCircle so the
+     "pen drawing" effect runs exactly once on append. */
 }
 
 .ink-layer .ink-stroke {
   fill: none;
   stroke: var(--ink);
-  stroke-width: 2;
+  stroke-width: 1.5;
   stroke-linecap: round;
   stroke-linejoin: round;
+  opacity: 0.8;
   mix-blend-mode: multiply;
 }
 

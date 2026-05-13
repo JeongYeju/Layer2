@@ -6,10 +6,14 @@ export const SignalLog = [];
 export const signalBus = new EventTarget();
 
 let _trailEnabled = true;
+let _gesturesEnabled = true;
 let _clearTrail = null; // set by initMouseTrailVisual
 export function setTrailEnabled(v) {
   _trailEnabled = v;
   if (!v && _clearTrail) _clearTrail();
+}
+export function setGesturesEnabled(v) {
+  _gesturesEnabled = v;
 }
 
 export function pushSignal(sig) {
@@ -125,26 +129,50 @@ function initMouseTrailVisual() {
 
   const TRAIL_MS = 1500;
   const FADE_AFTER_MS = 1200; // start fading this long after last movement
+  const MIN_DIST = 3;         // skip points closer than this to last smoothed point
+  const SMOOTH_ALPHA = 0.35;  // EMA weight on raw input — lower = smoother
 
   const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
   path.setAttribute("class", "mouse-trail");
   inkLayer.appendChild(path);
 
   let trailPts = [];
+  let smoothedLast = null;
   let fadeTimer = null;
   let circleTimer = null;
 
   _clearTrail = () => {
     if (fadeTimer) clearTimeout(fadeTimer);
     trailPts = [];
+    smoothedLast = null;
     path.setAttribute("d", "");
     path.classList.remove("mouse-trail--fading", "mouse-trail--circle");
   };
 
   window.addEventListener("mousemove", (e) => {
-    if (!_trailEnabled) return;
+    if (!_trailEnabled) {
+      smoothedLast = null;
+      return;
+    }
     const now = performance.now();
-    trailPts.push({ x: e.clientX, y: e.clientY, t: now });
+
+    // EMA lowpass: filters out hand jitter (high-freq), preserves direction (low-freq).
+    // Sustained straight movement → trail looks straight; small wobbles get flattened.
+    let sx, sy;
+    if (smoothedLast) {
+      sx = smoothedLast.x + (e.clientX - smoothedLast.x) * SMOOTH_ALPHA;
+      sy = smoothedLast.y + (e.clientY - smoothedLast.y) * SMOOTH_ALPHA;
+      if (Math.hypot(sx - smoothedLast.x, sy - smoothedLast.y) < MIN_DIST) {
+        smoothedLast = { x: sx, y: sy };
+        return;
+      }
+    } else {
+      sx = e.clientX;
+      sy = e.clientY;
+    }
+    smoothedLast = { x: sx, y: sy };
+
+    trailPts.push({ x: sx, y: sy, t: now });
     trailPts = trailPts.filter((p) => now - p.t < TRAIL_MS);
 
     path.classList.remove("mouse-trail--fading");
@@ -156,6 +184,7 @@ function initMouseTrailVisual() {
       // after fade animation completes, clear the path data
       setTimeout(() => {
         trailPts = [];
+        smoothedLast = null;
         path.setAttribute("d", "");
         path.classList.remove("mouse-trail--fading");
       }, 600);
@@ -202,6 +231,10 @@ function initGestureDetector() {
   let lastFiredT = -Infinity;
 
   window.addEventListener("mousemove", (e) => {
+    if (!_gesturesEnabled) {
+      trail = [];
+      return;
+    }
     const now = performance.now();
     trail.push({ x: e.clientX, y: e.clientY, t: now });
 
