@@ -105,7 +105,7 @@ function appendChip(sig) {
   c.className = "chip";
   c.dataset.type = sig.type;
   c.textContent = chipLabel(sig);
-  c.title = `${sig.type} @ ${Math.round(sig.t)}ms`;
+  c.title = chipTooltip(sig);
   timelineRoot.appendChild(c);
   // keep timeline bounded
   while (timelineRoot.children.length > 80) {
@@ -121,18 +121,47 @@ function chipLabel(sig) {
     case "reread":
       return `reread ${sig.paragraph_id}`;
     case "bookmark":
-      return "bookmark";
+      return `🔖 ${formatParaRange(sig.paragraph_ids)}`;
     case "capture":
-      return "capture";
+      return `📷 ${formatParaRange(sig.paragraph_ids)}`;
     case "highlight_underline":
       return `밑줄 ${sig.text_length}자`;
     case "highlight_annotation":
       return `주석 "${truncate(sig.annotation_text, 8)}"`;
     case "circle_gesture":
+      if (sig.enclosed_text) {
+        return `◯ "${truncate(sig.enclosed_text, 10)}"`;
+      }
       return `◯ r${sig.radius}px`;
     default:
       return sig.type;
   }
+}
+
+// "p1", "p2", "p3" → "p1–p3"; single → "p2"; empty → "viewport"
+function formatParaRange(ids) {
+  if (!ids || ids.length === 0) return "viewport";
+  if (ids.length === 1) return ids[0];
+  return `${ids[0]}–${ids[ids.length - 1]}`;
+}
+
+function chipTooltip(sig) {
+  const baseT = `@${Math.round(sig.t)}ms`;
+  if (sig.type === "capture" || sig.type === "bookmark") {
+    const ids = (sig.paragraph_ids || []).join(", ") || "(none visible)";
+    const scroll = `scroll ${Math.round(sig.scroll_y || 0)}px`;
+    const vp = sig.viewport
+      ? ` · ${sig.viewport.w}×${sig.viewport.h}`
+      : "";
+    return `${sig.type}: ${ids} · ${scroll}${vp} ${baseT}`;
+  }
+  if (sig.type === "circle_gesture") {
+    const enc = sig.enclosed_text
+      ? `"${sig.enclosed_text}" (${sig.enclosed_paragraph || "?"})`
+      : "(no words)";
+    return `circle: ${enc} · r${sig.radius}px ${baseT}`;
+  }
+  return `${sig.type} ${baseT}`;
 }
 
 function paint() {

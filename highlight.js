@@ -43,6 +43,66 @@ export function initHighlight() {
     if (state === "drawing") finishUnderline();
     else if (state !== "idle") cleanupSession();
   });
+
+  initPencilCursor();
+}
+
+// Pencil emoji cursor on hover. Per-span class application so the cursor
+// rule lands on a single, specific selector — no body-level cascade, no
+// inheritance ambiguity from the trail's per-frame SVG churn.
+//
+// Hit detection: e.target.closest() with an elementsFromPoint fallback so
+// micro-gaps between adjacent inline spans don't drop the cursor.
+//
+// State-aware:
+//   - idle: only show pencil when the mouse is in the bottom 30% of a glyph
+//   - drawing: always show pencil on whichever span the mouse is over (the
+//     user is dragging the pen — the cursor should follow, not vanish)
+//   - transitioning / annotating: clear (mouse is off-text or the textarea
+//     owns the interaction)
+function initPencilCursor() {
+  let activeSpan = null;
+  const setActiveSpan = (span) => {
+    if (activeSpan === span) return;
+    if (activeSpan) activeSpan.classList.remove("pencil-cursor");
+    if (span) span.classList.add("pencil-cursor");
+    activeSpan = span;
+  };
+  const findSpan = (e) => {
+    const target = e.target instanceof Element ? e.target : null;
+    let span = target ? target.closest("[data-char-index]") : null;
+    if (!span) {
+      const stack = document.elementsFromPoint(e.clientX, e.clientY);
+      span =
+        stack.find((el) => el.matches && el.matches("[data-char-index]")) ||
+        null;
+    }
+    return span;
+  };
+  document.addEventListener("mousemove", (e) => {
+    if (state === "drawing") {
+      // Follow the drag with the pencil cursor on whichever span the
+      // pointer currently sits over.
+      setActiveSpan(findSpan(e));
+      return;
+    }
+    if (state !== "idle") {
+      setActiveSpan(null);
+      return;
+    }
+    const span = findSpan(e);
+    if (!span) {
+      setActiveSpan(null);
+      return;
+    }
+    const rect = span.getBoundingClientRect();
+    if (rect.height <= 0) {
+      setActiveSpan(null);
+      return;
+    }
+    const relY = (e.clientY - rect.top) / rect.height;
+    setActiveSpan(relY >= 0.7 ? span : null);
+  });
 }
 
 // ---------- mouse handlers ----------
@@ -226,7 +286,9 @@ function finishUnderline() {
     text_length: len,
     draw_speed: duration > 0 ? +(len / (duration / 1000)).toFixed(2) : 0,
   });
-  resetUnderlineClasses();
+  // Convert the active underline to the persistent faded "annotated" state
+  // instead of wiping it — every drawn underline leaves a quiet trace.
+  freezeUnderline();
   state = "idle";
   session = null;
   setTrailEnabled(true);

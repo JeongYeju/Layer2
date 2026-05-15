@@ -75,10 +75,18 @@ html, body {
   /* underline applied as a pseudo-element so it matches the descender line */
 }
 
-/* Permanent faded underline kept after a highlight is annotated (confirmed).
+/* Pencil emoji cursor applied per-span. Single, specific selector keeps the
+   cursor declaration outside any cascade chain — most reliable form. */
+.para .g.pencil-cursor {
+  cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'><text x='0' y='22' font-size='22' font-family='Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' transform='rotate(180 12 12)'>✏️</text></svg>") 16 8, crosshair;
+}
+
+/* Permanent faded underline kept after a highlight is released/annotated.
    Fixed thin height so old speed-thickness doesn't carry over.
    Defined FIRST so the active .is-underlined rule below wins via CSS cascade
-   when a new drag re-highlights an already-annotated span. */
+   when a new drag re-highlights an already-annotated span.
+   Transitions apply when ::after's style changes due to class swap, so the
+   active red line smoothly fades into the faded record on mouseup/confirm. */
 .para .g.is-annotated::after {
   content: "";
   position: absolute;
@@ -91,6 +99,7 @@ html, body {
   mix-blend-mode: multiply;
   pointer-events: none;
   border-radius: 1px;
+  transition: height 0.45s ease, opacity 0.45s ease;
 }
 
 .para .g.is-underlined::after {
@@ -109,10 +118,14 @@ html, body {
   border-radius: 1px;
   /* tiny vertical wobble for a hand-drawn feel */
   filter: url(#ink-jitter);
+  transition: height 0.45s ease, opacity 0.45s ease;
 }
 
 /* Annotation marker — inserted as inline sibling of the anchor word's last
-   grapheme span. Flowing inline-block means it never overlaps text. */
+   grapheme span. Flowing inline-block means it never overlaps text.
+   No mix-blend-mode here: it would propagate to the .anno-tooltip child via
+   the parent's blend group, multiplying its white background into the page
+   underneath and making the popup look transparent. */
 .anno-marker {
   display: inline-block;
   width: 6px;
@@ -123,7 +136,6 @@ html, body {
   margin: 0 2px;
   cursor: help;
   position: relative;
-  mix-blend-mode: multiply;
 }
 
 .anno-tooltip {
@@ -344,19 +356,107 @@ html, body {
 
 /* ---------- Mouse trail ---------- */
 
-.mouse-trail {
+/* Each segment is its own <line> with stroke-opacity driven per-frame in
+   signals.js — slow draws fade out gradually as their points expire, fast
+   draws fade together. Stroke color is opaque here; the per-segment alpha
+   is what makes the trail dissolve. */
+.mouse-trail-seg {
   fill: none;
-  stroke: rgba(150, 135, 120, 0.45);
-  stroke-width: 2px;
+  stroke: rgb(150, 135, 120);
+  stroke-width: 1.6px;
   stroke-linecap: round;
-  stroke-linejoin: round;
   pointer-events: none;
-  transition: opacity 0.55s ease, stroke 0.25s ease, stroke-width 0.25s ease;
 }
-.mouse-trail--fading {
-  opacity: 0;
-}
-.mouse-trail--circle {
+.mouse-trail-group--circle .mouse-trail-seg {
   stroke: #2e9e72;
-  stroke-width: 2.5px;
+  stroke-width: 2px;
+}
+
+/* Persistent faint-gray ellipse left around words enclosed by a circle
+   gesture. Anchored to the paragraph (.para is position: relative), so it
+   moves with the text on scroll. */
+.word-circle-mark {
+  position: absolute;
+  border: 1.5px solid rgba(110, 110, 110, 0.42);
+  border-radius: 50%;
+  pointer-events: none;
+  box-sizing: border-box;
+}
+
+/* ---------- Cursor tuning HUD (temporary — remove with cursor-hud.js) ---------- */
+
+#cursor-hud {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: white;
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  padding: 14px 16px;
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 12px;
+  color: var(--text);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 320px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12);
+}
+#cursor-hud .hud-title {
+  font-weight: 600;
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+#cursor-hud .hud-row {
+  display: grid;
+  grid-template-columns: 80px 1fr 36px;
+  align-items: center;
+  gap: 8px;
+}
+#cursor-hud .hud-label {
+  color: var(--muted);
+  font-size: 11px;
+}
+#cursor-hud .hud-val {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--text);
+}
+#cursor-hud input[type="range"] {
+  width: 100%;
+}
+#cursor-hud .hud-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+#cursor-hud button {
+  flex: 1;
+  padding: 6px 8px;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  font: inherit;
+  color: var(--text);
+  cursor: pointer;
+}
+#cursor-hud button:hover {
+  background: var(--paper-edge);
+}
+#cursor-hud #hud-copy {
+  background: var(--text);
+  color: white;
+  border-color: var(--text);
+}
+#cursor-hud pre {
+  margin: 4px 0 0;
+  padding: 8px 10px;
+  background: var(--paper);
+  border-radius: 6px;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 10.5px;
+  white-space: pre-wrap;
+  word-break: break-all;
+  color: var(--text);
 }
