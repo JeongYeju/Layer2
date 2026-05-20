@@ -96,8 +96,12 @@ function onLockChange() {
   if (state.locked) {
     cursorEl.style.display = "block";
     toggleBtn.classList.add("is-active");
-    state.x = window.innerWidth / 2;
-    state.actualY = window.innerHeight / 2;
+    // Seed the virtual cursor at the button the user just clicked, so it
+    // feels like the cursor "lifted off" from there instead of jumping to
+    // the middle of the screen.
+    const btnRect = toggleBtn.getBoundingClientRect();
+    state.x = btnRect.left + btnRect.width / 2;
+    state.actualY = btnRect.top + btnRect.height / 2;
     state.y = state.actualY;
     state.snapY = state.actualY;
     state.overGlyph = false;
