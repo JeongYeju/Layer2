@@ -7,46 +7,40 @@
 //   3. pointermove의 movementX/Y(상대 델타)로 가상 좌표 누적
 //   4. 가상 좌표는 우리가 통제하므로 자유롭게 텔레포트 가능
 //   5. document.elementsFromPoint(vx, vy) 는 Pointer Lock 중에도 작동
-//      → 가상 좌표로 hover 감지 / 단어 찾기 가능
 //
-// Two-channel design — the cursor and the trail show different things:
-//   - Trail: at the *underline* (glyph.bottom + 2) — the "reading line"
-//     that signals.js paints. Lives at the bottom of the line.
-//   - Cursor: wraps the *current glyph* the user is focused on — a soft
-//     rounded box that grabs the character it sits over. NOT at the trail
-//     line, because then the two channels would visually collapse and the
-//     user can't tell which char is focused.
+// Two-channel design:
+//   - Trail (signals.js, reads window.__portal.y): rides the underline of
+//     the current line — a "reading trail".
+//   - Cursor (rendered here): wraps the *word* the user is on. Not the
+//     glyph — glyph-by-glyph snap felt chatty. The wrap stays put while
+//     the user moves within a single word; it jumps when they cross a
+//     word boundary. Conceptually a skewer through the *middle* of the
+//     line, with the trail painting the descender line below it.
+//
+// Off-text fallback: if the hit-test misses (cursor past a line's last
+// char, or in the margin between paragraphs), we snap to the nearest line
+// in the most recent paragraph. This avoids the cursor briefly collapsing
+// back to a dot in between lines — the snap stays committed to either the
+// upper or lower line based on which is closer.
 //
 // 다른 모듈은 좌표 필요 시 window.__portal.{locked, x, y, actualY} 참조.
-//   state.y     = trail position (underline when over glyph, actualY otherwise)
-//   state.actualY = raw vertical intent (used by highlight.js hit-tests)
 
-const EDGE_PAD = 6;              // 줄 끝 트리거 여유
-const SLOW_VELOCITY = 1.6;       // px/ms 이하만 텔레포트 (빠른 스캔 무시)
+const EDGE_PAD = 6;
+const SLOW_VELOCITY = 1.6;
 const TELEPORT_COOLDOWN_MS = 280;
-const LINE_TOLERANCE = 6;        // 같은 줄 판정 오차
-const SNAP_OFFSET = 2;           // px below glyph bottom (= underline line)
-const FOLLOW_RATE = 0.18;        // EMA — how quickly the cursor visual chases
-                                 // the current target (glyph center or actualY).
-                                 // Higher = snappier, lower = lazier.
+const LINE_TOLERANCE = 6;
+const LINE_HEIGHT = 32;            // matches .para line-height in styles.css
+const SNAP_OFFSET = 2;             // px below glyph bottom (underline line)
+const FOLLOW_RATE = 0.18;          // EMA — how quickly the visual chases its target
+const FALLBACK_REACH = LINE_HEIGHT * 1.5; // how far off-text we'll still snap to a line
 
 const state = {
   locked: false,
-  // x is the raw horizontal cursor position — shared with the trail.
   x: 0,
-  // y is the *trail* position. When over a glyph this equals the line's
-  // underline (glyph.bottom + 2); otherwise it equals actualY.
-  y: 0,
-  // actualY is the raw cumulative vertical position from movementY — the
-  // hand's real intent. highlight.js hit-tests against this, the cursor
-  // visual eases toward whichever glyph is under it.
-  actualY: 0,
-  // Bounding rect of the glyph the cursor is currently over (or null).
-  glyphRect: null,
-  // Most recent paragraph the cursor was visibly over. Used by the teleport
-  // logic so backward-teleport works even when cursor is in the side margin.
+  y: 0,                  // trail position (underline when over a word, else actualY)
+  actualY: 0,            // raw vertical intent — highlight.js hit-tests this
+  wordRect: null,        // bbox of the WORD the cursor is on (or null off-text)
   lastPara: null,
-  // Cached "is cursor over a grapheme right now".
   overGlyph: false,
 };
 window.__portal = state;
@@ -59,10 +53,7 @@ let velocity = 0;
 let lastTeleportT = 0;
 let rafId = null;
 
-// EMA-followed cursor visual position. The cursor element renders at
-// (renderX, renderY), which lazily chases either the glyph center (when
-// over text) or actualY (when off text). This is what makes the cursor
-// glide between adjacent glyphs as the hand moves.
+// Visual cursor position (EMA-chased).
 let renderX = 0;
 let renderY = 0;
 
@@ -71,7 +62,7 @@ export function initPortal() {
   toggleBtn.id = "portal-toggle";
   toggleBtn.type = "button";
   toggleBtn.textContent = "📖 독서 모드";
-  toggleBtn.title = "Pointer Lock + 줄 끝 텔레포트 + 글자 wrap 커서";
+  toggleBtn.title = "Pointer Lock + 단어 wrap 커서 + 줄 끝 텔레포트";
   toggleBtn.addEventListener("click", () => {
     if (!state.locked) {
       document.body.requestPointerLock?.();
@@ -103,7 +94,7 @@ function onLockChange() {
     state.x = btnRect.left + btnRect.width / 2;
     state.actualY = btnRect.top + btnRect.height / 2;
     state.y = state.actualY;
-    state.glyphRect = null;
+    state.wordRect = null;
     state.overGlyph = false;
     state.lastPara = null;
     renderX = state.x;
@@ -120,7 +111,7 @@ function onLockChange() {
     toggleBtn.classList.remove("is-active");
     state.lastPara = null;
     state.overGlyph = false;
-    state.glyphRect = null;
+    state.wordRect = null;
     stopTick();
   }
 }
@@ -136,33 +127,41 @@ function onMouseMove(e) {
   state.x = clamp(state.x + dx, 0, window.innerWidth - 1);
   state.actualY = clamp(state.actualY + dy, 0, window.innerHeight - 1);
 
-  // EMA velocity (px/ms)
   const inst = Math.hypot(dx, dy) / dt;
   velocity = velocity * 0.6 + inst * 0.4;
 
-  // Hit-test at the raw intent position — pre-snap, inside the line box.
-  const stack = document.elementsFromPoint(state.x, state.actualY);
-  const glyph = stack.find(
-    (el) => el.matches && el.matches("[data-char-index]"),
-  );
+  // Keep lastPara fresh — even in paragraph margins we want a reference
+  // paragraph for the line-snap fallback. Search a small vertical band.
+  const para = findNearbyPara(state.x, state.actualY);
+  if (para) state.lastPara = para;
+
+  // Hit-test glyph. If the direct point misses (line end / margin / gap),
+  // fall back to the nearest glyph on the nearest line of lastPara — this
+  // is what stops the cursor from going dot-mode between lines.
+  const glyph = findGlyphAt(state.x, state.actualY);
   state.overGlyph = !!glyph;
   if (glyph) {
-    const rect = glyph.getBoundingClientRect();
-    state.glyphRect = rect;
-    // Trail rides the underline of the current line.
-    state.y = rect.bottom + SNAP_OFFSET;
+    const word = findWordBboxFromGlyph(glyph);
+    if (word) {
+      state.wordRect = word;
+      state.y = word.bottom + SNAP_OFFSET;
+    } else {
+      // Whitespace-only "word" → just use the glyph's own rect
+      const r = glyph.getBoundingClientRect();
+      state.wordRect = {
+        left: r.left,
+        top: r.top,
+        right: r.right,
+        bottom: r.bottom,
+        width: r.width,
+        height: r.height,
+      };
+      state.y = r.bottom + SNAP_OFFSET;
+    }
   } else {
-    state.glyphRect = null;
-    // Off text → trail follows the raw cursor.
+    state.wordRect = null;
     state.y = state.actualY;
   }
-
-  const para =
-    stack.find((el) => el.matches && el.matches(".para")) ||
-    stack
-      .find((el) => el.closest && el.closest(".para"))
-      ?.closest?.(".para");
-  if (para) state.lastPara = para;
 
   if (velocity < SLOW_VELOCITY && now - lastTeleportT > TELEPORT_COOLDOWN_MS) {
     maybeTeleport(dx);
@@ -191,10 +190,9 @@ function tick() {
 function applyCursorVisual() {
   const isDrawing = window.__highlightState === "drawing";
 
-  // Target the cursor wants to be at, in viewport coords.
   let targetX, targetY;
-  if (state.glyphRect && !isDrawing) {
-    const r = state.glyphRect;
+  if (state.wordRect && !isDrawing) {
+    const r = state.wordRect;
     targetX = (r.left + r.right) / 2;
     targetY = (r.top + r.bottom) / 2;
   } else {
@@ -202,23 +200,16 @@ function applyCursorVisual() {
     targetY = state.actualY;
   }
 
-  // EMA chase. The cursor glides toward the target each frame — when the
-  // user crosses from one glyph to the next, the target jumps to the new
-  // glyph's center and the cursor smoothly catches up. When the user
-  // leaves text the target jumps back to actualY and the cursor unwraps.
   renderX += (targetX - renderX) * FOLLOW_RATE;
   renderY += (targetY - renderY) * FOLLOW_RATE;
 
   cursorEl.style.transform = `translate3d(${renderX.toFixed(2)}px, ${renderY.toFixed(2)}px, 0) translate(-50%, -50%)`;
 
-  // Visual mode: drawing > glyph-wrap > default dot.
   cursorEl.classList.toggle("is-pencil", isDrawing);
-  cursorEl.classList.toggle("is-wrap", !isDrawing && state.overGlyph);
+  cursorEl.classList.toggle("is-wrap", !isDrawing && !!state.wordRect);
 
-  // Wrap mode resizes the box to match the glyph; default mode lets CSS
-  // restore the small dot dimensions.
-  if (!isDrawing && state.glyphRect) {
-    const r = state.glyphRect;
+  if (!isDrawing && state.wordRect) {
+    const r = state.wordRect;
     cursorEl.style.width = `${r.width.toFixed(1)}px`;
     cursorEl.style.height = `${r.height.toFixed(1)}px`;
   } else {
@@ -226,6 +217,166 @@ function applyCursorVisual() {
     cursorEl.style.height = "";
   }
 }
+
+// ---------- hit-testing helpers ----------
+
+function findGlyphAt(x, y) {
+  // Direct hit first.
+  const stack = document.elementsFromPoint(x, y);
+  let g = stack.find((el) => el.matches && el.matches("[data-char-index]"));
+  if (g) return g;
+
+  // Fallback: snap to the nearest line in lastPara. This is what stops the
+  // cursor from collapsing back to a dot between lines — at any y inside
+  // (or near) the paragraph, we commit to either the upper or lower line.
+  if (!state.lastPara) return null;
+  const allGlyphs = Array.from(
+    state.lastPara.querySelectorAll("[data-char-index]"),
+  );
+  if (allGlyphs.length === 0) return null;
+
+  const lines = groupSpansByLine(allGlyphs);
+  let nearestLine = null;
+  let minDist = Infinity;
+  for (const l of lines) {
+    const lc = (l.top + l.bottom) / 2;
+    const d = Math.abs(y - lc);
+    if (d < minDist) {
+      minDist = d;
+      nearestLine = l;
+    }
+  }
+  if (!nearestLine || minDist > FALLBACK_REACH) return null;
+
+  // Pick the glyph on that line whose center is closest to the cursor x.
+  let nearestGlyph = null;
+  let minXDist = Infinity;
+  for (const gg of allGlyphs) {
+    const r = gg.getBoundingClientRect();
+    if (Math.abs(r.bottom - nearestLine.bottom) > LINE_TOLERANCE) continue;
+    const gx = (r.left + r.right) / 2;
+    const d = Math.abs(x - gx);
+    if (d < minXDist) {
+      minXDist = d;
+      nearestGlyph = gg;
+    }
+  }
+  return nearestGlyph;
+}
+
+function findNearbyPara(x, y) {
+  const stack = document.elementsFromPoint(x, y);
+  const direct =
+    stack.find((el) => el.matches && el.matches(".para")) ||
+    stack
+      .find((el) => el.closest && el.closest(".para"))
+      ?.closest?.(".para");
+  if (direct) return direct;
+  // Look slightly up/down — covers the paragraph margin band.
+  for (const dy of [-20, 20, -40, 40]) {
+    const s = document.elementsFromPoint(x, y + dy);
+    const p =
+      s.find((el) => el.matches && el.matches(".para")) ||
+      s.find((el) => el.closest && el.closest(".para"))?.closest?.(".para");
+    if (p) return p;
+  }
+  return null;
+}
+
+// Whitespace-delimited word — walk left/right from the given glyph,
+// stopping at whitespace or line break. Bbox is the union of all the
+// non-space glyphs in the word.
+function findWordBboxFromGlyph(startGlyph) {
+  const para = startGlyph.closest("[data-paragraph-id]");
+  if (!para) return null;
+  const allGlyphs = Array.from(para.querySelectorAll("[data-char-index]"));
+  if (allGlyphs.length === 0) return null;
+
+  const byCi = new Map();
+  for (const g of allGlyphs) {
+    byCi.set(parseInt(g.dataset.charIndex, 10), g);
+  }
+  const maxCi = allGlyphs.length - 1;
+  const isSpace = (s) => /\s/.test(s);
+
+  let centerCi = parseInt(startGlyph.dataset.charIndex, 10);
+  const startBottom = startGlyph.getBoundingClientRect().bottom;
+
+  // If we landed on whitespace, find the nearest non-space on the same line.
+  if (isSpace(startGlyph.textContent)) {
+    let found = false;
+    for (let i = centerCi - 1; i >= 0; i--) {
+      const g = byCi.get(i);
+      if (!g) break;
+      const r = g.getBoundingClientRect();
+      if (Math.abs(r.bottom - startBottom) > LINE_TOLERANCE) break;
+      if (!isSpace(g.textContent)) {
+        centerCi = i;
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      for (let i = centerCi + 1; i <= maxCi; i++) {
+        const g = byCi.get(i);
+        if (!g) break;
+        const r = g.getBoundingClientRect();
+        if (Math.abs(r.bottom - startBottom) > LINE_TOLERANCE) break;
+        if (!isSpace(g.textContent)) {
+          centerCi = i;
+          found = true;
+          break;
+        }
+      }
+    }
+    if (!found) return null; // whole line is whitespace
+  }
+
+  // Walk left.
+  let leftCi = centerCi;
+  while (leftCi > 0) {
+    const prev = byCi.get(leftCi - 1);
+    if (!prev) break;
+    if (isSpace(prev.textContent)) break;
+    const r = prev.getBoundingClientRect();
+    if (Math.abs(r.bottom - startBottom) > LINE_TOLERANCE) break;
+    leftCi--;
+  }
+  // Walk right.
+  let rightCi = centerCi;
+  while (rightCi < maxCi) {
+    const next = byCi.get(rightCi + 1);
+    if (!next) break;
+    if (isSpace(next.textContent)) break;
+    const r = next.getBoundingClientRect();
+    if (Math.abs(r.bottom - startBottom) > LINE_TOLERANCE) break;
+    rightCi++;
+  }
+
+  let minL = Infinity, minT = Infinity, maxR = -Infinity, maxB = -Infinity;
+  for (let i = leftCi; i <= rightCi; i++) {
+    const g = byCi.get(i);
+    if (!g) continue;
+    const r = g.getBoundingClientRect();
+    if (r.width === 0 && r.height === 0) continue;
+    minL = Math.min(minL, r.left);
+    minT = Math.min(minT, r.top);
+    maxR = Math.max(maxR, r.right);
+    maxB = Math.max(maxB, r.bottom);
+  }
+  if (!isFinite(minL)) return null;
+
+  return {
+    left: minL,
+    top: minT,
+    right: maxR,
+    bottom: maxB,
+    width: maxR - minL,
+    height: maxB - minT,
+  };
+}
+
+// ---------- teleport ----------
 
 function maybeTeleport(dx) {
   if (dx === 0) return;
@@ -239,9 +390,6 @@ function maybeTeleport(dx) {
   );
   if (lines.length === 0) return;
 
-  // Find current line by the user's vertical intent (actualY), not the
-  // snapped trail position — at the line edge the trail Y sits below the
-  // glyph box and the lookup misses by one.
   const cy = state.actualY;
   let idx = -1;
   for (let i = 0; i < lines.length; i++) {
@@ -275,17 +423,12 @@ function teleportTo(x, y) {
   state.x = x;
   state.actualY = y;
   state.y = y;
-  // Snap the cursor visual instantly to the new spot so it doesn't lag the
-  // teleport — the EMA would otherwise crawl across the diagonal gap.
   renderX = x;
   renderY = y;
   applyCursorVisual();
   lastTeleportT = performance.now();
   spawnGhost(fromX, fromY);
   spawnGhost(x, y);
-  // Tell other modules so they can break their continuous-path mode (trail
-  // skips the connecting segment; highlight.js resets its interpolation
-  // anchor so the underline chain doesn't try to span the gap).
   window.dispatchEvent(
     new CustomEvent("portal-teleport", {
       detail: { fromX, fromY, toX: x, toY: y },
@@ -299,7 +442,7 @@ function spawnGhost(x, y) {
   ghost.style.left = `${x}px`;
   ghost.style.top = `${y}px`;
   ghostHost.appendChild(ghost);
-  setTimeout(() => ghost.remove(), 500);
+  setTimeout(() => ghost.remove(), 600);
 }
 
 function groupSpansByLine(spans) {
