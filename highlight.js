@@ -262,8 +262,9 @@ function applyUnderline() {
   const para = session.paragraphEl;
   const spans = para.querySelectorAll("[data-char-index]");
 
-  // Two-pass: collect spans newly entering the range, then apply one shared
-  // thickness derived from the batch's avg time-per-char (slower = thicker).
+  // Two-pass: collect spans newly entering the chain, then apply one shared
+  // ink density derived from the batch's avg time-per-char (slower = denser).
+  // Speed → opacity (not thickness) — like ink soaking into the paper.
   const newSpans = [];
   for (const s of spans) {
     const i = Number(s.dataset.charIndex);
@@ -272,7 +273,8 @@ function applyUnderline() {
       if (!s.classList.contains("is-underlined")) newSpans.push(s);
     } else if (s.classList.contains("is-underlined")) {
       s.classList.remove("is-underlined");
-      s.style.removeProperty("--underline-thickness");
+      s.style.removeProperty("--underline-opacity");
+      delete s.dataset.rawOp;
       session.underlinedSpans.delete(i);
     }
   }
@@ -282,15 +284,44 @@ function applyUnderline() {
   const now = performance.now();
   const dt = now - session.lastAddT;
   const dtPerChar = dt / newSpans.length;
-  // 5ms/char → 1.5px (sweeping fast), 100ms/char → 4.5px (deliberate)
+  // 5ms/char → 0.4 (fast sweep, faint); 100ms/char → 0.95 (deliberate, dense)
   const norm = Math.min(Math.max((dtPerChar - 5) / 95, 0), 1);
-  const thickness = (1.5 + norm * 3).toFixed(2);
+  const rawOpacity = 0.4 + norm * 0.55;
   session.lastAddT = now;
 
   for (const s of newSpans) {
-    s.style.setProperty("--underline-thickness", `${thickness}px`);
+    // Store the raw (unsmoothed) opacity so smoothChainOpacities can blend
+    // without accumulating drift across repeated passes.
+    s.dataset.rawOp = rawOpacity.toFixed(3);
     s.classList.add("is-underlined");
     session.underlinedSpans.add(Number(s.dataset.charIndex));
+  }
+
+  // Run a single smoothing pass over the whole chain: each char's display
+  // opacity becomes (self*0.5 + prev*0.25 + next*0.25). The seam between
+  // batches with different speeds dissolves, but accumulated drift is
+  // avoided because we re-derive every pass from the raw values.
+  smoothChainOpacities();
+}
+
+function smoothChainOpacities() {
+  if (!session) return;
+  const para = session.paragraphEl;
+  const lo = session.chainLo;
+  const hi = session.chainHi;
+  const raws = [];
+  for (let i = lo; i <= hi; i++) {
+    const s = para.querySelector(`[data-char-index="${i}"]`);
+    const raw = s?.dataset.rawOp ? parseFloat(s.dataset.rawOp) : null;
+    raws.push({ s, raw });
+  }
+  for (let i = 0; i < raws.length; i++) {
+    const cur = raws[i];
+    if (!cur.s || cur.raw === null) continue;
+    const prev = raws[i - 1]?.raw ?? cur.raw;
+    const next = raws[i + 1]?.raw ?? cur.raw;
+    const smoothed = cur.raw * 0.5 + prev * 0.25 + next * 0.25;
+    cur.s.style.setProperty("--underline-opacity", smoothed.toFixed(3));
   }
 }
 
@@ -604,7 +635,8 @@ function resetUnderlineClasses() {
   if (!para) return;
   for (const s of para.querySelectorAll(".is-underlined")) {
     s.classList.remove("is-underlined");
-    s.style.removeProperty("--underline-thickness");
+    s.style.removeProperty("--underline-opacity");
+    delete s.dataset.rawOp;
   }
   session.underlinedSpans.clear?.();
 }

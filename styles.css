@@ -82,11 +82,10 @@ html, body {
 }
 
 /* Permanent faded underline kept after a highlight is released/annotated.
-   Fixed thin height so old speed-thickness doesn't carry over.
+   Inherits the speed-derived --underline-opacity from the active state and
+   halves it, so dense (slow) strokes stay denser even as faded records.
    Defined FIRST so the active .is-underlined rule below wins via CSS cascade
-   when a new drag re-highlights an already-annotated span.
-   Transitions apply when ::after's style changes due to class swap, so the
-   active red line smoothly fades into the faded record on mouseup/confirm. */
+   when a new drag re-highlights an already-annotated span. */
 .para .g.is-annotated::after {
   content: "";
   position: absolute;
@@ -95,11 +94,11 @@ html, body {
   bottom: -2px;
   height: 1.5px;
   background: var(--ink);
-  opacity: 0.45;
+  opacity: calc(var(--underline-opacity, 0.7) * 0.55);
   mix-blend-mode: multiply;
   pointer-events: none;
   border-radius: 1px;
-  transition: height 0.45s ease, opacity 0.45s ease;
+  transition: opacity 0.45s ease;
 }
 
 .para .g.is-underlined::after {
@@ -108,17 +107,23 @@ html, body {
   left: 0;
   right: 0;
   bottom: -2px;
-  /* Thickness is set inline per-span based on drawing speed
-     (slower drag → thicker line). Default for fallback / static use. */
-  height: var(--underline-thickness, 2px);
+  /* Fixed height now — speed maps to opacity instead, so slow drags look
+     denser (more ink soaked in) and fast drags look fainter. The opacity
+     is set inline per-span by applyUnderline and JS-smoothed against
+     neighbors so adjacent grapheme rectangles blend into one continuous
+     line instead of looking like separate blocks. */
+  height: 2.5px;
   background: var(--ink);
-  opacity: 1;
+  opacity: var(--underline-opacity, 0.7);
+  /* Soft red halo feathers the rectangle edges → no visible block seams
+     between adjacent .g elements. Subtle enough not to look glowy. */
+  box-shadow: 0 0 1.6px var(--ink);
   mix-blend-mode: multiply;
   pointer-events: none;
   border-radius: 1px;
   /* tiny vertical wobble for a hand-drawn feel */
   filter: url(#ink-jitter);
-  transition: height 0.45s ease, opacity 0.45s ease;
+  transition: opacity 0.45s ease;
 }
 
 /* Annotation marker — inserted as inline sibling of the anchor word's last
