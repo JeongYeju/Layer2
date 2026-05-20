@@ -6,6 +6,7 @@ import { renderToolbar } from "./toolbar.js";
 import { renderDashboard } from "./dashboard.js";
 import { initHighlight } from "./highlight.js";
 import { initCursorHud } from "./cursor-hud.js"; // tuning panel — remove this line + cursor-hud.js when done
+import { initPortal } from "./portal.js";
 
 const reader = document.getElementById("reader");
 const dashboard = document.getElementById("dashboard");
@@ -17,3 +18,4 @@ renderDashboard(dashboard);
 initBaselineCollectors({ readerEl: reader });
 initHighlight();
 initCursorHud();
+initPortal();

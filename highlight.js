@@ -30,6 +30,16 @@ let session = null;
 let inkLayer = null;
 let annotationHost = null;
 
+// When Pointer Lock (Cursor Portal) is active, e.clientX/Y is frozen — use the
+// virtual cursor coordinates from window.__portal instead. Otherwise fall back
+// to the event's own coords. All mouse-coord reads in this module go through
+// this helper so both modes share the same code paths.
+function pointerPos(e) {
+  const p = window.__portal;
+  if (p && p.locked) return { x: p.x, y: p.y };
+  return { x: e.clientX, y: e.clientY };
+}
+
 export function initHighlight() {
   inkLayer = document.getElementById("ink-layer");
   annotationHost = document.getElementById("annotation-host");
@@ -69,10 +79,14 @@ function initPencilCursor() {
     activeSpan = span;
   };
   const findSpan = (e) => {
+    const { x, y } = pointerPos(e);
+    // In normal mode e.target is reliable; in Pointer Lock mode it isn't
+    // (events fire on document.body), so we always backstop with
+    // elementsFromPoint at the virtual cursor coords.
     const target = e.target instanceof Element ? e.target : null;
     let span = target ? target.closest("[data-char-index]") : null;
     if (!span) {
-      const stack = document.elementsFromPoint(e.clientX, e.clientY);
+      const stack = document.elementsFromPoint(x, y);
       span =
         stack.find((el) => el.matches && el.matches("[data-char-index]")) ||
         null;
@@ -100,7 +114,8 @@ function initPencilCursor() {
       setActiveSpan(null);
       return;
     }
-    const relY = (e.clientY - rect.top) / rect.height;
+    const { y } = pointerPos(e);
+    const relY = (y - rect.top) / rect.height;
     setActiveSpan(relY >= 0.7 ? span : null);
   });
 }
@@ -116,7 +131,8 @@ function onMouseDown(e) {
   // Don't start when clicking inside an open annotation, toolbar, dashboard.
   if (target.closest(".annotation-box, .toolbar, .dashboard")) return;
 
-  const hit = getCursorFromPoint(e.clientX, e.clientY);
+  const { x: px, y: py } = pointerPos(e);
+  const hit = getCursorFromPoint(px, py);
   if (!hit) return;
 
   const id = uuid();
@@ -133,8 +149,8 @@ function onMouseDown(e) {
     chainLo: hit.charIndex,
     chainHi: hit.charIndex,
     visitedChars: new Set([hit.charIndex]),
-    prevX: e.clientX,
-    prevY: e.clientY,
+    prevX: px,
+    prevY: py,
     startCursor: hit.cursor,
     startTime: performance.now(),
     lastAddT: performance.now(),
@@ -162,8 +178,7 @@ function onMouseMove(e) {
   if (state === "idle") return;
 
   if (state === "drawing") {
-    const x = e.clientX;
-    const y = e.clientY;
+    const { x, y } = pointerPos(e);
 
     // Sample the straight segment between the last mouse position and the
     // current one. Each sample looks for a grapheme under it; only those
@@ -205,12 +220,13 @@ function onMouseMove(e) {
 
   if (state === "transitioning" || state === "annotating") {
     session.lastMoveT = performance.now();
-    updateFlowingPath(e.clientX, e.clientY);
+    const { x: tx, y: ty } = pointerPos(e);
+    updateFlowingPath(tx, ty);
     if (state === "transitioning") {
       // Reset idle timer; if cursor is still long enough → annotation
       if (session.idleTimer) clearTimeout(session.idleTimer);
       session.idleTimer = setTimeout(
-        () => maybeOpenAnnotation(e.clientX, e.clientY),
+        () => maybeOpenAnnotation(tx, ty),
         ANNOTATE_DELAY_MS,
       );
     }
@@ -350,7 +366,8 @@ function enterTransitioning(e) {
 
   // Start the ink path; updateFlowingPath recomputes it from anchor → cursor each move.
   startInkPath();
-  updateFlowingPath(e.clientX, e.clientY);
+  const { x: tx, y: ty } = pointerPos(e);
+  updateFlowingPath(tx, ty);
 }
 
 function drawAnchorCircle(bbox) {

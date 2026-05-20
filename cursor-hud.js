@@ -11,8 +11,8 @@ const DEFAULTS = {
   fontSize: 22,
   svgSize: 24,
   rotate: 180,
-  hotspotX: 16,
-  hotspotY: 8,
+  hotspotX: 3,
+  hotspotY: 0,
 };
 
 export function initCursorHud() {
