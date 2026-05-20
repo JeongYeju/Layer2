@@ -30,6 +30,13 @@ let session = null;
 let inkLayer = null;
 let annotationHost = null;
 
+// Expose for cross-module reads (portal.js uses it to swap the virtual cursor
+// visual to a pencil during drag).
+Object.defineProperty(window, "__highlightState", {
+  get: () => state,
+  configurable: true,
+});
+
 // When Pointer Lock (Cursor Portal) is active, e.clientX/Y is frozen — use the
 // virtual cursor coordinates from window.__portal instead. Otherwise fall back
 // to the event's own coords. All mouse-coord reads in this module go through

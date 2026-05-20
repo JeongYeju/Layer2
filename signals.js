@@ -179,18 +179,25 @@ function initMouseTrailVisual() {
     }
     const now = performance.now();
 
+    // In reading mode (Pointer Lock) e.clientX/Y is frozen — read the virtual
+    // cursor position from portal.js instead, so the trail naturally follows
+    // the visible virtual cursor (which is already snapped to underlines).
+    const p = window.__portal;
+    const ex = p && p.locked ? p.x : e.clientX;
+    const ey = p && p.locked ? p.y : e.clientY;
+
     // EMA lowpass — filters hand jitter, preserves direction.
     let sx, sy;
     if (smoothedLast) {
-      sx = smoothedLast.x + (e.clientX - smoothedLast.x) * SMOOTH_ALPHA;
-      sy = smoothedLast.y + (e.clientY - smoothedLast.y) * SMOOTH_ALPHA;
+      sx = smoothedLast.x + (ex - smoothedLast.x) * SMOOTH_ALPHA;
+      sy = smoothedLast.y + (ey - smoothedLast.y) * SMOOTH_ALPHA;
       if (Math.hypot(sx - smoothedLast.x, sy - smoothedLast.y) < MIN_DIST) {
         smoothedLast = { x: sx, y: sy };
         return;
       }
     } else {
-      sx = e.clientX;
-      sy = e.clientY;
+      sx = ex;
+      sy = ey;
     }
     smoothedLast = { x: sx, y: sy };
 

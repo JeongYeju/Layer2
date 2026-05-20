@@ -498,26 +498,48 @@ html, body {
   position: fixed;
   top: 0;
   left: 0;
-  width: 14px;
-  height: 14px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  background: var(--ink);
-  box-shadow:
-    0 0 0 2px rgba(217, 54, 43, 0.18),
-    0 0 12px rgba(217, 54, 43, 0.45);
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(60, 60, 60, 0.32);
+  box-shadow: 0 0 4px rgba(255, 255, 255, 0.35);
   pointer-events: none;
   z-index: 200;
   will-change: transform;
-  transition: width 0.12s ease, height 0.12s ease, box-shadow 0.18s ease;
+  font-size: 18px;
+  line-height: 22px;
+  text-align: center;
+  transition:
+    width 0.18s ease,
+    height 0.18s ease,
+    background 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
 }
-/* Visual cue when the virtual cursor is directly over a grapheme — slightly
-   bigger and brighter halo so the user knows "I can highlight here". */
+/* Slightly brighter when sitting over text — subtle "active" cue. */
 #portal-cursor.over-text {
-  width: 16px;
-  height: 16px;
-  box-shadow:
-    0 0 0 3px rgba(217, 54, 43, 0.28),
-    0 0 18px rgba(217, 54, 43, 0.6);
+  background: rgba(255, 255, 255, 0.75);
+  border-color: rgba(60, 60, 60, 0.5);
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.55);
+}
+/* Pencil emoji while the user is actively drawing (or hovering on a glyph).
+   The white dot is replaced by the ✏️ glyph, rotated 180° to match the
+   non-reading-mode pencil cursor. */
+#portal-cursor.is-pencil {
+  width: 22px;
+  height: 22px;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  /* keep over-text background change from leaking through */
+}
+#portal-cursor.is-pencil::before {
+  content: "✏️";
+  display: block;
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+  transform: rotate(180deg);
+  line-height: 22px;
 }
 
 #portal-ghost-host {
