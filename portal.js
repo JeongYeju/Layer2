@@ -30,12 +30,16 @@
 
 const EDGE_PAD = 6;
 const SLOW_VELOCITY = 1.6;
-const TELEPORT_COOLDOWN_MS = 280;
+const TELEPORT_ANIM_MS = 400;      // total blur in/out duration
+const TELEPORT_HALFWAY_MS = 200;   // when the cursor invisibly relocates
+const TELEPORT_COOLDOWN_MS = 500;  // > anim duration to avoid overlapping teleports
 const LINE_TOLERANCE = 6;
 const LINE_HEIGHT = 32;            // matches .para line-height in styles.css
 const SNAP_OFFSET = 2;             // px below glyph bottom (underline line)
 const FOLLOW_RATE = 0.18;          // EMA — how quickly the visual chases its target
 const FALLBACK_REACH = LINE_HEIGHT * 1.5; // how far off-text we'll still snap to a line
+const EMPTY_TRAIL_REACH = 30;      // past line.right this far → no snap (free movement
+                                   // in trailing empty space of a short line)
 
 const state = {
   locked: false,
@@ -49,7 +53,6 @@ const state = {
 window.__portal = state;
 
 let cursorEl = null;
-let ghostHost = null;
 let toggleBtn = null;
 let lastMoveT = performance.now();
 let velocity = 0;
@@ -79,10 +82,6 @@ export function initPortal() {
   cursorEl.id = "portal-cursor";
   cursorEl.style.display = "none";
   document.body.appendChild(cursorEl);
-
-  ghostHost = document.createElement("div");
-  ghostHost.id = "portal-ghost-host";
-  document.body.appendChild(ghostHost);
 
   document.addEventListener("pointerlockchange", onLockChange);
   document.addEventListener("mousemove", onMouseMove);
@@ -228,10 +227,15 @@ function findGlyphAt(x, y) {
   let g = stack.find((el) => el.matches && el.matches("[data-char-index]"));
   if (g) return g;
 
-  // Fallback: snap to the nearest line in lastPara. This is what stops the
-  // cursor from collapsing back to a dot between lines — at any y inside
-  // (or near) the paragraph, we commit to either the upper or lower line.
   if (!state.lastPara) return null;
+
+  // Free-movement zone 1 — cursor is vertically outside the current
+  // paragraph (i.e., in an inter-paragraph margin or above/below all
+  // text). The user is moving through empty space, don't pull them
+  // back to a line.
+  const pr = state.lastPara.getBoundingClientRect();
+  if (y < pr.top - 2 || y > pr.bottom + 2) return null;
+
   const allGlyphs = Array.from(
     state.lastPara.querySelectorAll("[data-char-index]"),
   );
@@ -249,6 +253,12 @@ function findGlyphAt(x, y) {
     }
   }
   if (!nearestLine || minDist > FALLBACK_REACH) return null;
+
+  // Free-movement zone 2 — cursor is significantly past the line's last
+  // glyph (a short line with empty trailing space). Don't drag the
+  // cursor back to the last char; let the user move freely in that void.
+  if (x > nearestLine.right + EMPTY_TRAIL_REACH) return null;
+  if (x < nearestLine.left - EMPTY_TRAIL_REACH) return null;
 
   // Pick the glyph on that line whose center is closest to the cursor x.
   let nearestGlyph = null;
@@ -329,29 +339,35 @@ function maybeTeleport(dx) {
 function teleportTo(x, y) {
   const fromX = renderX;
   const fromY = renderY;
-  state.x = x;
-  state.actualY = y;
-  state.y = y;
-  renderX = x;
-  renderY = y;
-  applyCursorVisual();
+  // Phase 1: blur the cursor out at source (CSS keyframe via .is-teleporting).
+  cursorEl.classList.add("is-teleporting");
+  // Phase 2: at the animation halfway point the cursor is fully invisible
+  // (opacity 0, max blur). That's when we relocate it — the user never sees
+  // a diagonal slide, the cursor just rematerialises at the destination.
+  setTimeout(() => {
+    state.x = x;
+    state.actualY = y;
+    state.y = y;
+    renderX = x;
+    renderY = y;
+    applyCursorVisual();
+  }, TELEPORT_HALFWAY_MS);
+  // Phase 3: animation ends, drop the class so the cursor is back to its
+  // normal sharp state at the new spot.
+  setTimeout(() => {
+    cursorEl.classList.remove("is-teleporting");
+  }, TELEPORT_ANIM_MS);
+
   lastTeleportT = performance.now();
-  spawnGhost(fromX, fromY);
-  spawnGhost(x, y);
+  // Tell the trail / highlight modules immediately so they break their
+  // continuous-path state right away (the trail's break segment + the
+  // highlight chain's reset both want to know without waiting for the
+  // visual animation to finish).
   window.dispatchEvent(
     new CustomEvent("portal-teleport", {
       detail: { fromX, fromY, toX: x, toY: y },
     }),
   );
-}
-
-function spawnGhost(x, y) {
-  const ghost = document.createElement("div");
-  ghost.className = "portal-ghost";
-  ghost.style.left = `${x}px`;
-  ghost.style.top = `${y}px`;
-  ghostHost.appendChild(ghost);
-  setTimeout(() => ghost.remove(), 600);
 }
 
 function groupSpansByLine(spans) {

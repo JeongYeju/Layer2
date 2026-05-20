@@ -508,7 +508,7 @@ html, body {
   box-shadow: 0 0 5px rgba(255, 255, 255, 0.4);
   pointer-events: none;
   z-index: 200;
-  will-change: transform;
+  will-change: transform, filter, opacity;
   /* Width/height/border-radius transition so the cursor smoothly grows
      into the glyph wrap (or shrinks back to a dot when leaving text). */
   transition:
@@ -518,6 +518,25 @@ html, body {
     background 0.2s ease,
     border-color 0.2s ease,
     box-shadow 0.25s ease;
+}
+
+/* The pencil emoji lives as an ::before on every state of the cursor —
+   default it's hidden (opacity 0, pre-blurred). When .is-pencil is added
+   it transitions in to opacity 1 / blur 0; removed → fades back out. So
+   the cursor visually melts into/out of pencil shape on each drag. */
+#portal-cursor::before {
+  content: "✏️";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+  font-size: 1.4rem;
+  line-height: 1;
+  transform: translate(-50%, -50%) rotate(180deg);
+  opacity: 0;
+  filter: blur(6px);
+  transition: opacity 0.28s ease, filter 0.28s ease;
+  pointer-events: none;
 }
 
 /* Over a glyph: the cursor wraps the character. Width/height are set
@@ -530,9 +549,10 @@ html, body {
   box-shadow: 0 0 6px rgba(255, 255, 255, 0.32);
 }
 
-/* While the user is actively drawing, swap to a ✏️ emoji. Force the dot
-   container size so the pencil isn't accidentally inflated by a stale
-   width/height inline style left over from is-wrap. */
+/* While the user is actively drawing, swap to a ✏️ emoji. The base styles
+   (background, border, etc.) fade out via their own transitions; the
+   ::before fades in. Force the container size back to the dot dimensions
+   so a stale .is-wrap inline width/height doesn't inflate the pencil. */
 #portal-cursor.is-pencil {
   width: 0.875rem !important;
   height: 0.875rem !important;
@@ -542,46 +562,21 @@ html, body {
   border-radius: 50%;
 }
 #portal-cursor.is-pencil::before {
-  content: "✏️";
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
-  font-size: 1.4rem;
-  line-height: 1;
-  transform: translate(-50%, -50%) rotate(180deg);
-  pointer-events: none;
+  opacity: 1;
+  filter: blur(0);
 }
 
-#portal-ghost-host {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 199;
+/* Teleport: the cursor itself blurs out at the source, becomes invisible
+   at the halfway mark (when portal.js silently moves it), then blurs
+   back in at the destination. Replaces the old ghost-circle markers —
+   the user sees the cursor "phase through" the portal. */
+#portal-cursor.is-teleporting {
+  animation: portalCursorBlur 400ms ease-in-out forwards;
 }
-.portal-ghost {
-  position: absolute;
-  width: 14px;
-  height: 14px;
-  border: 1.5px solid #a08560;        /* warm brown, less eye-grabby than ink red */
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-  opacity: 0.55;
-  filter: blur(0);
-  animation: portalGhostFade 0.55s ease-out forwards;
-  pointer-events: none;
-}
-@keyframes portalGhostFade {
-  0% {
-    width: 14px;
-    height: 14px;
-    opacity: 0.55;
-    filter: blur(0);
-  }
-  100% {
-    width: 30px;
-    height: 30px;
-    opacity: 0;
-    filter: blur(5px);
-  }
+@keyframes portalCursorBlur {
+  0%   { filter: blur(0);    opacity: 1; }
+  40%  { filter: blur(10px); opacity: 0.25; }
+  50%  { filter: blur(14px); opacity: 0; }
+  60%  { filter: blur(10px); opacity: 0.25; }
+  100% { filter: blur(0);    opacity: 1; }
 }
