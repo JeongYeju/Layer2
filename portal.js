@@ -11,11 +11,14 @@
 // Two-channel design:
 //   - Trail (signals.js, reads window.__portal.y): rides the underline of
 //     the current line — a "reading trail".
-//   - Cursor (rendered here): wraps the *word* the user is on. Not the
-//     glyph — glyph-by-glyph snap felt chatty. The wrap stays put while
-//     the user moves within a single word; it jumps when they cross a
-//     word boundary. Conceptually a skewer through the *middle* of the
-//     line, with the trail painting the descender line below it.
+//   - Cursor (rendered here): a *single grapheme wide* box sized to the
+//     glyph the cursor is over. Cursor X follows the user's actualX (no
+//     per-glyph centering) so a smooth horizontal glide is what threads
+//     the cursor through a word — the only "snap" between words is the
+//     implicit width change when crossing whitespace (whitespace glyphs
+//     are naturally narrow, so the box thins out, then widens again on
+//     the next non-space). Conceptually a skewer through the middle of
+//     the line; the trail paints the descender line below it.
 //
 // Off-text fallback: if the hit-test misses (cursor past a line's last
 // char, or in the margin between paragraphs), we snap to the nearest line
@@ -37,9 +40,9 @@ const FALLBACK_REACH = LINE_HEIGHT * 1.5; // how far off-text we'll still snap t
 const state = {
   locked: false,
   x: 0,
-  y: 0,                  // trail position (underline when over a word, else actualY)
+  y: 0,                  // trail position (underline when over a glyph, else actualY)
   actualY: 0,            // raw vertical intent — highlight.js hit-tests this
-  wordRect: null,        // bbox of the WORD the cursor is on (or null off-text)
+  glyphRect: null,       // bbox of the single grapheme the cursor is on
   lastPara: null,
   overGlyph: false,
 };
@@ -94,7 +97,7 @@ function onLockChange() {
     state.x = btnRect.left + btnRect.width / 2;
     state.actualY = btnRect.top + btnRect.height / 2;
     state.y = state.actualY;
-    state.wordRect = null;
+    state.glyphRect = null;
     state.overGlyph = false;
     state.lastPara = null;
     renderX = state.x;
@@ -111,7 +114,7 @@ function onLockChange() {
     toggleBtn.classList.remove("is-active");
     state.lastPara = null;
     state.overGlyph = false;
-    state.wordRect = null;
+    state.glyphRect = null;
     stopTick();
   }
 }
@@ -141,25 +144,18 @@ function onMouseMove(e) {
   const glyph = findGlyphAt(state.x, state.actualY);
   state.overGlyph = !!glyph;
   if (glyph) {
-    const word = findWordBboxFromGlyph(glyph);
-    if (word) {
-      state.wordRect = word;
-      state.y = word.bottom + SNAP_OFFSET;
-    } else {
-      // Whitespace-only "word" → just use the glyph's own rect
-      const r = glyph.getBoundingClientRect();
-      state.wordRect = {
-        left: r.left,
-        top: r.top,
-        right: r.right,
-        bottom: r.bottom,
-        width: r.width,
-        height: r.height,
-      };
-      state.y = r.bottom + SNAP_OFFSET;
-    }
+    const r = glyph.getBoundingClientRect();
+    state.glyphRect = {
+      left: r.left,
+      top: r.top,
+      right: r.right,
+      bottom: r.bottom,
+      width: r.width,
+      height: r.height,
+    };
+    state.y = r.bottom + SNAP_OFFSET;
   } else {
-    state.wordRect = null;
+    state.glyphRect = null;
     state.y = state.actualY;
   }
 
@@ -191,9 +187,15 @@ function applyCursorVisual() {
   const isDrawing = window.__highlightState === "drawing";
 
   let targetX, targetY;
-  if (state.wordRect && !isDrawing) {
-    const r = state.wordRect;
-    targetX = (r.left + r.right) / 2;
+  if (state.glyphRect && !isDrawing) {
+    const r = state.glyphRect;
+    // X follows the user's actualX directly — within a word the cursor
+    // just glides along, no per-glyph snap-to-center. Crossing into
+    // whitespace is signalled by the width going thin (whitespace
+    // glyphs are narrow), then widening on the next non-space.
+    targetX = state.x;
+    // Y snaps to the line's middle (the "skewer" position) — the trail
+    // separately rides the underline two pixels lower.
     targetY = (r.top + r.bottom) / 2;
   } else {
     targetX = state.x;
@@ -206,10 +208,10 @@ function applyCursorVisual() {
   cursorEl.style.transform = `translate3d(${renderX.toFixed(2)}px, ${renderY.toFixed(2)}px, 0) translate(-50%, -50%)`;
 
   cursorEl.classList.toggle("is-pencil", isDrawing);
-  cursorEl.classList.toggle("is-wrap", !isDrawing && !!state.wordRect);
+  cursorEl.classList.toggle("is-wrap", !isDrawing && !!state.glyphRect);
 
-  if (!isDrawing && state.wordRect) {
-    const r = state.wordRect;
+  if (!isDrawing && state.glyphRect) {
+    const r = state.glyphRect;
     cursorEl.style.width = `${r.width.toFixed(1)}px`;
     cursorEl.style.height = `${r.height.toFixed(1)}px`;
   } else {
@@ -281,99 +283,6 @@ function findNearbyPara(x, y) {
     if (p) return p;
   }
   return null;
-}
-
-// Whitespace-delimited word — walk left/right from the given glyph,
-// stopping at whitespace or line break. Bbox is the union of all the
-// non-space glyphs in the word.
-function findWordBboxFromGlyph(startGlyph) {
-  const para = startGlyph.closest("[data-paragraph-id]");
-  if (!para) return null;
-  const allGlyphs = Array.from(para.querySelectorAll("[data-char-index]"));
-  if (allGlyphs.length === 0) return null;
-
-  const byCi = new Map();
-  for (const g of allGlyphs) {
-    byCi.set(parseInt(g.dataset.charIndex, 10), g);
-  }
-  const maxCi = allGlyphs.length - 1;
-  const isSpace = (s) => /\s/.test(s);
-
-  let centerCi = parseInt(startGlyph.dataset.charIndex, 10);
-  const startBottom = startGlyph.getBoundingClientRect().bottom;
-
-  // If we landed on whitespace, find the nearest non-space on the same line.
-  if (isSpace(startGlyph.textContent)) {
-    let found = false;
-    for (let i = centerCi - 1; i >= 0; i--) {
-      const g = byCi.get(i);
-      if (!g) break;
-      const r = g.getBoundingClientRect();
-      if (Math.abs(r.bottom - startBottom) > LINE_TOLERANCE) break;
-      if (!isSpace(g.textContent)) {
-        centerCi = i;
-        found = true;
-        break;
-      }
-    }
-    if (!found) {
-      for (let i = centerCi + 1; i <= maxCi; i++) {
-        const g = byCi.get(i);
-        if (!g) break;
-        const r = g.getBoundingClientRect();
-        if (Math.abs(r.bottom - startBottom) > LINE_TOLERANCE) break;
-        if (!isSpace(g.textContent)) {
-          centerCi = i;
-          found = true;
-          break;
-        }
-      }
-    }
-    if (!found) return null; // whole line is whitespace
-  }
-
-  // Walk left.
-  let leftCi = centerCi;
-  while (leftCi > 0) {
-    const prev = byCi.get(leftCi - 1);
-    if (!prev) break;
-    if (isSpace(prev.textContent)) break;
-    const r = prev.getBoundingClientRect();
-    if (Math.abs(r.bottom - startBottom) > LINE_TOLERANCE) break;
-    leftCi--;
-  }
-  // Walk right.
-  let rightCi = centerCi;
-  while (rightCi < maxCi) {
-    const next = byCi.get(rightCi + 1);
-    if (!next) break;
-    if (isSpace(next.textContent)) break;
-    const r = next.getBoundingClientRect();
-    if (Math.abs(r.bottom - startBottom) > LINE_TOLERANCE) break;
-    rightCi++;
-  }
-
-  let minL = Infinity, minT = Infinity, maxR = -Infinity, maxB = -Infinity;
-  for (let i = leftCi; i <= rightCi; i++) {
-    const g = byCi.get(i);
-    if (!g) continue;
-    const r = g.getBoundingClientRect();
-    if (r.width === 0 && r.height === 0) continue;
-    minL = Math.min(minL, r.left);
-    minT = Math.min(minT, r.top);
-    maxR = Math.max(maxR, r.right);
-    maxB = Math.max(maxB, r.bottom);
-  }
-  if (!isFinite(minL)) return null;
-
-  return {
-    left: minL,
-    top: minT,
-    right: maxR,
-    bottom: maxB,
-    width: maxR - minL,
-    height: maxB - minT,
-  };
 }
 
 // ---------- teleport ----------
