@@ -21,6 +21,10 @@ const state = {
   locked: false,
   x: 0,
   y: 0,
+  // Last paragraph the virtual cursor was visibly over. We keep it so the
+  // teleport logic can still find a "current line" when the cursor drifts
+  // into the side margin (where elementsFromPoint doesn't return any .para).
+  lastPara: null,
 };
 window.__portal = state;
 
@@ -72,7 +76,9 @@ function onLockChange() {
     renderCursor();
   } else {
     cursorEl.style.display = "none";
+    cursorEl.classList.remove("over-text");
     toggleBtn.classList.remove("is-active");
+    state.lastPara = null;
   }
 }
 
@@ -91,6 +97,20 @@ function onMouseMove(e) {
   const inst = Math.hypot(dx, dy) / dt;
   velocity = velocity * 0.6 + inst * 0.4;
 
+  // Update hover state — remember last .para under the cursor, and flag
+  // when we're directly over a grapheme (used for the visual cue).
+  const stack = document.elementsFromPoint(state.x, state.y);
+  const overGlyph = stack.some(
+    (el) => el.matches && el.matches("[data-char-index]"),
+  );
+  const para =
+    stack.find((el) => el.matches && el.matches(".para")) ||
+    stack
+      .find((el) => el.closest && el.closest(".para"))
+      ?.closest?.(".para");
+  if (para) state.lastPara = para;
+  cursorEl.classList.toggle("over-text", overGlyph);
+
   renderCursor();
 
   if (velocity < SLOW_VELOCITY && now - lastTeleportT > TELEPORT_COOLDOWN_MS) {
@@ -104,11 +124,15 @@ function renderCursor() {
 
 function maybeTeleport(dx) {
   if (dx === 0) return;
-  const elements = document.elementsFromPoint(state.x, state.y);
-  const para =
-    elements.find((el) => el.matches?.(".para")) ||
-    elements.find((el) => el.closest?.(".para"))?.closest?.(".para");
+  // Prefer the cached lastPara: when the cursor crosses the line-left edge
+  // it sits in the side margin where elementsFromPoint can't find a .para,
+  // but the user is still semantically "on" that paragraph.
+  const para = state.lastPara;
   if (!para) return;
+  // Sanity-check: bail if cursor is far from the paragraph vertically
+  // (scrolled away, etc).
+  const pr = para.getBoundingClientRect();
+  if (state.y < pr.top - 80 || state.y > pr.bottom + 80) return;
 
   const lines = groupSpansByLine(
     Array.from(para.querySelectorAll("[data-char-index]")),

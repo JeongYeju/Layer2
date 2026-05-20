@@ -40,6 +40,17 @@ function pointerPos(e) {
   return { x: e.clientX, y: e.clientY };
 }
 
+// In Pointer Lock mode every mouse event fires on document.body — e.target is
+// no longer the element under the visible (virtual) cursor. Look up the real
+// target via elementsFromPoint at the virtual coords so onMouseDown's grapheme
+// check still works.
+function resolveTarget(e) {
+  const p = window.__portal;
+  if (!p || !p.locked) return e.target;
+  const stack = document.elementsFromPoint(p.x, p.y);
+  return stack[0] || e.target;
+}
+
 export function initHighlight() {
   inkLayer = document.getElementById("ink-layer");
   annotationHost = document.getElementById("annotation-host");
@@ -125,7 +136,9 @@ function initPencilCursor() {
 function onMouseDown(e) {
   if (state !== "idle") return;
   if (e.button !== 0) return;
-  const target = e.target;
+  // resolveTarget swaps to elementsFromPoint(virtualX, virtualY) when Pointer
+  // Lock is active — otherwise highlighting can't start in reading mode.
+  const target = resolveTarget(e);
   if (!(target instanceof Element)) return;
   if (!target.closest("[data-char-index]")) return;
   // Don't start when clicking inside an open annotation, toolbar, dashboard.
