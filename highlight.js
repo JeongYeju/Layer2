@@ -38,23 +38,24 @@ Object.defineProperty(window, "__highlightState", {
 });
 
 // When Pointer Lock (Cursor Portal) is active, e.clientX/Y is frozen — use the
-// virtual cursor coordinates from window.__portal instead. Otherwise fall back
-// to the event's own coords. All mouse-coord reads in this module go through
-// this helper so both modes share the same code paths.
+// virtual cursor coordinates from window.__portal instead. We deliberately
+// use actualY (pre-snap) rather than y (post-snap, sits below the .g bbox),
+// because hit-tests at the snapped y would miss the grapheme entirely.
 function pointerPos(e) {
   const p = window.__portal;
-  if (p && p.locked) return { x: p.x, y: p.y };
+  if (p && p.locked) return { x: p.x, y: p.actualY ?? p.y };
   return { x: e.clientX, y: e.clientY };
 }
 
 // In Pointer Lock mode every mouse event fires on document.body — e.target is
 // no longer the element under the visible (virtual) cursor. Look up the real
 // target via elementsFromPoint at the virtual coords so onMouseDown's grapheme
-// check still works.
+// check still works. Use actualY for the same reason as pointerPos.
 function resolveTarget(e) {
   const p = window.__portal;
   if (!p || !p.locked) return e.target;
-  const stack = document.elementsFromPoint(p.x, p.y);
+  const y = p.actualY ?? p.y;
+  const stack = document.elementsFromPoint(p.x, y);
   return stack[0] || e.target;
 }
 
@@ -70,6 +71,30 @@ export function initHighlight() {
   window.addEventListener("blur", () => {
     if (state === "drawing") finishUnderline();
     else if (state !== "idle") cleanupSession();
+  });
+
+  // Reading-mode teleport: portal jumped the virtual cursor to the next/prev
+  // line. Reset interpolation anchor so the next mousemove doesn't drag a
+  // diagonal sample line across the gap, and auto-visit the char we landed
+  // on so the underline chain extends naturally onto the new line.
+  window.addEventListener("portal-teleport", () => {
+    if (state !== "drawing" || !session) return;
+    const p = window.__portal;
+    if (!p) return;
+    const y = p.actualY ?? p.y;
+    session.prevX = p.x;
+    session.prevY = y;
+    const hit = getCursorFromPoint(p.x, y);
+    if (hit && hit.paragraphId === session.paragraphId) {
+      session.visitedChars.add(hit.charIndex);
+      let lo = session.chainLo;
+      let hi = session.chainHi;
+      while (session.visitedChars.has(lo - 1)) lo--;
+      while (session.visitedChars.has(hi + 1)) hi++;
+      session.chainLo = lo;
+      session.chainHi = hi;
+      applyUnderline();
+    }
   });
 
   initPencilCursor();

@@ -165,6 +165,17 @@ function initMouseTrailVisual() {
     trailGroup.classList.remove("mouse-trail-group--circle");
   };
 
+  // When the portal teleports the virtual cursor (right-end → next-line-start
+  // or vice versa), mark the last point so the renderer skips the segment
+  // that would otherwise be a diagonal connecting line. The pre-teleport
+  // trail still fades naturally; the post-teleport trail starts fresh.
+  window.addEventListener("portal-teleport", () => {
+    if (trailPts.length > 0) {
+      trailPts[trailPts.length - 1].break = true;
+    }
+    smoothedLast = null;
+  });
+
   function findGraphemeAt(x, y) {
     const stack = document.elementsFromPoint(x, y);
     return stack.find(
@@ -285,6 +296,13 @@ function initMouseTrailVisual() {
     for (let i = 0; i < segCount; i++) {
       const p1 = trailPts[i];
       const p2 = trailPts[i + 1];
+      const ln = kids[i];
+      // Discontinuity flag: trail crossed a portal teleport here — don't
+      // draw a connecting segment, just leave a gap.
+      if (p1.break) {
+        ln.setAttribute("stroke-opacity", "0");
+        continue;
+      }
       // Snap-interpolated y per point.
       const y1 = p1.actualY + (p1.snapY - p1.actualY) * currentSnap;
       const y2 = p2.actualY + (p2.snapY - p2.actualY) * currentSnap;
@@ -295,7 +313,6 @@ function initMouseTrailVisual() {
       const eased = remaining * remaining * (3 - 2 * remaining);
       const opacity = BASE_ALPHA * eased;
 
-      const ln = kids[i];
       ln.setAttribute("x1", p1.x.toFixed(1));
       ln.setAttribute("y1", y1.toFixed(1));
       ln.setAttribute("x2", p2.x.toFixed(1));

@@ -209,9 +209,11 @@ function tick() {
   // Display y = lerp(intent, line-bottom, amount).
   state.y = state.actualY + (state.snapY - state.actualY) * snapAmount;
 
-  // Pencil visual switches when over text or actively drawing.
+  // Pencil visual switches ONLY while the user is actively drawing — hover
+  // doesn't toggle it, otherwise crossing line gaps flickers the icon. The
+  // dot/over-text state still gives a hover cue.
   const isDrawing = window.__highlightState === "drawing";
-  cursorEl.classList.toggle("is-pencil", state.overGlyph || isDrawing);
+  cursorEl.classList.toggle("is-pencil", isDrawing);
   cursorEl.classList.toggle("over-text", state.overGlyph);
 
   renderCursor();
@@ -276,6 +278,14 @@ function teleportTo(x, y) {
   lastTeleportT = performance.now();
   spawnGhost(fromX, fromY);
   spawnGhost(x, y);
+  // Tell other modules so they can break their continuous-path mode (trail
+  // skips connecting across the jump; highlight.js resets its interpolation
+  // anchor so the underline chain doesn't try to span the gap).
+  window.dispatchEvent(
+    new CustomEvent("portal-teleport", {
+      detail: { fromX, fromY, toX: x, toY: y },
+    }),
+  );
 }
 
 function spawnGhost(x, y) {
