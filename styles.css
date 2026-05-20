@@ -498,8 +498,8 @@ html, body {
   position: fixed;
   top: 0;
   left: 0;
-  /* rem-based so the cursor scales with the document's base font size and
-     reads as a clear point next to body text (default ~14px). */
+  /* Default dot — used when the cursor is NOT sitting on any glyph. Reads
+     as a clear point next to body text without overpowering it. */
   width: 0.875rem;
   height: 0.875rem;
   border-radius: 50%;
@@ -509,24 +509,37 @@ html, body {
   pointer-events: none;
   z-index: 200;
   will-change: transform;
+  /* Width/height/border-radius transition so the cursor smoothly grows
+     into the glyph wrap (or shrinks back to a dot when leaving text). */
   transition:
-    background 0.18s ease,
-    border-color 0.18s ease,
-    box-shadow 0.18s ease;
+    width 0.32s cubic-bezier(0.16, 1, 0.3, 1),
+    height 0.32s cubic-bezier(0.16, 1, 0.3, 1),
+    border-radius 0.25s ease,
+    background 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.25s ease;
 }
-/* Intentionally no .over-text appearance change. Earlier versions tinted
-   the cursor when it entered text, but that visual change happened at the
-   same moment the cursor was *also* sliding to the underline — the user
-   would notice the tint and miss the motion, so the snap felt abrupt.
-   The class is still toggled by portal.js for other modules to read. */
-/* While the user is actively drawing, swap to a ✏️ emoji. Container size
-   stays the same; the emoji renders via ::before centered on the cursor
-   point, overflowing as needed. This keeps the dot↔pencil swap from
-   shifting the hotspot or changing visual scale. */
+
+/* Over a glyph: the cursor wraps the character. Width/height are set
+   inline per-glyph by portal.js; this rule supplies the box look. The
+   semi-transparent fill lets the glyph remain readable inside. */
+#portal-cursor.is-wrap {
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(60, 60, 60, 0.42);
+  border-radius: 4px;
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.32);
+}
+
+/* While the user is actively drawing, swap to a ✏️ emoji. Force the dot
+   container size so the pencil isn't accidentally inflated by a stale
+   width/height inline style left over from is-wrap. */
 #portal-cursor.is-pencil {
+  width: 0.875rem !important;
+  height: 0.875rem !important;
   background: transparent;
   border: none;
   box-shadow: none;
+  border-radius: 50%;
 }
 #portal-cursor.is-pencil::before {
   content: "✏️";

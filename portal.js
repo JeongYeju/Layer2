@@ -9,45 +9,44 @@
 //   5. document.elementsFromPoint(vx, vy) 는 Pointer Lock 중에도 작동
 //      → 가상 좌표로 hover 감지 / 단어 찾기 가능
 //
-// Cursor snap: while the user's raw vertical position (actualY) lands on a
-// grapheme, the rendered display Y eases toward the line's underline (bottom +
-// 2 px). Same lerp-toward-target mechanic the trail uses in normal mode, just
-// applied to the cursor itself.
+// Two-channel design — the cursor and the trail show different things:
+//   - Trail: at the *underline* (glyph.bottom + 2) — the "reading line"
+//     that signals.js paints. Lives at the bottom of the line.
+//   - Cursor: wraps the *current glyph* the user is focused on — a soft
+//     rounded box that grabs the character it sits over. NOT at the trail
+//     line, because then the two channels would visually collapse and the
+//     user can't tell which char is focused.
 //
-// Pencil visual: while drawing or while overGlyph, swap the small white dot
-// for a ✏️ emoji.
-//
-// 다른 모듈은 좌표 필요 시 window.__portal.{locked, x, y} 참조.
+// 다른 모듈은 좌표 필요 시 window.__portal.{locked, x, y, actualY} 참조.
+//   state.y     = trail position (underline when over glyph, actualY otherwise)
+//   state.actualY = raw vertical intent (used by highlight.js hit-tests)
 
 const EDGE_PAD = 6;              // 줄 끝 트리거 여유
 const SLOW_VELOCITY = 1.6;       // px/ms 이하만 텔레포트 (빠른 스캔 무시)
 const TELEPORT_COOLDOWN_MS = 280;
 const LINE_TOLERANCE = 6;        // 같은 줄 판정 오차
 const SNAP_OFFSET = 2;           // px below glyph bottom (= underline line)
-const SNAP_DURATION = 400;       // ms — ease-out so the motion is visible
-                                 // from the very first frame instead of
-                                 // hiding the start under ease-in.
+const FOLLOW_RATE = 0.18;        // EMA — how quickly the cursor visual chases
+                                 // the current target (glyph center or actualY).
+                                 // Higher = snappier, lower = lazier.
 
 const state = {
   locked: false,
-  // x is identical to the actual horizontal cursor (no horizontal snap).
+  // x is the raw horizontal cursor position — shared with the trail.
   x: 0,
-  // y is the RENDERED y (post-snap). External readers (highlight.js, signals.js)
-  // use this so events line up with what's visible.
+  // y is the *trail* position. When over a glyph this equals the line's
+  // underline (glyph.bottom + 2); otherwise it equals actualY.
   y: 0,
-  // actualY is the raw cumulative vertical position from movementY — what the
-  // user's hand actually pointed at. Snap eases y toward snapY but actualY
-  // tracks intent so the user can move out of a snapped line by moving up
-  // far enough.
+  // actualY is the raw cumulative vertical position from movementY — the
+  // hand's real intent. highlight.js hit-tests against this, the cursor
+  // visual eases toward whichever glyph is under it.
   actualY: 0,
-  // The current snap target — set whenever the cursor is over a glyph; kept
-  // around briefly after leaving so the ease-out animation has a smooth target.
-  snapY: 0,
+  // Bounding rect of the glyph the cursor is currently over (or null).
+  glyphRect: null,
   // Most recent paragraph the cursor was visibly over. Used by the teleport
   // logic so backward-teleport works even when cursor is in the side margin.
   lastPara: null,
-  // Cached "is cursor over a grapheme right now" — updated in mousemove,
-  // read in tick to decide the pencil visual class.
+  // Cached "is cursor over a grapheme right now".
   overGlyph: false,
 };
 window.__portal = state;
@@ -60,17 +59,19 @@ let velocity = 0;
 let lastTeleportT = 0;
 let rafId = null;
 
-// Snap interpolation
-let snapAmount = 0;     // 0..1
-let snapTarget = 0;     // 0 or 1
-let snapAnim = null;    // { from, to, startT, duration }
+// EMA-followed cursor visual position. The cursor element renders at
+// (renderX, renderY), which lazily chases either the glyph center (when
+// over text) or actualY (when off text). This is what makes the cursor
+// glide between adjacent glyphs as the hand moves.
+let renderX = 0;
+let renderY = 0;
 
 export function initPortal() {
   toggleBtn = document.createElement("button");
   toggleBtn.id = "portal-toggle";
   toggleBtn.type = "button";
   toggleBtn.textContent = "📖 독서 모드";
-  toggleBtn.title = "Pointer Lock + 줄 끝 텔레포트 + 라인 스냅";
+  toggleBtn.title = "Pointer Lock + 줄 끝 텔레포트 + 글자 wrap 커서";
   toggleBtn.addEventListener("click", () => {
     if (!state.locked) {
       document.body.requestPointerLock?.();
@@ -98,29 +99,28 @@ function onLockChange() {
   if (state.locked) {
     cursorEl.style.display = "block";
     toggleBtn.classList.add("is-active");
-    // Seed the virtual cursor at the button the user just clicked, so it
-    // feels like the cursor "lifted off" from there instead of jumping to
-    // the middle of the screen.
     const btnRect = toggleBtn.getBoundingClientRect();
     state.x = btnRect.left + btnRect.width / 2;
     state.actualY = btnRect.top + btnRect.height / 2;
     state.y = state.actualY;
-    state.snapY = state.actualY;
+    state.glyphRect = null;
     state.overGlyph = false;
     state.lastPara = null;
-    snapAmount = 0;
-    snapTarget = 0;
-    snapAnim = null;
+    renderX = state.x;
+    renderY = state.actualY;
     lastMoveT = performance.now();
     velocity = 0;
-    renderCursor();
+    applyCursorVisual();
     startTick();
   } else {
     cursorEl.style.display = "none";
-    cursorEl.classList.remove("over-text", "is-pencil");
+    cursorEl.classList.remove("is-wrap", "is-pencil");
+    cursorEl.style.width = "";
+    cursorEl.style.height = "";
     toggleBtn.classList.remove("is-active");
     state.lastPara = null;
     state.overGlyph = false;
+    state.glyphRect = null;
     stopTick();
   }
 }
@@ -140,20 +140,22 @@ function onMouseMove(e) {
   const inst = Math.hypot(dx, dy) / dt;
   velocity = velocity * 0.6 + inst * 0.4;
 
-  // Hit test at the raw intent position. Use that to drive snap engagement
-  // and remember the last paragraph for teleport.
+  // Hit-test at the raw intent position — pre-snap, inside the line box.
   const stack = document.elementsFromPoint(state.x, state.actualY);
-  state.overGlyph = stack.some(
-    (el) => el.matches && el.matches("[data-char-index]"),
-  );
   const glyph = stack.find(
     (el) => el.matches && el.matches("[data-char-index]"),
   );
+  state.overGlyph = !!glyph;
   if (glyph) {
     const rect = glyph.getBoundingClientRect();
-    state.snapY = rect.bottom + SNAP_OFFSET;
+    state.glyphRect = rect;
+    // Trail rides the underline of the current line.
+    state.y = rect.bottom + SNAP_OFFSET;
+  } else {
+    state.glyphRect = null;
+    // Off text → trail follows the raw cursor.
+    state.y = state.actualY;
   }
-  // Otherwise keep state.snapY so the ease-out transition has a target.
 
   const para =
     stack.find((el) => el.matches && el.matches(".para")) ||
@@ -161,18 +163,6 @@ function onMouseMove(e) {
       .find((el) => el.closest && el.closest(".para"))
       ?.closest?.(".para");
   if (para) state.lastPara = para;
-
-  // Flip snap target if we entered/left the "over text" state.
-  const desired = state.overGlyph ? 1 : 0;
-  if (desired !== snapTarget) {
-    snapAnim = {
-      from: snapAmount,
-      to: desired,
-      startT: now,
-      duration: SNAP_DURATION,
-    };
-    snapTarget = desired;
-  }
 
   if (velocity < SLOW_VELOCITY && now - lastTeleportT > TELEPORT_COOLDOWN_MS) {
     maybeTeleport(dx);
@@ -194,36 +184,47 @@ function tick() {
     rafId = null;
     return;
   }
-  const now = performance.now();
-
-  // Advance snap easing.
-  if (snapAnim) {
-    const t = (now - snapAnim.startT) / snapAnim.duration;
-    if (t >= 1) {
-      snapAmount = snapAnim.to;
-      snapAnim = null;
-    } else {
-      snapAmount =
-        snapAnim.from + (snapAnim.to - snapAnim.from) * easeInOut(t);
-    }
-  }
-
-  // Display y = lerp(intent, line-bottom, amount).
-  state.y = state.actualY + (state.snapY - state.actualY) * snapAmount;
-
-  // Pencil visual switches ONLY while the user is actively drawing — hover
-  // doesn't toggle it, otherwise crossing line gaps flickers the icon. The
-  // dot/over-text state still gives a hover cue.
-  const isDrawing = window.__highlightState === "drawing";
-  cursorEl.classList.toggle("is-pencil", isDrawing);
-  cursorEl.classList.toggle("over-text", state.overGlyph);
-
-  renderCursor();
+  applyCursorVisual();
   rafId = requestAnimationFrame(tick);
 }
 
-function renderCursor() {
-  cursorEl.style.transform = `translate3d(${state.x}px, ${state.y}px, 0) translate(-50%, -50%)`;
+function applyCursorVisual() {
+  const isDrawing = window.__highlightState === "drawing";
+
+  // Target the cursor wants to be at, in viewport coords.
+  let targetX, targetY;
+  if (state.glyphRect && !isDrawing) {
+    const r = state.glyphRect;
+    targetX = (r.left + r.right) / 2;
+    targetY = (r.top + r.bottom) / 2;
+  } else {
+    targetX = state.x;
+    targetY = state.actualY;
+  }
+
+  // EMA chase. The cursor glides toward the target each frame — when the
+  // user crosses from one glyph to the next, the target jumps to the new
+  // glyph's center and the cursor smoothly catches up. When the user
+  // leaves text the target jumps back to actualY and the cursor unwraps.
+  renderX += (targetX - renderX) * FOLLOW_RATE;
+  renderY += (targetY - renderY) * FOLLOW_RATE;
+
+  cursorEl.style.transform = `translate3d(${renderX.toFixed(2)}px, ${renderY.toFixed(2)}px, 0) translate(-50%, -50%)`;
+
+  // Visual mode: drawing > glyph-wrap > default dot.
+  cursorEl.classList.toggle("is-pencil", isDrawing);
+  cursorEl.classList.toggle("is-wrap", !isDrawing && state.overGlyph);
+
+  // Wrap mode resizes the box to match the glyph; default mode lets CSS
+  // restore the small dot dimensions.
+  if (!isDrawing && state.glyphRect) {
+    const r = state.glyphRect;
+    cursorEl.style.width = `${r.width.toFixed(1)}px`;
+    cursorEl.style.height = `${r.height.toFixed(1)}px`;
+  } else {
+    cursorEl.style.width = "";
+    cursorEl.style.height = "";
+  }
 }
 
 function maybeTeleport(dx) {
@@ -231,14 +232,17 @@ function maybeTeleport(dx) {
   const para = state.lastPara;
   if (!para) return;
   const pr = para.getBoundingClientRect();
-  if (state.y < pr.top - 80 || state.y > pr.bottom + 80) return;
+  if (state.actualY < pr.top - 80 || state.actualY > pr.bottom + 80) return;
 
   const lines = groupSpansByLine(
     Array.from(para.querySelectorAll("[data-char-index]")),
   );
   if (lines.length === 0) return;
 
-  const cy = state.y;
+  // Find current line by the user's vertical intent (actualY), not the
+  // snapped trail position — at the line edge the trail Y sits below the
+  // glyph box and the lookup misses by one.
+  const cy = state.actualY;
   let idx = -1;
   for (let i = 0; i < lines.length; i++) {
     if (
@@ -266,22 +270,21 @@ function maybeTeleport(dx) {
 }
 
 function teleportTo(x, y) {
-  const fromX = state.x;
-  const fromY = state.y;
+  const fromX = renderX;
+  const fromY = renderY;
   state.x = x;
   state.actualY = y;
   state.y = y;
-  state.snapY = y;
-  // Reset snap so the new line engages from scratch on the next move.
-  snapAmount = 0;
-  snapTarget = 0;
-  snapAnim = null;
-  renderCursor();
+  // Snap the cursor visual instantly to the new spot so it doesn't lag the
+  // teleport — the EMA would otherwise crawl across the diagonal gap.
+  renderX = x;
+  renderY = y;
+  applyCursorVisual();
   lastTeleportT = performance.now();
   spawnGhost(fromX, fromY);
   spawnGhost(x, y);
   // Tell other modules so they can break their continuous-path mode (trail
-  // skips connecting across the jump; highlight.js resets its interpolation
+  // skips the connecting segment; highlight.js resets its interpolation
   // anchor so the underline chain doesn't try to span the gap).
   window.dispatchEvent(
     new CustomEvent("portal-teleport", {
@@ -327,14 +330,6 @@ function groupSpansByLine(spans) {
   }
   lines.sort((a, b) => a.top - b.top);
   return lines;
-}
-
-// Cubic ease-out: derivative is highest at t=0, decays to 0 at t=1. The
-// cursor starts moving toward the underline immediately, then gently settles.
-// (We swapped from ease-in-out because the slow start was invisible — the
-// user couldn't see the snap happening, just its result.)
-function easeInOut(t) {
-  return 1 - Math.pow(1 - t, 3);
 }
 
 function clamp(v, min, max) {
