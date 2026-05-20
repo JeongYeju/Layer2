@@ -24,7 +24,9 @@ const SLOW_VELOCITY = 1.6;       // px/ms 이하만 텔레포트 (빠른 스캔 
 const TELEPORT_COOLDOWN_MS = 280;
 const LINE_TOLERANCE = 6;        // 같은 줄 판정 오차
 const SNAP_OFFSET = 2;           // px below glyph bottom (= underline line)
-const SNAP_DURATION = 260;       // ms — ease-in-out duration
+const SNAP_DURATION = 400;       // ms — ease-out so the motion is visible
+                                 // from the very first frame instead of
+                                 // hiding the start under ease-in.
 
 const state = {
   locked: false,
@@ -327,8 +329,12 @@ function groupSpansByLine(spans) {
   return lines;
 }
 
+// Cubic ease-out: derivative is highest at t=0, decays to 0 at t=1. The
+// cursor starts moving toward the underline immediately, then gently settles.
+// (We swapped from ease-in-out because the slow start was invisible — the
+// user couldn't see the snap happening, just its result.)
 function easeInOut(t) {
-  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  return 1 - Math.pow(1 - t, 3);
 }
 
 function clamp(v, min, max) {

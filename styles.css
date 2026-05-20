@@ -514,13 +514,11 @@ html, body {
     border-color 0.18s ease,
     box-shadow 0.18s ease;
 }
-/* Slightly brighter when sitting over text — subtle "active" cue, no size
-   change so crossing line gaps doesn't visually flicker. */
-#portal-cursor.over-text {
-  background: rgba(255, 255, 255, 0.82);
-  border-color: rgba(60, 60, 60, 0.55);
-  box-shadow: 0 0 7px rgba(255, 255, 255, 0.6);
-}
+/* Intentionally no .over-text appearance change. Earlier versions tinted
+   the cursor when it entered text, but that visual change happened at the
+   same moment the cursor was *also* sliding to the underline — the user
+   would notice the tint and miss the motion, so the snap felt abrupt.
+   The class is still toggled by portal.js for other modules to read. */
 /* While the user is actively drawing, swap to a ✏️ emoji. Container size
    stays the same; the emoji renders via ::before centered on the cursor
    point, overflowing as needed. This keeps the dot↔pencil swap from
