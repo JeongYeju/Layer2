@@ -494,23 +494,39 @@ html, body {
   box-shadow: 0 4px 16px rgba(217, 54, 43, 0.28);
 }
 
+/* Outer: only carries position (JS sets translate3d each frame). No
+   visual — that lives on .portal-cursor-inner. Zero-size so the inner's
+   own translate(-50%, -50%) is the single source of centering. */
 #portal-cursor {
   position: fixed;
   top: 0;
   left: 0;
-  /* Default dot — used when the cursor is NOT sitting on any glyph. Reads
-     as a clear point next to body text without overpowering it. */
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  z-index: 200;
+  will-change: transform;
+}
+
+/* Inner: the actual visual. translate(-50%, -50%) centers it on the
+   outer's render point. Width/height are set inline by portal.js for
+   wrap mode; default is the 0.875rem dot. Its own transform is what
+   the teleport animation scales — by living on a separate element from
+   the position-translate3d, the scale doesn't fight the per-frame
+   translate updates the outer is doing. */
+.portal-cursor-inner {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 0.875rem;
   height: 0.875rem;
+  transform: translate(-50%, -50%);
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.6);
   border: 1px solid rgba(60, 60, 60, 0.35);
   box-shadow: 0 0 5px rgba(255, 255, 255, 0.4);
   pointer-events: none;
-  z-index: 200;
   will-change: transform, filter, opacity;
-  /* Width/height/border-radius transition so the cursor smoothly grows
-     into the glyph wrap (or shrinks back to a dot when leaving text). */
   transition:
     width 0.32s cubic-bezier(0.16, 1, 0.3, 1),
     height 0.32s cubic-bezier(0.16, 1, 0.3, 1),
@@ -520,11 +536,10 @@ html, body {
     box-shadow 0.25s ease;
 }
 
-/* The pencil emoji lives as an ::before on every state of the cursor —
-   default it's hidden (opacity 0, pre-blurred). When .is-pencil is added
-   it transitions in to opacity 1 / blur 0; removed → fades back out. So
-   the cursor visually melts into/out of pencil shape on each drag. */
-#portal-cursor::before {
+/* ✏️ ::before on the inner. Default hidden + pre-blurred so .is-pencil
+   transitions it in (opacity → 1, blur → 0); removing the class fades
+   it back out. Drag start/end both blur-morph between dot and pencil. */
+.portal-cursor-inner::before {
   content: "✏️";
   position: absolute;
   top: 50%;
@@ -539,21 +554,17 @@ html, body {
   pointer-events: none;
 }
 
-/* Over a glyph: the cursor wraps the character. Width/height are set
-   inline per-glyph by portal.js; this rule supplies the box look. The
-   semi-transparent fill lets the glyph remain readable inside. */
-#portal-cursor.is-wrap {
+/* Over a glyph: wrap the character. Width/height inline per-glyph from JS. */
+#portal-cursor.is-wrap .portal-cursor-inner {
   background: rgba(255, 255, 255, 0.16);
   border: 1px solid rgba(60, 60, 60, 0.42);
   border-radius: 4px;
   box-shadow: 0 0 6px rgba(255, 255, 255, 0.32);
 }
 
-/* While the user is actively drawing, swap to a ✏️ emoji. The base styles
-   (background, border, etc.) fade out via their own transitions; the
-   ::before fades in. Force the container size back to the dot dimensions
-   so a stale .is-wrap inline width/height doesn't inflate the pencil. */
-#portal-cursor.is-pencil {
+/* While actively drawing, swap to ✏️. Force dot dimensions so a stale
+   .is-wrap inline width/height doesn't inflate the pencil container. */
+#portal-cursor.is-pencil .portal-cursor-inner {
   width: 0.875rem !important;
   height: 0.875rem !important;
   background: transparent;
@@ -561,22 +572,25 @@ html, body {
   box-shadow: none;
   border-radius: 50%;
 }
-#portal-cursor.is-pencil::before {
+#portal-cursor.is-pencil .portal-cursor-inner::before {
   opacity: 1;
   filter: blur(0);
 }
 
-/* Teleport: the cursor itself blurs out at the source, becomes invisible
-   at the halfway mark (when portal.js silently moves it), then blurs
-   back in at the destination. Replaces the old ghost-circle markers —
-   the user sees the cursor "phase through" the portal. */
-#portal-cursor.is-teleporting {
-  animation: portalCursorBlur 400ms ease-in-out forwards;
+/* Teleport: the inner scales up dramatically as it blurs out, becomes
+   invisible at the halfway mark (when portal.js silently relocates),
+   then scales+blurs back in at the destination. The scale is what
+   makes the blur read — a tiny dot blurred 20px still looks tiny, but
+   a 3.6×-scaled dot blurred 20px is a real portal swirl. The
+   translate(-50%, -50%) is preserved in every keyframe so centering
+   isn't lost. */
+#portal-cursor.is-teleporting .portal-cursor-inner {
+  animation: portalCursorBlur 400ms ease-in-out;
 }
 @keyframes portalCursorBlur {
-  0%   { filter: blur(0);    opacity: 1; }
-  40%  { filter: blur(10px); opacity: 0.25; }
-  50%  { filter: blur(14px); opacity: 0; }
-  60%  { filter: blur(10px); opacity: 0.25; }
-  100% { filter: blur(0);    opacity: 1; }
+  0%   { transform: translate(-50%, -50%) scale(1);    filter: blur(0);    opacity: 1; }
+  35%  { transform: translate(-50%, -50%) scale(2.4);  filter: blur(10px); opacity: 0.4; }
+  50%  { transform: translate(-50%, -50%) scale(3.6);  filter: blur(20px); opacity: 0; }
+  65%  { transform: translate(-50%, -50%) scale(2.4);  filter: blur(10px); opacity: 0.4; }
+  100% { transform: translate(-50%, -50%) scale(1);    filter: blur(0);    opacity: 1; }
 }

@@ -52,7 +52,8 @@ const state = {
 };
 window.__portal = state;
 
-let cursorEl = null;
+let cursorEl = null;       // outer — position only (JS-controlled transform)
+let cursorInner = null;    // inner — visual (size, color, scale/blur animation)
 let toggleBtn = null;
 let lastMoveT = performance.now();
 let velocity = 0;
@@ -78,9 +79,16 @@ export function initPortal() {
   });
   document.body.appendChild(toggleBtn);
 
+  // Two-element cursor: outer carries position (JS-set transform), inner
+  // carries the visual (size, color, ::before pencil, and the teleport
+  // scale+blur animation). Splitting them lets the animation animate
+  // transform on inner without fighting the per-frame translate3d on outer.
   cursorEl = document.createElement("div");
   cursorEl.id = "portal-cursor";
   cursorEl.style.display = "none";
+  cursorInner = document.createElement("div");
+  cursorInner.className = "portal-cursor-inner";
+  cursorEl.appendChild(cursorInner);
   document.body.appendChild(cursorEl);
 
   document.addEventListener("pointerlockchange", onLockChange);
@@ -204,18 +212,21 @@ function applyCursorVisual() {
   renderX += (targetX - renderX) * FOLLOW_RATE;
   renderY += (targetY - renderY) * FOLLOW_RATE;
 
-  cursorEl.style.transform = `translate3d(${renderX.toFixed(2)}px, ${renderY.toFixed(2)}px, 0) translate(-50%, -50%)`;
+  // Outer = position only. Inner handles its own centering (translate(-50%,
+  // -50%) in CSS) so a scale animation on inner doesn't need to recompute
+  // the position offset every frame.
+  cursorEl.style.transform = `translate3d(${renderX.toFixed(2)}px, ${renderY.toFixed(2)}px, 0)`;
 
   cursorEl.classList.toggle("is-pencil", isDrawing);
   cursorEl.classList.toggle("is-wrap", !isDrawing && !!state.glyphRect);
 
   if (!isDrawing && state.glyphRect) {
     const r = state.glyphRect;
-    cursorEl.style.width = `${r.width.toFixed(1)}px`;
-    cursorEl.style.height = `${r.height.toFixed(1)}px`;
+    cursorInner.style.width = `${r.width.toFixed(1)}px`;
+    cursorInner.style.height = `${r.height.toFixed(1)}px`;
   } else {
-    cursorEl.style.width = "";
-    cursorEl.style.height = "";
+    cursorInner.style.width = "";
+    cursorInner.style.height = "";
   }
 }
 
