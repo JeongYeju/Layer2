@@ -367,27 +367,23 @@ function findNearbyPara(x, y) {
 
 function maybeTeleport(dx) {
   if (dx === 0) return;
+  // Anchor the teleport to whichever line the *visual* cursor is committed
+  // to, not raw actualY. With stickiness on, actualY can drift onto the
+  // next line while the user's cursor is still visually on the previous
+  // one — using actualY here would teleport from the wrong starting line.
+  if (!state.glyphRect) return;
   const para = state.lastPara;
   if (!para) return;
-  const pr = para.getBoundingClientRect();
-  if (state.actualY < pr.top - 80 || state.actualY > pr.bottom + 80) return;
 
   const lines = groupSpansByLine(
     Array.from(para.querySelectorAll("[data-char-index]")),
   );
   if (lines.length === 0) return;
 
-  const cy = state.actualY;
-  let idx = -1;
-  for (let i = 0; i < lines.length; i++) {
-    if (
-      cy >= lines[i].top - LINE_TOLERANCE &&
-      cy <= lines[i].bottom + LINE_TOLERANCE
-    ) {
-      idx = i;
-      break;
-    }
-  }
+  const targetBottom = state.glyphRect.bottom;
+  const idx = lines.findIndex(
+    (l) => Math.abs(l.bottom - targetBottom) <= LINE_TOLERANCE,
+  );
   if (idx < 0) return;
 
   const line = lines[idx];

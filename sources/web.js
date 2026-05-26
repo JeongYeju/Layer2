@@ -4,18 +4,24 @@
 // back a cleaned-up article (title + content HTML), then walk the
 // content's DOM and translate it into our common block model.
 //
-// CORS caveat: many sites refuse cross-origin fetches without a proxy. We
-// surface the failure verbatim so the sidebar can show "이 사이트는 직접
-// 가져올 수 없어요" and continue. A backend proxy goes into Phase 2.
+// CORS: most major sites refuse cross-origin fetches. We try direct first,
+// then fall back through a list of public CORS proxies. This is sufficient
+// for dev / Phase 1; Phase 3 (Vercel) will replace this with our own
+// /api/fetch endpoint so we're not depending on third-party uptime, privacy,
+// or rate limits.
 
 import { Readability } from "https://esm.sh/@mozilla/readability@0.5";
 
+// Public CORS proxies, tried in order. Each is a function URL → proxied URL.
+// If you want to disable proxies entirely, set window.__webConfig = { useProxies: false }.
+const CORS_PROXIES = [
+  (u) => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+  (u) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+  (u) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
+];
+
 export async function webSourceFromUrl(url) {
-  const res = await fetch(url, { mode: "cors", credentials: "omit" });
-  if (!res.ok) {
-    throw new Error(`HTTP ${res.status} for ${url}`);
-  }
-  const html = await res.text();
+  const html = await fetchHtmlWithFallback(url);
   // Readability wants a Document. We have to build one with a base URL set
   // so relative links inside the article resolve sensibly.
   const parsed = new DOMParser().parseFromString(html, "text/html");
@@ -92,6 +98,49 @@ function domToBlocks(root) {
     }
   }
   return blocks;
+}
+
+// Try the URL directly first; if that fails for CORS or any other reason,
+// fall back through the public proxies until one returns HTML. Throws with
+// a combined error message if everything fails so the sidebar can show it.
+async function fetchHtmlWithFallback(url) {
+  const errs = [];
+  // Direct attempt.
+  try {
+    const res = await fetch(url, { mode: "cors", credentials: "omit" });
+    if (res.ok) {
+      const text = await res.text();
+      if (text && text.length > 200) return text;
+      errs.push(`direct: empty response`);
+    } else {
+      errs.push(`direct: HTTP ${res.status}`);
+    }
+  } catch (e) {
+    errs.push(`direct: ${e.message || e}`);
+  }
+  // Proxy fallbacks.
+  const useProxies = window.__webConfig?.useProxies !== false;
+  if (useProxies) {
+    for (const proxyFn of CORS_PROXIES) {
+      const proxied = proxyFn(url);
+      try {
+        const res = await fetch(proxied, {
+          mode: "cors",
+          credentials: "omit",
+        });
+        if (res.ok) {
+          const text = await res.text();
+          if (text && text.length > 200) return text;
+          errs.push(`${hostname(proxied)}: empty response`);
+        } else {
+          errs.push(`${hostname(proxied)}: HTTP ${res.status}`);
+        }
+      } catch (e) {
+        errs.push(`${hostname(proxied)}: ${e.message || e}`);
+      }
+    }
+  }
+  throw new Error(`Couldn't fetch ${url} — tried: ${errs.join(" | ")}`);
 }
 
 function hostname(url) {

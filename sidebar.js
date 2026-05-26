@@ -141,18 +141,12 @@ async function handleUrl(urlRaw) {
     setStatus("");
   } catch (err) {
     console.error(err);
-    // CORS errors come through here too — give the user a hint.
+    // web.js already tries direct + the proxy fallbacks. If we still got
+    // here, none of them worked — surface the underlying reasons so the
+    // user can see whether it's CORS, the proxy being down, or some other
+    // network thing.
     const msg = String(err.message || err);
-    const isCors =
-      msg.includes("Failed to fetch") ||
-      msg.includes("CORS") ||
-      msg.includes("NetworkError");
-    setStatus(
-      isCors
-        ? "이 사이트는 직접 가져올 수 없어요 (CORS). Phase 2에서 백엔드 프록시 예정."
-        : `불러오기 실패: ${msg}`,
-      true,
-    );
+    setStatus(`불러오기 실패: ${msg}`, true);
   }
 }
 
