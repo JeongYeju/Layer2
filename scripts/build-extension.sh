@@ -27,12 +27,16 @@ for f in "${CORE_FILES[@]}"; do
 done
 cp "$ROOT"/sources/*.js "$OUT/sources/"
 
-# Hand-written CSP-safe pieces.
+# Hand-written CSP-safe pieces: boot shim, the loader stubs, and the real
+# pretext (vendored from npm — MIT, no runtime deps) so word-based cursor
+# logging keeps working in the extension.
 cp "$SRC/boot-ext.js" "$OUT/boot-ext.js"
 cp "$SRC"/vendor/*.js "$OUT/vendor/"
+cp -R "$SRC/vendor/pretext" "$OUT/vendor/pretext"
 
-# Rewrite CDN imports -> local stubs.
-sed -i 's|https://esm.sh/@chenglou/pretext|./vendor/pretext-stub.js|' "$OUT/pretext_helpers.js"
+# Rewrite CDN imports. pretext -> the real vendored module; the loaders that
+# can't run under CSP -> stubs (unused by the extension's injected-source flow).
+sed -i 's|https://esm.sh/@chenglou/pretext|./vendor/pretext/layout.js|' "$OUT/pretext_helpers.js"
 sed -i 's|https://esm.sh/@mozilla/readability@0.5|../vendor/readability-stub.js|' "$OUT/sources/web.js"
 sed -i 's|https://esm.sh/pdfjs-dist@4/build/pdf.worker.mjs|../vendor/pdf-stub.js|' "$OUT/sources/pdf.js"
 sed -i 's|https://esm.sh/pdfjs-dist@4/build/pdf.mjs|../vendor/pdf-stub.js|' "$OUT/sources/pdf.js"

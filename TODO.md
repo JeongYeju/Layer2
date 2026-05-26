@@ -33,7 +33,7 @@
       viewer/             # scripts/build-extension.sh 가 루트 viewer 복사+import 치환해서 생성
     ```
   - 플로우: 단축키/팝업 → extract.js 가 페이지 본문 추출 → `chrome.storage.local` 저장 → 새 탭에 `viewer/index.html` → boot-ext.js 가 주입 → 읽기 → "독서 끝내기" → 2.1 내보내기
-  - CDN/CSP 처리: MV3 는 원격 모듈 import 금지 → 빌드 스크립트가 esm.sh import 를 로컬 stub 으로 치환. pretext 없이도 핵심 읽기 동작(신호 LayoutCursor 만 null).
+  - CDN/CSP 처리: MV3 는 원격 모듈 import 금지 → 빌드 스크립트가 esm.sh import 치환. **pretext 는 npm 에서 진짜 모듈을 벤더링**(`extension/src/vendor/pretext/`, MIT, 런타임 의존성 없음)해서 단어 기준 커서 로깅 그대로 유지. readability/pdf/markdown 로더만 stub (주입 소스 플로우에선 미사용).
   - 로드 방법: Chrome → `chrome://extensions` → 개발자 모드 ON → "압축 해제된 확장 프로그램 로드" → `extension/` 폴더 선택
   - ⚠ 빌드 주의: 루트 viewer(*.js, index.html, styles.css) 수정 후엔 `bash scripts/build-extension.sh` 재실행해야 `extension/viewer/` 반영됨
   - ⚠ 브라우저 실테스트 미완 (이 환경에 headless 브라우저 없음 — Chrome 에 로드해서 확인 필요). 본문 추출 품질은 사이트마다 편차 있음 → 나중에 Readability 벤더링으로 업그레이드

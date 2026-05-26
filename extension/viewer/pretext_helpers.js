@@ -13,7 +13,7 @@
 import {
   prepareWithSegments,
   layoutWithLines,
-} from "./vendor/pretext-stub.js";
+} from "./vendor/pretext/layout.js";
 
 export const BODY_FONT = '18px "Noto Serif KR", serif';
 export const LINE_HEIGHT = 32; // px — must match .para line-height in styles.css
