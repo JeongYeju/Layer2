@@ -7,11 +7,12 @@
   - sidebar "현재 소스" 카드의 `⬇ 내보내기` 버튼
   - 가장 최근 session_start~session_end 구간만 잘라서 내보냄 (마커 포함)
   - 스키마: `{ version, exported_at, session{start_t,end_t,source_id,source_kind,source_title,duration_ms}, source, signals[] }`
-- [ ] **2.2** Python CLI script (`scripts/interpret.py`)
-  - [ ] 1차: SignalLog 정제 — 노이즈 제거, mouse_trail 다운샘플링, 단어/문장 단위로 묶기, dwell/reread 집계
-  - [ ] 2차: 정제된 로그 + 본문 → OpenAI(or Anthropic) API → 해석 결과 (어떤 문장에서 멈췄는지, 어디서 막혔는지, 관심사 패턴 등)
-  - [ ] 결과 JSON 출력
+- [x] **2.2** Python CLI script (`scripts/interpret.py`) — 의존성 없음(stdlib만)
+  - [x] 1차: SignalLog 정제 — mouse_trail 다운샘플, dwell/reread 문단별 집계, paragraph_id·char_range → 본문 텍스트 해석, scroll 요약, 시간순 timeline
+  - [x] 2차: 정제된 digest + 본문 → LLM(OpenAI / Anthropic) → 해석(어디서 멈췄나/막혔나/관심사). `--no-llm` 또는 API 키 없으면 건너뜀
+  - [x] 결과 JSON 출력 (`-o` 또는 stdout)
   - input 은 2.1 export JSON 을 그대로 받음
+  - 사용: `python scripts/interpret.py session.json -o result.json` (키: `OPENAI_API_KEY` / `ANTHROPIC_API_KEY`)
 - [ ] **2.3** viewer에서 결과 JSON 불러와서 사이드바/대시보드에 표시
 - [ ] **2.4** Chrome MV3 확장프로그램 — CORS / paywall 우회의 정답 (페이지가 이미 브라우저에 로드돼 있으니 직접 본문 추출)
   - 후보 구조:
