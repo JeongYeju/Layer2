@@ -10,6 +10,7 @@
 :root {
   --hl-color: var(--ink); /* highlight underline / circle / ink-stroke color */
   --hl-op: 1; /* highlight opacity multiplier */
+  --reader-scale: 1; /* body text size multiplier */
 }
 
 /* Recolor only the highlight marks (not the rest of the UI accents). */
@@ -27,33 +28,112 @@
   stroke: var(--hl-color) !important;
 }
 
-/* Source panel + signal dashboard: hidden by default, opened as side flyouts. */
-#sidebar,
+/* Signal dashboard: opens as a right flyout (기록 button / menu). */
 #dashboard {
   display: none;
 }
-#sidebar.as-flyout,
 #dashboard.as-flyout {
   display: block;
   position: fixed;
+  right: 54px;
   top: 46px;
   bottom: 0;
+  width: 340px;
   z-index: 40;
   background: var(--paper);
+  border-left: 1px solid var(--rule);
+  box-shadow: -12px 0 40px rgba(0, 0, 0, 0.16);
   overflow: auto;
   padding: 14px 16px;
 }
-#sidebar.as-flyout {
+
+/* Left source panel = a persistent drawer overlaid ABOVE the content. It is
+   position:fixed, so collapsing/expanding it never changes #reader's width and
+   therefore never reflows the article text. Default expanded. */
+#sidebar {
+  display: block;
+  position: fixed;
   left: 54px;
+  top: 46px;
+  bottom: 0;
   width: 300px;
+  z-index: 45;
+  background: var(--paper);
   border-right: 1px solid var(--rule);
-  box-shadow: 12px 0 40px rgba(0, 0, 0, 0.16);
+  box-shadow: 12px 0 40px rgba(0, 0, 0, 0.1);
+  overflow: auto;
+  padding: 14px 16px;
+  transform: translateX(calc(-100% - 56px)); /* tucked off-screen */
+  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
 }
-#dashboard.as-flyout {
-  right: 54px;
-  width: 340px;
-  border-left: 1px solid var(--rule);
-  box-shadow: -12px 0 40px rgba(0, 0, 0, 0.16);
+body.drawer-open #sidebar {
+  transform: translateX(0);
+}
+
+.drawer-handle {
+  position: fixed;
+  top: 50%;
+  left: 54px;
+  transform: translateY(-50%);
+  z-index: 46;
+  width: 22px;
+  height: 46px;
+  border: 1px solid var(--rule);
+  border-left: none;
+  border-radius: 0 8px 8px 0;
+  background: var(--paper);
+  color: var(--muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: left 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.drawer-handle:hover {
+  color: var(--text);
+}
+body.drawer-open .drawer-handle {
+  left: 354px; /* 54px rail + 300px drawer */
+}
+.drawer-handle svg {
+  width: 16px;
+  height: 16px;
+  transform: rotate(180deg); /* points right (expand) when collapsed */
+}
+body.drawer-open .drawer-handle svg {
+  transform: rotate(0deg); /* points left (collapse) when open */
+}
+
+/* Body text size control (right rail, pinned to the bottom). */
+.rail .font-control {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+}
+.font-btn {
+  font-family: "Noto Serif KR", serif;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+/* Body text size scaling. NOTE: pretext's line model is fixed at the default
+   metrics, so the portal reading cursor + structural logging are most precise
+   at 100%; the visual underline (DOM spans) scales correctly at any size. */
+#reader .article {
+  font-size: calc(18px * var(--reader-scale, 1));
+}
+#reader .para {
+  font-size: calc(18px * var(--reader-scale, 1));
+  line-height: calc(32px * var(--reader-scale, 1));
+}
+#reader .para.para-heading {
+  font-size: calc(24px * var(--reader-scale, 1));
+  line-height: calc(36px * var(--reader-scale, 1));
+}
+#reader .article h1 {
+  font-size: calc(32px * var(--reader-scale, 1));
 }
 
 /* ===== Lucide icons + hover motion ===== */

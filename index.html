@@ -22,6 +22,15 @@
         <button type="button" class="menu-item" id="open-sources">
           <i data-lucide="folder-open"></i> 모든 도구
         </button>
+        <button type="button" class="menu-item" id="menu-open">
+          <i data-lucide="file-plus-2"></i> 열기
+        </button>
+        <button type="button" class="menu-item" id="menu-saved">
+          <i data-lucide="library"></i> 저장된 글
+        </button>
+        <button type="button" class="menu-item" id="menu-records">
+          <i data-lucide="bar-chart-3"></i> 기록
+        </button>
       </nav>
     </div>
     <div class="topbar-right">
@@ -86,8 +95,18 @@
       <button type="button" class="rail-btn" id="btn-records" title="기록 / 대시보드">
         <i data-lucide="bar-chart-3"></i>
       </button>
+
+      <div class="font-control" title="본문 크기">
+        <button type="button" class="rail-btn font-btn" id="font-inc">A+</button>
+        <button type="button" class="rail-btn font-btn" id="font-dec">A−</button>
+      </div>
     </nav>
   </div>
+
+  <!-- Left drawer collapse/expand handle (slides with the drawer). -->
+  <button type="button" class="drawer-handle" id="drawer-handle" title="패널 접기 / 펼치기">
+    <i data-lucide="chevron-left"></i>
+  </button>
 
   <!-- ===== Page navigation (spread mode only) ===== -->
   <div class="pagenav" id="pagenav" hidden>

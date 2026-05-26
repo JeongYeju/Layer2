@@ -98,8 +98,28 @@ let lastScrollY = 0;       // tracks the scroll position so scroll deltas drag
                            // the cursor along with the text — see onScroll().
 let scrollEl = window;     // scroll container: window, or #reader in the new
                            // viewer layout (set from initPortal opts).
+let onPageFlip = null;     // optional callback to flip spread pages while locked
+let lastFlipT = 0;
 function getScrollY() {
   return scrollEl === window ? window.scrollY : scrollEl.scrollTop;
+}
+
+// In pointer lock the locked element is <body>, so wheel events no longer reach
+// #reader's scroll. Drive the reader's scroll ourselves (onScroll then drags
+// the cursor); in a non-scrolling spread, flip pages instead.
+function onWheel(e) {
+  if (!state.locked || scrollEl === window) return;
+  if (scrollEl.scrollHeight > scrollEl.clientHeight + 1) {
+    scrollEl.scrollTop += e.deltaY;
+    e.preventDefault();
+  } else if (onPageFlip) {
+    const now = performance.now();
+    if (Math.abs(e.deltaY) > 6 && now - lastFlipT > 380) {
+      lastFlipT = now;
+      onPageFlip(e.deltaY > 0 ? 1 : -1);
+    }
+    e.preventDefault();
+  }
 }
 
 // Visual cursor position (EMA-chased).
@@ -108,6 +128,7 @@ let renderY = 0;
 
 export function initPortal(opts = {}) {
   scrollEl = opts.scrollEl || window;
+  onPageFlip = opts.onPageFlip || null;
 
   if (opts.triggerEl) {
     // Use a host-provided button (e.g. a rail button) as the toggle.
@@ -154,6 +175,7 @@ export function initPortal(opts = {}) {
   // sync while unlocked so the first scroll *after* locking doesn't see a
   // huge spurious delta.
   scrollEl.addEventListener("scroll", onScroll, { passive: true });
+  window.addEventListener("wheel", onWheel, { passive: false });
   lastScrollY = getScrollY();
 }
 

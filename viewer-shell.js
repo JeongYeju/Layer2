@@ -35,8 +35,9 @@ export function initViewerShell() {
   wireLayoutToggle();
   wirePageNav();
   wireHighlightPopup();
-  wireFlyouts();
+  wireMenusAndDrawer();
   wireActionButtons();
+  wireFontSize();
 
   let rt = 0;
   window.addEventListener("resize", () => {
@@ -75,13 +76,6 @@ function setMode(m) {
     b.classList.toggle("is-active", b.dataset.mode === mode),
   );
   if (pagenavEl) pagenavEl.hidden = mode !== "spread";
-  // Reading mode (portal) is scroll-only — there is no vertical scroll to ride
-  // in the transform-based spread, so disable it there.
-  const readingBtn = document.getElementById("reading-mode");
-  if (readingBtn) {
-    readingBtn.disabled = mode === "spread";
-    readingBtn.title = mode === "spread" ? "독서 모드는 스크롤 모드에서" : "독서 모드";
-  }
   try {
     localStorage.setItem(MODE_KEY, mode);
   } catch {
@@ -123,6 +117,11 @@ function gotoSpread(s) {
   if (next === spread) return;
   spread = next;
   applySpread();
+}
+
+// Used by the portal reading mode to advance pages while locked in spread mode.
+export function flipSpread(dir) {
+  gotoSpread(spread + dir);
 }
 
 function applySpread() {
@@ -170,29 +169,72 @@ function wireHighlightPopup() {
   });
 }
 
-// ===== Source + dashboard flyouts =====
+// ===== Left source drawer + top menu + dashboard flyout =====
 
-function wireFlyouts() {
-  const openSourcesBtn = document.getElementById("open-sources");
+function wireMenusAndDrawer() {
   const sidebarEl = document.getElementById("sidebar");
-  const recordsBtn = document.getElementById("btn-records");
-  const dashboardEl = document.getElementById("dashboard");
+  const handle = document.getElementById("drawer-handle");
+  const openDrawer = () => document.body.classList.add("drawer-open");
+  const toggleDrawer = () => document.body.classList.toggle("drawer-open");
 
-  bindFlyout(openSourcesBtn, sidebarEl);
-  bindFlyout(recordsBtn, dashboardEl);
+  document.body.classList.add("drawer-open"); // default expanded
+  handle?.addEventListener("click", toggleDrawer);
+  document.getElementById("open-sources")?.addEventListener("click", toggleDrawer);
+  document.getElementById("menu-open")?.addEventListener("click", openDrawer);
+  document.getElementById("menu-saved")?.addEventListener("click", () => {
+    openDrawer();
+    sidebarEl
+      ?.querySelector("#ext-saved-head")
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+
+  // Dashboard stays a right flyout, toggled from the rail or the 기록 menu item.
+  const dashboardEl = document.getElementById("dashboard");
+  const recordsBtn = document.getElementById("btn-records");
+  const recordsMenu = document.getElementById("menu-records");
+  const toggleDash = (e) => {
+    e?.stopPropagation?.();
+    dashboardEl?.classList.toggle("as-flyout");
+  };
+  recordsBtn?.addEventListener("click", toggleDash);
+  recordsMenu?.addEventListener("click", toggleDash);
+  document.addEventListener("click", (e) => {
+    if (!dashboardEl?.classList.contains("as-flyout")) return;
+    if (
+      dashboardEl.contains(e.target) ||
+      recordsBtn?.contains(e.target) ||
+      recordsMenu?.contains(e.target)
+    )
+      return;
+    dashboardEl.classList.remove("as-flyout");
+  });
 }
 
-function bindFlyout(btn, panel) {
-  if (!btn || !panel) return;
-  btn.addEventListener("click", (e) => {
-    e.stopPropagation();
-    panel.classList.toggle("as-flyout");
+// ===== Body text size =====
+
+function wireFontSize() {
+  const dec = document.getElementById("font-dec");
+  const inc = document.getElementById("font-inc");
+  let scale = parseFloat(localStorage.getItem("layer2.fontscale")) || 1;
+  const apply = () => {
+    scale = Math.min(1.6, Math.max(0.8, scale));
+    document.documentElement.style.setProperty("--reader-scale", scale.toFixed(2));
+    try {
+      localStorage.setItem("layer2.fontscale", String(scale));
+    } catch {
+      /* best-effort */
+    }
+    relayoutViewer();
+  };
+  dec?.addEventListener("click", () => {
+    scale -= 0.1;
+    apply();
   });
-  document.addEventListener("click", (e) => {
-    if (!panel.classList.contains("as-flyout")) return;
-    if (panel.contains(e.target) || btn.contains(e.target)) return;
-    panel.classList.remove("as-flyout");
+  inc?.addEventListener("click", () => {
+    scale += 0.1;
+    apply();
   });
+  apply();
 }
 
 // ===== Bookmark / capture (push the same signals the old toolbar did) =====

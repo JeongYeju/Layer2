@@ -12,7 +12,7 @@ import { initBaselineCollectors } from "./signals.js";
 import { initAttention, wakeReading } from "./attention.js";
 import { renderDashboard } from "./dashboard.js";
 import { initPortal } from "./portal.js";
-import { initViewerShell, relayoutViewer } from "./viewer-shell.js";
+import { initViewerShell, relayoutViewer, flipSpread } from "./viewer-shell.js";
 
 const reader = document.getElementById("reader");
 const dashboard = document.getElementById("dashboard");
@@ -21,8 +21,13 @@ initHighlight();
 initAttention({ readerEl: reader });
 renderDashboard(dashboard);
 initViewerShell();
-// Reading mode rides #reader's scroll and toggles from the 독서 모드 rail button.
-initPortal({ scrollEl: reader, triggerEl: document.getElementById("reading-mode") });
+// Reading mode rides #reader's scroll (and flips pages in spread) and toggles
+// from the 독서 모드 rail button.
+initPortal({
+  scrollEl: reader,
+  triggerEl: document.getElementById("reading-mode"),
+  onPageFlip: flipSpread,
+});
 
 let currentSource = null;
 
