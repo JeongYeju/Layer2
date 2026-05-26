@@ -235,12 +235,18 @@ function onMouseMove(e) {
         state.actualY = next;
         resetRawMotion(now);
       } else {
-        // No adjacent line in this paragraph — release the lock and let
-        // free mode take over. No nudge here: the next mousemove's dy
-        // will move actualY naturally into the gutter, avoiding the
-        // "warped down the page" feeling.
+        // Paragraph boundary — release the lock so the cursor can leave.
+        // Mark justReleased so the same-frame hit-test below doesn't grab
+        // the line back. Small nudge so the user's lean commits as actual
+        // motion immediately; rest of the gap fills via subsequent dy.
         state.lineLockedY = null;
         resetRawMotion(now);
+        justReleased = true;
+        state.actualY = clamp(
+          state.actualY + direction * LINE_HEIGHT * 0.4,
+          0,
+          window.innerHeight - 1,
+        );
       }
     }
   } else {
@@ -266,8 +272,10 @@ function onMouseMove(e) {
       height: r.height,
     };
     state.y = r.bottom + SNAP_OFFSET;
-    // Free mode → first glyph hit → engage the line lock.
-    if (state.lineLockedY == null) {
+    // Free mode → first glyph hit → engage the line lock. Skip if this
+    // same frame just released a paragraph-end lock, otherwise we'd grab
+    // the line straight back and trap the cursor in the paragraph.
+    if (state.lineLockedY == null && !justReleased) {
       state.lineLockedY = (r.top + r.bottom) / 2;
       resetRawMotion(now);
     }

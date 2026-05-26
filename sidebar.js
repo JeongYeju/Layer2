@@ -18,7 +18,7 @@ import {
 } from "./sources/markdown.js";
 import { pdfSourceFromFile } from "./sources/pdf.js";
 import { webSourceFromUrl } from "./sources/web.js";
-import { pushSignal } from "./signals.js";
+import { pushSignal, SignalLog } from "./signals.js";
 
 let onSelect = () => {};
 let rootEl = null;
@@ -229,14 +229,19 @@ function renderCurrent(source) {
   currentEl.innerHTML = `
     <div class="src-current-title">${escapeHtml(source.title || "(untitled)")}</div>
     <div class="src-current-meta">${escapeHtml(metaBits.join(" · "))}</div>
-    <div class="src-session">${buttonHtml}</div>
+    <div class="src-session">
+      ${buttonHtml}
+      <button class="src-session-btn src-export-btn" id="src-export" type="button" title="가장 최근 독서 세션(소스 + 신호)을 JSON으로 내보내기">⬇ 내보내기</button>
+    </div>
     ${statusHtml}
   `;
 
   const startBtn = currentEl.querySelector("#src-session-start");
   const endBtn = currentEl.querySelector("#src-session-end");
+  const exportBtn = currentEl.querySelector("#src-export");
   if (startBtn) startBtn.addEventListener("click", () => startSession(source));
   if (endBtn) endBtn.addEventListener("click", () => endSession("user"));
+  if (exportBtn) exportBtn.addEventListener("click", exportLastSession);
 }
 
 function startSession(source) {
@@ -271,6 +276,84 @@ function endSession(reason) {
   // Re-render whatever's currently displayed so the button flips back.
   const current = loaded.find((e) => e.source.id === currentId);
   if (current) renderCurrent(current.source);
+}
+
+// ---------- Phase 2.1: session export ----------
+// Bundle the most recent *completed* reading session (the source content +
+// the signals captured between its session_start / session_end markers) into
+// the JSON shape that scripts/interpret.py consumes, and download it.
+
+function exportLastSession() {
+  const data = buildSessionExport();
+  if (!data) {
+    setStatus("내보낼 완료된 독서 세션이 없습니다. 독서 시작 → 끝내기 후 다시 시도하세요.", true);
+    return;
+  }
+  downloadJson(data);
+  setStatus(`내보냄: ${data.signals.length}개 신호 · ${data.session.source_title || "(제목 없음)"}`);
+}
+
+function buildSessionExport() {
+  // Latest session_end, then walk back to its matching session_start.
+  let endIdx = -1;
+  for (let i = SignalLog.length - 1; i >= 0; i--) {
+    if (SignalLog[i].type === "session_end") {
+      endIdx = i;
+      break;
+    }
+  }
+  if (endIdx < 0) return null;
+  const end = SignalLog[endIdx];
+
+  let startIdx = -1;
+  for (let i = endIdx - 1; i >= 0; i--) {
+    const s = SignalLog[i];
+    if (s.type === "session_start" && s.source_id === end.source_id) {
+      startIdx = i;
+      break;
+    }
+  }
+  if (startIdx < 0) return null;
+  const start = SignalLog[startIdx];
+
+  // Inclusive of both markers so interpret.py can see the session bounds.
+  const signals = SignalLog.slice(startIdx, endIdx + 1);
+  const entry = loaded.find((e) => e.source.id === start.source_id);
+
+  return {
+    version: 1,
+    exported_at: new Date().toISOString(),
+    session: {
+      start_t: start.t,
+      end_t: end.t,
+      source_id: start.source_id,
+      source_kind: start.source_kind,
+      source_title: start.source_title,
+      duration_ms:
+        end.elapsed_ms != null ? end.elapsed_ms : Math.round(end.t - start.t),
+    },
+    source: entry ? entry.source : null,
+    signals,
+  };
+}
+
+function downloadJson(data) {
+  const blob = new Blob([JSON.stringify(data, null, 2)], {
+    type: "application/json",
+  });
+  const url = URL.createObjectURL(blob);
+  const safeTitle = String(data.session.source_title || "session")
+    .trim()
+    .replace(/[\\/:*?"<>|]+/g, "")
+    .replace(/\s+/g, "_")
+    .slice(0, 40);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `layer2-${safeTitle || "session"}-${Date.now()}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 function estimateWords(source) {
