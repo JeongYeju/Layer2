@@ -157,6 +157,50 @@ html, body {
   color: var(--muted);
 }
 
+/* Session controls live inside the current-source card. The session marker
+   (session_start / session_end signals) is what bounds a coherent reading
+   session in the SignalLog — the Phase 2 export only sends signals between
+   the latest pair, so the AI sees just "this reading", not the whole tab's
+   noisy history of pokes and source-switching. */
+.sidebar .src-current .src-session {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+.sidebar .src-current .src-session-btn {
+  flex: 1;
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 11px;
+  padding: 6px 8px;
+  background: white;
+  color: var(--text);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.sidebar .src-current .src-session-btn:hover {
+  background: var(--paper-edge);
+}
+.sidebar .src-current .src-session-btn.is-primary {
+  background: var(--ink);
+  color: white;
+  border-color: var(--ink);
+}
+.sidebar .src-current .src-session-btn.is-primary:hover {
+  background: var(--ink);
+  filter: brightness(1.08);
+}
+.sidebar .src-current .src-session-status {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.sidebar .src-current .src-session-status.is-active {
+  color: var(--ink);
+  font-weight: 500;
+}
+
 /* ---------- Reader ---------- */
 
 .reader {
@@ -650,6 +694,44 @@ ol.para-list .para-item {
   color: var(--text);
 }
 
+/* Motion-vector viz next to the Line break angle slider. Box on the left,
+   live "angle / locked" readout on the right. Vector color flips to ink red
+   when the angle has entered the threshold wedge (= portal.js will commit
+   a line transition on the next eligible frame). */
+#cursor-hud .hud-motion {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 4px 0 8px;
+  padding: 6px 8px;
+  background: var(--paper);
+  border-radius: 6px;
+}
+#cursor-hud .hud-motion svg {
+  flex-shrink: 0;
+  display: block;
+}
+#cursor-hud .hud-motion-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 10.5px;
+  color: var(--muted);
+}
+#cursor-hud .hud-motion-meta > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+#cursor-hud .hud-motion-meta span {
+  color: var(--muted);
+}
+#cursor-hud .hud-motion-meta b {
+  color: var(--text);
+  font-weight: 500;
+}
+
 /* ---------- Cursor Portal (Pointer Lock + line teleport) ---------- */
 
 #portal-toggle {
@@ -676,6 +758,44 @@ ol.para-list .para-item {
   color: white;
   border-color: var(--ink);
   box-shadow: 0 4px 16px rgba(217, 54, 43, 0.28);
+}
+
+/* ESC-out hint. The toggle button isn't clickable in Pointer Lock
+   (the system cursor is hidden and clicks land on body, not the button),
+   so the only exit is the browser-standard ESC key. Hidden by default,
+   fades in via .is-visible once the lock engages. */
+#portal-hint {
+  position: fixed;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 109;
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  padding: 6px 12px;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(4px);
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+#portal-hint.is-visible {
+  opacity: 1;
+}
+#portal-hint kbd {
+  display: inline-block;
+  padding: 1px 6px;
+  margin: 0 2px;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 10px;
+  background: var(--paper-edge);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  color: var(--text);
 }
 
 /* Outer: only carries position (JS sets translate3d each frame). No

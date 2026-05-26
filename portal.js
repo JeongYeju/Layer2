@@ -40,33 +40,62 @@ const FOLLOW_RATE = 0.18;          // EMA — how quickly the visual chases its 
 const FALLBACK_REACH = LINE_HEIGHT * 1.5; // how far off-text we'll still snap to a line
 const EMPTY_TRAIL_REACH = 30;      // past line.right this far → no snap (free movement
                                    // in trailing empty space of a short line)
+const RAW_HALF_LIFE_MS = 150;      // raw motion vector decays by half every 150ms
+const MIN_BREAK_DY = 4;            // |rawDy| dead-zone below which we ignore the angle
+                                   // (don't snap lines on jitter at rest)
+const COMMIT_DY = LINE_HEIGHT * 0.55; // |rawDy| must reach this to actually commit
+                                       // a line change. Below it the angle may already
+                                       // be vertical but we only show the visual offset
+                                       // (cursor leans toward next line); above it the
+                                       // line lock advances. Buys the "build-up" feel
+                                       // instead of a binary "snap, fire" behaviour.
+const VISUAL_LEAN_GAIN = 0.6;      // how strongly rawDy drives the visual offset
+const VISUAL_LEAN_MAX = LINE_HEIGHT * 0.4; // never lean past ~40% of a line so the
+                                            // cursor doesn't overlap the neighbour
 
 const state = {
   locked: false,
   x: 0,
   y: 0,                  // trail position (underline when over a glyph, else actualY)
-  actualY: 0,            // raw vertical intent — highlight.js hit-tests this
+  actualY: 0,            // vertical "true position" — used by hit-tests + highlight
   glyphRect: null,       // bbox of the single grapheme the cursor is on
   lastPara: null,
   overGlyph: false,
+  // Line-lock state. When non-null, actualY is *pinned* to this y (the
+  // committed line's vertical center). Mouse dy then doesn't move actualY
+  // directly — it only feeds rawDy below, and a line transition only
+  // commits when the angle check passes. Result: the cursor's true
+  // position can't bounce between lines on a slightly tilted horizontal
+  // stroke. Goes null when the cursor enters a margin / off-text area.
+  lineLockedY: null,
+  // Decay-accumulated raw motion vector. Every onMouseMove pushes (dx, dy)
+  // in; an exponential decay with RAW_HALF_LIFE_MS half-life makes this a
+  // ~150ms window on the user's recent intent. The angle of this vector
+  // (vs. horizontal) is what decides line transitions. cursor-hud reads
+  // it live for the motion-vector viz.
+  rawDx: 0,
+  rawDy: 0,
+  rawT: performance.now(),
 };
 window.__portal = state;
 
-// Tunables exposed for runtime tweaking — cursor-hud's "Portal" slider
-// writes lineSnapStickiness into this. Default 0.4 ≈ 13 px buffer (cursor
-// must drift ~13 px past the current line's bbox before snap commits to
-// the new line).
+// Tunables exposed for runtime tweaking — cursor-hud writes lineBreakAngle
+// here. Default 60° = stroke must be at least 60° off horizontal (more
+// vertical than horizontal by a lot) before we transition lines.
 window.__portalConfig = window.__portalConfig || {
-  lineSnapStickiness: 0.4,
+  lineBreakAngle: 60,
 };
 
 let cursorEl = null;       // outer — position only (JS-controlled transform)
 let cursorInner = null;    // inner — visual (size, color, scale/blur animation)
 let toggleBtn = null;
+let hintEl = null;         // "ESC 로 나가기" — visible only while locked
 let lastMoveT = performance.now();
 let velocity = 0;
 let lastTeleportT = 0;
 let rafId = null;
+let lastScrollY = 0;       // tracks window.scrollY so scroll deltas drag the
+                           // cursor along with the text — see onScroll().
 
 // Visual cursor position (EMA-chased).
 let renderX = 0;
@@ -99,14 +128,28 @@ export function initPortal() {
   cursorEl.appendChild(cursorInner);
   document.body.appendChild(cursorEl);
 
+  // ESC-to-exit hint. In Pointer Lock the toggle button isn't clickable
+  // (system cursor is hidden, mouse events fire on body) so the only way
+  // out is the browser-standard ESC. Surface that visibly.
+  hintEl = document.createElement("div");
+  hintEl.id = "portal-hint";
+  hintEl.innerHTML = `<kbd>ESC</kbd> 로 나가기`;
+  document.body.appendChild(hintEl);
+
   document.addEventListener("pointerlockchange", onLockChange);
   document.addEventListener("mousemove", onMouseMove);
+  // Scroll listener stays installed always — onScroll keeps lastScrollY in
+  // sync while unlocked so the first scroll *after* locking doesn't see a
+  // huge spurious delta.
+  window.addEventListener("scroll", onScroll, { passive: true });
+  lastScrollY = window.scrollY;
 }
 
 function onLockChange() {
   state.locked = document.pointerLockElement === document.body;
   if (state.locked) {
     cursorEl.style.display = "block";
+    if (hintEl) hintEl.classList.add("is-visible");
     toggleBtn.classList.add("is-active");
     const btnRect = toggleBtn.getBoundingClientRect();
     state.x = btnRect.left + btnRect.width / 2;
@@ -115,9 +158,12 @@ function onLockChange() {
     state.glyphRect = null;
     state.overGlyph = false;
     state.lastPara = null;
+    state.lineLockedY = null;
+    resetRawMotion(performance.now());
     renderX = state.x;
     renderY = state.actualY;
     lastMoveT = performance.now();
+    lastScrollY = window.scrollY;
     velocity = 0;
     applyCursorVisual();
     startTick();
@@ -126,10 +172,12 @@ function onLockChange() {
     cursorEl.classList.remove("is-wrap", "is-pencil");
     cursorEl.style.width = "";
     cursorEl.style.height = "";
+    if (hintEl) hintEl.classList.remove("is-visible");
     toggleBtn.classList.remove("is-active");
     state.lastPara = null;
     state.overGlyph = false;
     state.glyphRect = null;
+    state.lineLockedY = null;
     stopTick();
   }
 }
@@ -142,20 +190,124 @@ function onMouseMove(e) {
 
   const dx = e.movementX || 0;
   const dy = e.movementY || 0;
-  state.x = clamp(state.x + dx, 0, window.innerWidth - 1);
-  state.actualY = clamp(state.actualY + dy, 0, window.innerHeight - 1);
+
+  // Always feed raw input into the decaying motion vector. This is read by
+  // the angle check AND by the cursor-hud viz; decoupled from how we then
+  // update actualY (only free mode applies dy to actualY).
+  accumulateRawMotion(dx, dy, now);
 
   const inst = Math.hypot(dx, dy) / dt;
   velocity = velocity * 0.6 + inst * 0.4;
 
-  // Keep lastPara fresh — even in paragraph margins we want a reference
-  // paragraph for the line-snap fallback. Search a small vertical band.
+  // X is free in both modes.
+  state.x = clamp(state.x + dx, 0, window.innerWidth - 1);
+
+  // Tracks whether *this same frame* released a paragraph-end lock. If so,
+  // the hit-test below must NOT immediately re-engage the lock — actualY
+  // hasn't moved enough yet to land on a different glyph, so re-locking
+  // would trap the cursor inside the paragraph forever.
+  let justReleased = false;
+
+  if (state.lineLockedY != null) {
+    // === Line-locked mode ===
+    // actualY is pinned to the line's center y. dy is NOT applied here —
+    // it only fed rawDy above. So small vertical wobble inside a
+    // dx-dominant stroke can't drift the true cursor onto a neighbouring
+    // line.
+    state.actualY = state.lineLockedY;
+
+    // Two-stage commit so the cursor can show a "build-up" instead of
+    // launching at the first vertical-enough frame:
+    //   1. Angle ≥ threshold means recent motion qualifies as vertical
+    //      intent (used for both the visual lean and commit).
+    //   2. |rawDy| ≥ COMMIT_DY means the user has actually pushed enough
+    //      vertical magnitude to commit. Below this the cursor only leans
+    //      visually (handled in applyCursorVisual); the lock stays put.
+    const angleDeg = motionAngleDeg();
+    const threshold = getLineBreakAngle();
+    const verticalIntent =
+      angleDeg >= threshold && Math.abs(state.rawDy) > MIN_BREAK_DY;
+    if (verticalIntent && Math.abs(state.rawDy) >= COMMIT_DY) {
+      const direction = state.rawDy > 0 ? 1 : -1;
+      const next = findAdjacentLineCenter(state.lineLockedY, direction);
+      if (next != null) {
+        state.lineLockedY = next;
+        state.actualY = next;
+        resetRawMotion(now);
+      } else {
+        // No adjacent line in this paragraph — release the lock and let
+        // free mode take over. No nudge here: the next mousemove's dy
+        // will move actualY naturally into the gutter, avoiding the
+        // "warped down the page" feeling.
+        state.lineLockedY = null;
+        resetRawMotion(now);
+      }
+    }
+  } else {
+    // === Free mode === (between paragraphs, off-text, before first hit)
+    state.actualY = clamp(state.actualY + dy, 0, window.innerHeight - 1);
+  }
+
+  // Paragraph + glyph tracking is the same in both modes — uses the
+  // possibly-pinned actualY.
   const para = findNearbyPara(state.x, state.actualY);
   if (para) state.lastPara = para;
 
-  // Hit-test glyph. If the direct point misses (line end / margin / gap),
-  // fall back to the nearest glyph on the nearest line of lastPara — this
-  // is what stops the cursor from going dot-mode between lines.
+  const glyph = findGlyphAt(state.x, state.actualY);
+  state.overGlyph = !!glyph;
+  if (glyph) {
+    const r = glyph.getBoundingClientRect();
+    state.glyphRect = {
+      left: r.left,
+      top: r.top,
+      right: r.right,
+      bottom: r.bottom,
+      width: r.width,
+      height: r.height,
+    };
+    state.y = r.bottom + SNAP_OFFSET;
+    // Free mode → first glyph hit → engage the line lock.
+    if (state.lineLockedY == null) {
+      state.lineLockedY = (r.top + r.bottom) / 2;
+      resetRawMotion(now);
+    }
+  } else {
+    state.glyphRect = null;
+    state.y = state.actualY;
+    // No glyph under cursor → release the lock (free movement in margins).
+    state.lineLockedY = null;
+  }
+
+  if (velocity < SLOW_VELOCITY && now - lastTeleportT > TELEPORT_COOLDOWN_MS) {
+    maybeTeleport(dx);
+  }
+}
+
+// Page scrolled while in reading mode → drag the cursor along with the text
+// so it stays on the same glyph. Without this, the cursor's viewport y is
+// fixed but every glyph in the page just slid past it, so the cursor would
+// "float free" of the line it was reading. We shift state.actualY (and the
+// EMA-tracked renderY) by the same delta, slide the cached glyphRect to
+// match, then re-run the hit-test so glyphRect / lastPara reflect the new
+// viewport positions.
+function onScroll() {
+  const cur = window.scrollY;
+  const dy = cur - lastScrollY;
+  lastScrollY = cur;
+  if (!state.locked || dy === 0) return;
+
+  state.actualY = clamp(state.actualY - dy, 0, window.innerHeight - 1);
+  renderY -= dy;
+  if (state.glyphRect) {
+    state.glyphRect.top -= dy;
+    state.glyphRect.bottom -= dy;
+  }
+  // The locked line itself moved with the page — shift the lock target by
+  // the same dy so the cursor remains pinned to its glyph after scrolling.
+  if (state.lineLockedY != null) state.lineLockedY -= dy;
+
+  const para = findNearbyPara(state.x, state.actualY);
+  if (para) state.lastPara = para;
   const glyph = findGlyphAt(state.x, state.actualY);
   state.overGlyph = !!glyph;
   if (glyph) {
@@ -172,10 +324,6 @@ function onMouseMove(e) {
   } else {
     state.glyphRect = null;
     state.y = state.actualY;
-  }
-
-  if (velocity < SLOW_VELOCITY && now - lastTeleportT > TELEPORT_COOLDOWN_MS) {
-    maybeTeleport(dx);
   }
 }
 
@@ -212,6 +360,20 @@ function applyCursorVisual() {
     // Y snaps to the line's middle (the "skewer" position) — the trail
     // separately rides the underline two pixels lower.
     targetY = (r.top + r.bottom) / 2;
+    // Visual-only lean toward the neighbouring line while locked. The
+    // hit-test cursor (state.actualY) stays pinned to the current line
+    // so highlighting + glyph wrapping stay on the right characters; this
+    // offset only affects what the user *sees*, giving the cursor "room
+    // to breathe" vertically and previewing the line transition before
+    // the magnitude actually reaches COMMIT_DY.
+    if (state.lineLockedY != null) {
+      const lean = clamp(
+        state.rawDy * VISUAL_LEAN_GAIN,
+        -VISUAL_LEAN_MAX,
+        VISUAL_LEAN_MAX,
+      );
+      targetY += lean;
+    }
   } else {
     targetX = state.x;
     targetY = state.actualY;
@@ -241,30 +403,11 @@ function applyCursorVisual() {
 // ---------- hit-testing helpers ----------
 
 function findGlyphAt(x, y) {
-  // Direct hit first.
+  // Direct hit first. Line-lock means actualY is pinned to the current
+  // line's center while locked, so this hit will land on the same line as
+  // long as the lock is held — no hysteresis layer needed here.
   const stack = document.elementsFromPoint(x, y);
   let g = stack.find((el) => el.matches && el.matches("[data-char-index]"));
-
-  // Line-snap hysteresis. If the direct hit is on a DIFFERENT line than the
-  // one we were just on, require the cursor's y to be sufficiently past
-  // the previous line's bbox before we accept the switch. Otherwise the
-  // cursor flicks lines on the slightest vertical drift. Buffer is driven
-  // by window.__portalConfig.lineSnapStickiness (0..1; user-tunable via
-  // the slider in cursor-hud).
-  if (g && state.glyphRect) {
-    const oldR = state.glyphRect;
-    const newR = g.getBoundingClientRect();
-    const sameLine = Math.abs(newR.bottom - oldR.bottom) <= LINE_TOLERANCE;
-    if (!sameLine) {
-      const sticky = getLineSnapStickiness();
-      const buffer = LINE_HEIGHT * sticky;
-      if (y >= oldR.top - buffer && y <= oldR.bottom + buffer) {
-        // Stay on the previous line. Pick a glyph on that line near x.
-        const stay = findGlyphOnLineY(oldR.bottom, x);
-        if (stay) return stay;
-      }
-    }
-  }
   if (g) return g;
 
   if (!state.lastPara) return null;
@@ -316,32 +459,73 @@ function findGlyphAt(x, y) {
   return nearestGlyph;
 }
 
-// Find a glyph anywhere on the line whose .bottom is targetBottom, nearest
-// to x. Used by the line-snap hysteresis path to keep the cursor on the
-// previous line when y has drifted but not far enough to commit to the
-// new line.
-function findGlyphOnLineY(targetBottom, x) {
-  if (!state.lastPara) return null;
-  const all = Array.from(state.lastPara.querySelectorAll("[data-char-index]"));
-  let nearest = null;
-  let minD = Infinity;
-  for (const g of all) {
-    const r = g.getBoundingClientRect();
-    if (Math.abs(r.bottom - targetBottom) > LINE_TOLERANCE) continue;
-    const gx = (r.left + r.right) / 2;
-    const d = Math.abs(x - gx);
-    if (d < minD) {
-      minD = d;
-      nearest = g;
-    }
-  }
-  return nearest;
+// ---------- motion-vector helpers ----------
+// Exponential-decay accumulator: each sample is added on top of a decayed
+// previous value, so the resulting (rawDx, rawDy) is a ~150 ms window on
+// the user's recent motion. Angle from horizontal of this vector decides
+// whether they're "moving along the line" or "trying to leave the line".
+
+function accumulateRawMotion(dx, dy, now) {
+  const dt = Math.max(0, now - state.rawT);
+  state.rawT = now;
+  const decay = Math.pow(0.5, dt / RAW_HALF_LIFE_MS);
+  state.rawDx = state.rawDx * decay + dx;
+  state.rawDy = state.rawDy * decay + dy;
 }
 
-function getLineSnapStickiness() {
-  const v = window.__portalConfig?.lineSnapStickiness;
-  if (typeof v !== "number" || !isFinite(v)) return 0.4;
-  return Math.min(Math.max(v, 0), 1);
+function resetRawMotion(now) {
+  state.rawDx = 0;
+  state.rawDy = 0;
+  state.rawT = now || performance.now();
+}
+
+// Angle in degrees from horizontal. 0 = pure horizontal, 90 = pure vertical.
+// We don't care about direction here — just dominance — so we use absolute
+// components.
+function motionAngleDeg() {
+  const ax = Math.abs(state.rawDx);
+  const ay = Math.abs(state.rawDy);
+  if (ax + ay < 0.1) return 0;
+  return (Math.atan2(ay, ax) * 180) / Math.PI;
+}
+window.__portalMotion = {
+  // Read-only-ish accessor the HUD uses to draw the live vector.
+  get rawDx() { return state.rawDx; },
+  get rawDy() { return state.rawDy; },
+  get angleDeg() { return motionAngleDeg(); },
+  get threshold() { return getLineBreakAngle(); },
+  get commitDy() { return COMMIT_DY; },
+  get locked() { return state.lineLockedY != null; },
+};
+
+function getLineBreakAngle() {
+  const v = window.__portalConfig?.lineBreakAngle;
+  if (typeof v !== "number" || !isFinite(v)) return 60;
+  return Math.min(Math.max(v, 5), 89);
+}
+
+// Find the center y of the line that is `direction` (±1) from the line
+// whose center is `currentLineY`, within the active paragraph. Returns
+// null at paragraph ends so the caller can release the lock.
+function findAdjacentLineCenter(currentLineY, direction) {
+  if (!state.lastPara) return null;
+  const all = Array.from(state.lastPara.querySelectorAll("[data-char-index]"));
+  if (all.length === 0) return null;
+  const lines = groupSpansByLine(all);
+  if (lines.length === 0) return null;
+  let idx = -1;
+  for (let i = 0; i < lines.length; i++) {
+    const lc = (lines[i].top + lines[i].bottom) / 2;
+    if (Math.abs(lc - currentLineY) <= LINE_HEIGHT / 2) {
+      idx = i;
+      break;
+    }
+  }
+  if (idx < 0) return null;
+  const targetIdx = idx + direction;
+  if (targetIdx < 0 || targetIdx >= lines.length) return null;
+  const t = lines[targetIdx];
+  return (t.top + t.bottom) / 2;
 }
 
 function findNearbyPara(x, y) {
@@ -412,6 +596,11 @@ function teleportTo(x, y) {
     state.x = x;
     state.actualY = y;
     state.y = y;
+    // Teleport lands ON a line — re-engage the lock at the destination's
+    // center so the very next mousemove doesn't immediately try to break
+    // out via stale rawDy.
+    state.lineLockedY = y;
+    resetRawMotion(performance.now());
     renderX = x;
     renderY = y;
     applyCursorVisual();

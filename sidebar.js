@@ -18,6 +18,7 @@ import {
 } from "./sources/markdown.js";
 import { pdfSourceFromFile } from "./sources/pdf.js";
 import { webSourceFromUrl } from "./sources/web.js";
+import { pushSignal } from "./signals.js";
 
 let onSelect = () => {};
 let rootEl = null;
@@ -30,6 +31,13 @@ let urlInputEl = null;
 // session without re-parsing. Phase 2 will move this to localStorage.
 const loaded = []; // [{ source, label }]
 let currentId = null;
+
+// Reading-session state. session_start / session_end signals get emitted
+// when the user explicitly opens/closes a reading. Switching sources mid-
+// session auto-closes the previous session so we don't conflate two reads.
+let sessionActive = false;
+let sessionStartedAt = 0;
+let sessionSourceId = null;
 
 export function initSidebar(opts = {}) {
   onSelect = opts.onSelect || (() => {});
@@ -203,10 +211,66 @@ function renderCurrent(source) {
   if (source.meta?.fileName) metaBits.push(source.meta.fileName);
   if (source.meta?.pageCount) metaBits.push(`${source.meta.pageCount} pages`);
   metaBits.push(`${wordCount} words`);
+
+  // Show the right button + status pair based on whether this source is the
+  // one we have an active session on. Switching to a different source while
+  // active is allowed — clicking 시작 there will close the old session first
+  // (handled in startSession).
+  const isActiveHere = sessionActive && sessionSourceId === source.id;
+  const buttonHtml = isActiveHere
+    ? `<button class="src-session-btn" id="src-session-end" type="button">✓ 독서 끝내기</button>`
+    : `<button class="src-session-btn is-primary" id="src-session-start" type="button">📖 독서 시작</button>`;
+  const statusHtml = isActiveHere
+    ? `<div class="src-session-status is-active">독서 중…</div>`
+    : sessionActive
+      ? `<div class="src-session-status">다른 글 읽는 중</div>`
+      : "";
+
   currentEl.innerHTML = `
     <div class="src-current-title">${escapeHtml(source.title || "(untitled)")}</div>
     <div class="src-current-meta">${escapeHtml(metaBits.join(" · "))}</div>
+    <div class="src-session">${buttonHtml}</div>
+    ${statusHtml}
   `;
+
+  const startBtn = currentEl.querySelector("#src-session-start");
+  const endBtn = currentEl.querySelector("#src-session-end");
+  if (startBtn) startBtn.addEventListener("click", () => startSession(source));
+  if (endBtn) endBtn.addEventListener("click", () => endSession("user"));
+}
+
+function startSession(source) {
+  // If another session is open (e.g., user switched sources without closing),
+  // close it first so each session is bounded by exactly one start/end pair.
+  if (sessionActive) endSession("auto_switch");
+  sessionActive = true;
+  sessionStartedAt = performance.now();
+  sessionSourceId = source.id;
+  pushSignal({
+    type: "session_start",
+    source_id: source.id,
+    source_kind: source.kind,
+    source_title: source.title,
+  });
+  renderCurrent(source);
+}
+
+function endSession(reason) {
+  if (!sessionActive) return;
+  const id = sessionSourceId;
+  const elapsedMs = performance.now() - sessionStartedAt;
+  pushSignal({
+    type: "session_end",
+    source_id: id,
+    reason,
+    elapsed_ms: Math.round(elapsedMs),
+  });
+  sessionActive = false;
+  sessionSourceId = null;
+  sessionStartedAt = 0;
+  // Re-render whatever's currently displayed so the button flips back.
+  const current = loaded.find((e) => e.source.id === currentId);
+  if (current) renderCurrent(current.source);
 }
 
 function estimateWords(source) {
