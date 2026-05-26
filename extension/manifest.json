@@ -12,6 +12,13 @@
     "service_worker": "background.js",
     "type": "module"
   },
+  "content_scripts": [
+    {
+      "matches": ["http://localhost/*", "http://127.0.0.1/*"],
+      "js": ["content-bridge.js"],
+      "run_at": "document_idle"
+    }
+  ],
   "commands": {
     "open-in-layer2": {
       "suggested_key": {
@@ -19,6 +26,9 @@
         "mac": "Command+Shift+L"
       },
       "description": "현재 글을 Layer2로 열기"
+    },
+    "save-to-layer2": {
+      "description": "현재 글을 Layer2에 저장 (나중에 뷰어에서 읽기)"
     }
   }
 }

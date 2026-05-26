@@ -5,7 +5,9 @@
 // main-content heuristic. The result is stashed in chrome.storage.local and
 // the bundled viewer is opened in a new tab, where boot-ext.js picks it up.
 
-export async function captureAndOpen(tabId) {
+const MAX_LIBRARY = 30; // saved articles kept, newest first
+
+async function captureSource(tabId) {
   const [{ result } = {}] = await chrome.scripting.executeScript({
     target: { tabId },
     func: extractArticle,
@@ -13,8 +15,27 @@ export async function captureAndOpen(tabId) {
   if (!result || !result.blocks || result.blocks.length === 0) {
     throw new Error("이 페이지에서 본문을 찾지 못했어요.");
   }
-  await chrome.storage.local.set({ layer2Source: result, layer2At: Date.now() });
+  return result;
+}
+
+// "지금 읽기" — capture and open the bundled viewer immediately.
+export async function captureAndOpen(tabId) {
+  const source = await captureSource(tabId);
+  await chrome.storage.local.set({ layer2Source: source, layer2At: Date.now() });
   await chrome.tabs.create({ url: chrome.runtime.getURL("viewer/index.html") });
+}
+
+// "저장" — capture into the library (chrome.storage.local). The viewer reads
+// this via content-bridge.js. Dedupe by URL so re-saving a page updates it.
+export async function captureAndSave(tabId) {
+  const source = await captureSource(tabId);
+  const { layer2Library } = await chrome.storage.local.get("layer2Library");
+  const lib = Array.isArray(layer2Library) ? layer2Library : [];
+  const url = source.meta?.url;
+  const deduped = url ? lib.filter((it) => it.source?.meta?.url !== url) : lib;
+  deduped.unshift({ savedAt: Date.now(), source });
+  await chrome.storage.local.set({ layer2Library: deduped.slice(0, MAX_LIBRARY) });
+  return source.title;
 }
 
 // Runs INSIDE the page (chrome.scripting injects its source). Must be fully

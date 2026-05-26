@@ -32,7 +32,11 @@
         vendor/*-stub.js  #   pretext/readability/pdf/markdown CDN 대체 stub
       viewer/             # scripts/build-extension.sh 가 루트 viewer 복사+import 치환해서 생성
     ```
-  - 플로우: 단축키/팝업 → extract.js 가 페이지 본문 추출 → `chrome.storage.local` 저장 → 새 탭에 `viewer/index.html` → boot-ext.js 가 주입 → 읽기 → "독서 끝내기" → 2.1 내보내기
+  - 두 가지 모드 (팝업 버튼 / 단축키 둘 다):
+    - **지금 읽기**: extract → `layer2Source` 저장 → 새 탭에 번들 `viewer/index.html` → boot-ext.js 주입 → 읽기 → 2.1 내보내기
+    - **저장 (북마크)**: extract → `layer2Library` 에 적재(최근 30, URL 중복 제거). 단축키 `save-to-layer2`(기본 키 없음, chrome://extensions/shortcuts 에서 지정)
+  - 북마크 브리지: `content-bridge.js`(content script, `http://localhost/*` · `127.0.0.1/*`)가 `chrome.storage` 라이브러리를 postMessage 로 뷰어에 중계 → 사이드바 "저장된 글" 섹션에서 클릭 로드 / × 삭제. ready·list 핸드셰이크 양방향이라 주입 타이밍 안전. 확장 없으면 섹션 숨김.
+  - Vercel 호스팅하면 그 주소를 manifest content_scripts matches 에 추가하면 됨
   - CDN/CSP 처리: MV3 는 원격 모듈 import 금지 → 빌드 스크립트가 esm.sh import 치환. **pretext 는 npm 에서 진짜 모듈을 벤더링**(`extension/src/vendor/pretext/`, MIT, 런타임 의존성 없음)해서 단어 기준 커서 로깅 그대로 유지. readability/pdf/markdown 로더만 stub (주입 소스 플로우에선 미사용).
   - 로드 방법: Chrome → `chrome://extensions` → 개발자 모드 ON → "압축 해제된 확장 프로그램 로드" → `extension/` 폴더 선택
   - ⚠ 빌드 주의: 루트 viewer(*.js, index.html, styles.css) 수정 후엔 `bash scripts/build-extension.sh` 재실행해야 `extension/viewer/` 반영됨

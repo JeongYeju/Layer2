@@ -26,6 +26,8 @@ let listEl = null;
 let currentEl = null;
 let statusEl = null;
 let urlInputEl = null;
+let extSavedHead = null;
+let extSavedList = null;
 
 // In-memory cache so the user can re-open something loaded earlier without
 // re-parsing. Mirrored to localStorage (persistSources) so the source list and
@@ -93,6 +95,8 @@ export function initSidebar(opts = {}) {
   } else {
     pushAndSelect(sampleSource(), "샘플 글");
   }
+
+  initExtBridge();
 }
 
 function build() {
@@ -109,6 +113,9 @@ function build() {
       <div class="src-status" id="src-status"></div>
     </div>
 
+    <h2 id="ext-saved-head" class="ext-saved-head" hidden>저장된 글 <small>확장</small></h2>
+    <ul class="src-list" id="ext-saved-list" hidden></ul>
+
     <h2>불러온 소스</h2>
     <ul class="src-list" id="src-list"></ul>
 
@@ -120,6 +127,8 @@ function build() {
   currentEl = rootEl.querySelector("#src-current");
   statusEl = rootEl.querySelector("#src-status");
   urlInputEl = rootEl.querySelector("#src-url");
+  extSavedHead = rootEl.querySelector("#ext-saved-head");
+  extSavedList = rootEl.querySelector("#ext-saved-list");
 
   const dropEl = rootEl.querySelector("#src-drop");
   const fileEl = rootEl.querySelector("#src-file");
@@ -437,6 +446,76 @@ function escapeHtml(s) {
         "'": "&#39;",
       })[c],
   );
+}
+
+// ---------- Saved-article bridge (browser extension) ----------
+// The extension's content script (content-bridge.js) relays its saved library
+// over postMessage. We show the "저장된 글" section only when the bridge
+// answers; in the plain standalone viewer it stays hidden.
+
+const EXT_SRC = "layer2-ext";
+const VIEWER_SRC = "layer2-viewer";
+let extSaved = [];
+
+function initExtBridge() {
+  window.addEventListener("message", (e) => {
+    if (e.source !== window) return;
+    const msg = e.data;
+    if (!msg || msg.source !== EXT_SRC) return;
+    if (msg.op === "ready") {
+      requestExtList();
+    } else if (msg.op === "list") {
+      extSaved = Array.isArray(msg.items) ? msg.items : [];
+      renderExtSaved();
+    }
+  });
+  requestExtList();
+}
+
+function requestExtList() {
+  window.postMessage({ source: VIEWER_SRC, op: "list" }, window.location.origin);
+}
+
+function renderExtSaved() {
+  if (!extSavedHead || !extSavedList) return;
+  const has = extSaved.length > 0;
+  extSavedHead.hidden = !has;
+  extSavedList.hidden = !has;
+  if (!has) {
+    extSavedList.innerHTML = "";
+    return;
+  }
+  extSavedList.innerHTML = extSaved
+    .map(({ source }) => {
+      const id = source?.id || "";
+      return `<li data-ext-id="${escapeHtml(id)}">
+        <button class="ext-del" type="button" title="삭제" data-del="${escapeHtml(id)}">×</button>
+        <span class="src-kind">${escapeHtml(source?.kind || "web")}</span>${escapeHtml(source?.title || "(제목 없음)")}
+      </li>`;
+    })
+    .join("");
+  extSavedList.querySelectorAll("li[data-ext-id]").forEach((li) => {
+    li.addEventListener("click", (e) => {
+      if (e.target.closest("[data-del]")) return; // delete handled below
+      const entry = extSaved.find((it) => it.source?.id === li.dataset.extId);
+      if (entry?.source) {
+        pushAndSelect(entry.source, entry.source.title || "저장된 글");
+      }
+    });
+  });
+  extSavedList.querySelectorAll("[data-del]").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const id = btn.dataset.del;
+      window.postMessage(
+        { source: VIEWER_SRC, op: "delete", id },
+        window.location.origin,
+      );
+      // Optimistic removal; the bridge will also push a refreshed list.
+      extSaved = extSaved.filter((it) => it.source?.id !== id);
+      renderExtSaved();
+    });
+  });
 }
 
 // Exposed only so external loaders (paste handlers, drag-into-window, etc.)

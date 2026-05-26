@@ -16,16 +16,16 @@
     margin: 0 0 10px;
     letter-spacing: 0.02em;
   }
+  .row { display: flex; gap: 8px; }
   button {
-    width: 100%;
+    flex: 1;
     padding: 9px 10px;
     font-size: 13px;
-    border: 1px solid #d9362b;
-    background: #d9362b;
-    color: #fff;
     border-radius: 5px;
     cursor: pointer;
   }
+  button.primary { border: 1px solid #d9362b; background: #d9362b; color: #fff; }
+  button.secondary { border: 1px solid #d9362b; background: #fff; color: #d9362b; }
   button:hover { filter: brightness(1.06); }
   button:disabled { opacity: 0.6; cursor: default; }
   #msg {
@@ -45,8 +45,11 @@
 </head>
 <body>
   <h1>📖 Layer2 Reader</h1>
-  <button id="go" type="button">이 글을 Layer2로 읽기</button>
-  <div id="msg">단축키 <kbd>Ctrl/Cmd+Shift+L</kbd></div>
+  <div class="row">
+    <button id="save" class="secondary" type="button">저장</button>
+    <button id="go" class="primary" type="button">지금 읽기</button>
+  </div>
+  <div id="msg">저장하면 뷰어 웹의 "저장된 글" 목록에 담겨요.</div>
   <script type="module" src="popup.js"></script>
 </body>
 </html>
