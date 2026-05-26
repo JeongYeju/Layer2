@@ -334,7 +334,7 @@ ol.para-list .para-item {
 /* Pencil emoji cursor applied per-span. Single, specific selector keeps the
    cursor declaration outside any cascade chain — most reliable form. */
 .para .g.pencil-cursor {
-  cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'><text x='0' y='22' font-size='22' font-family='Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' transform='translate(0 24) scale(1 -1)'>✏️</text></svg>") 3 0, crosshair;
+  cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'><text x='0' y='22' font-size='22' font-family='Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' transform='rotate(180 12 12)'>✏️</text></svg>") 3 0, crosshair;
 }
 
 /* Permanent faded underline kept after a highlight is released/annotated.
@@ -972,7 +972,7 @@ ol.para-list .para-item {
   font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
   font-size: 1.4rem;
   line-height: 1;
-  transform: translate(-50%, -50%) rotate(180deg);
+  transform: translate(-50%, -50%) rotate(360deg);
   opacity: 0;
   filter: blur(6px);
   transition: opacity 0.28s ease, filter 0.28s ease;

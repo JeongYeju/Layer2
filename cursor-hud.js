@@ -16,7 +16,7 @@ const DEFAULTS = {
   glyphY: 22,
   fontSize: 22,
   svgSize: 24,
-  rotate: 0, // normal-mode pencil is vertically flipped (see apply); rotate is extra
+  rotate: 180,
   hotspotX: 3,
   hotspotY: 0,
 };
@@ -185,7 +185,7 @@ export function initCursorHud() {
     const url =
       `data:image/svg+xml;utf8,` +
       `<svg xmlns='http://www.w3.org/2000/svg' width='${svgSize}' height='${svgSize}' viewBox='0 0 ${svgSize} ${svgSize}'>` +
-      `<text x='${glyphX}' y='${glyphY}' font-size='${fontSize}' font-family='Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' transform='translate(0 ${svgSize}) scale(1 -1) rotate(${rotate} ${center} ${center})'>✏️</text>` +
+      `<text x='${glyphX}' y='${glyphY}' font-size='${fontSize}' font-family='Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' transform='rotate(${rotate} ${center} ${center})'>✏️</text>` +
       `</svg>`;
     styleEl.textContent = `
       .para .g.pencil-cursor {
