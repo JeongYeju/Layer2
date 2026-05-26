@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "Layer2 Reader",
+  "version": "0.1.0",
+  "description": "현재 웹페이지의 글을 Layer2 읽기 모드로 바로 엽니다.",
+  "permissions": ["activeTab", "scripting", "storage"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Layer2로 읽기"
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "commands": {
+    "open-in-layer2": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+L",
+        "mac": "Command+Shift+L"
+      },
+      "description": "현재 글을 Layer2로 열기"
+    }
+  }
+}

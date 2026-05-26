@@ -1,0 +1,993 @@
+:root {
+  --ink: #d9362b;
+  --paper: #fbf9f4;
+  --paper-edge: #efeae0;
+  --text: #1c1a18;
+  --muted: #7a736b;
+  --rule: #e6e1d6;
+  --chip-yellow: #e9c25a;
+  --chip-red: #d9362b;
+  --chip-blue: #4d6ea3;
+  --chip-grey: #b3aea4;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--paper);
+  color: var(--text);
+  font-family: "Inter", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 260px 1fr 360px;
+  min-height: 100vh;
+}
+
+/* ---------- Sidebar (sources) ---------- */
+
+.sidebar {
+  border-right: 1px solid var(--rule);
+  background: #fff;
+  padding: 24px 18px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  font-family: "Inter", sans-serif;
+  font-size: 13px;
+  color: var(--text);
+}
+.sidebar h2 {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 20px 0 8px 0;
+  font-weight: 600;
+}
+.sidebar h2:first-child {
+  margin-top: 0;
+}
+.sidebar .src-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.sidebar .src-actions input[type="url"] {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  font: inherit;
+  background: var(--paper);
+}
+.sidebar .src-button {
+  padding: 7px 10px;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  font: inherit;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+}
+.sidebar .src-button:hover {
+  background: var(--paper-edge);
+}
+.sidebar .src-drop {
+  padding: 14px 10px;
+  border: 1px dashed var(--rule);
+  border-radius: 6px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 11.5px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.sidebar .src-drop:hover,
+.sidebar .src-drop.is-dragover {
+  background: var(--paper);
+  border-color: var(--ink);
+  color: var(--text);
+}
+.sidebar .src-drop input[type="file"] {
+  display: none;
+}
+.sidebar .src-status {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 4px;
+  min-height: 1em;
+}
+.sidebar .src-status.is-error {
+  color: var(--ink);
+}
+.sidebar .src-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.sidebar .src-list li {
+  padding: 7px 9px;
+  border-radius: 4px;
+  background: var(--paper);
+  cursor: pointer;
+  border-left: 2px solid transparent;
+  font-size: 12.5px;
+  line-height: 1.35;
+  transition: background 0.15s;
+}
+.sidebar .src-list li:hover {
+  background: var(--paper-edge);
+}
+.sidebar .src-list li.is-current {
+  border-left-color: var(--ink);
+  background: var(--paper-edge);
+}
+.sidebar .src-list .src-kind {
+  display: inline-block;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  margin-right: 6px;
+}
+.sidebar .src-current {
+  padding: 8px 10px;
+  background: var(--paper);
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.sidebar .src-current .src-current-title {
+  font-weight: 500;
+  margin-bottom: 4px;
+  word-break: keep-all;
+}
+.sidebar .src-current .src-current-meta {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* Session controls live inside the current-source card. The session marker
+   (session_start / session_end signals) is what bounds a coherent reading
+   session in the SignalLog — the Phase 2 export only sends signals between
+   the latest pair, so the AI sees just "this reading", not the whole tab's
+   noisy history of pokes and source-switching. */
+.sidebar .src-current .src-session {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+.sidebar .src-current .src-session-btn {
+  flex: 1;
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 11px;
+  padding: 6px 8px;
+  background: white;
+  color: var(--text);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.sidebar .src-current .src-session-btn:hover {
+  background: var(--paper-edge);
+}
+.sidebar .src-current .src-session-btn.is-primary {
+  background: var(--ink);
+  color: white;
+  border-color: var(--ink);
+}
+.sidebar .src-current .src-session-btn.is-primary:hover {
+  background: var(--ink);
+  filter: brightness(1.08);
+}
+.sidebar .src-current .src-session-status {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.sidebar .src-current .src-session-status.is-active {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+/* ---------- Reader ---------- */
+
+.reader {
+  padding: 96px 0 200px 0;
+  display: flex;
+  justify-content: center;
+}
+
+.article {
+  width: 640px;
+  max-width: calc(100% - 48px);
+}
+
+.article h1 {
+  font-family: "Noto Serif KR", serif;
+  font-weight: 700;
+  font-size: 32px;
+  line-height: 1.3;
+  margin: 0 0 8px 0;
+}
+
+.article .byline {
+  color: var(--muted);
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  margin-bottom: 56px;
+}
+
+.para {
+  font-family: "Noto Serif KR", serif;
+  font-weight: 400;
+  font-size: 18px;
+  line-height: 32px; /* must match pretext LINE_HEIGHT */
+  margin: 0 0 28px 0;
+  color: var(--text);
+  /* avoid native selection visuals fighting the ink */
+  user-select: none;
+  -webkit-user-select: none;
+  position: relative;
+}
+
+/* Block-type variants. They keep .para's grapheme-wrapping behaviour but
+   adjust size / weight / spacing to match their semantic role. The signal
+   collectors track all of them uniformly via [data-paragraph-id]. */
+.para.para-heading {
+  font-weight: 700;
+  font-size: 24px;
+  line-height: 36px;
+  margin: 36px 0 16px 0;
+  color: var(--text);
+}
+.para.para-heading + .para.para-heading {
+  margin-top: 20px;
+}
+h1.para.para-heading { font-size: 30px; line-height: 40px; margin-top: 0; }
+h2.para.para-heading { font-size: 24px; line-height: 36px; }
+h3.para.para-heading { font-size: 20px; line-height: 32px; }
+h4.para.para-heading,
+h5.para.para-heading,
+h6.para.para-heading { font-size: 18px; line-height: 30px; }
+
+.para.para-quote {
+  border-left: 3px solid var(--rule);
+  padding: 4px 0 4px 16px;
+  color: var(--muted);
+  font-style: italic;
+}
+
+.para-list {
+  margin: 0 0 28px 24px;
+  padding: 0;
+}
+.para-list .para-item {
+  margin: 0 0 10px 0;
+  list-style-position: outside;
+  list-style: disc;
+}
+.para-list[ordered],
+ol.para-list .para-item {
+  list-style: decimal;
+}
+
+.para-code {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 12px 14px;
+  margin: 0 0 28px 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--text);
+}
+
+.para .g {
+  display: inline;
+  position: relative;
+  /* underline applied as a pseudo-element so it matches the descender line */
+}
+
+/* Pencil emoji cursor applied per-span. Single, specific selector keeps the
+   cursor declaration outside any cascade chain — most reliable form. */
+.para .g.pencil-cursor {
+  cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'><text x='0' y='22' font-size='22' font-family='Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' transform='rotate(180 12 12)'>✏️</text></svg>") 3 0, crosshair;
+}
+
+/* Permanent faded underline kept after a highlight is released/annotated.
+   Inherits the speed-derived --underline-opacity from the active state and
+   halves it, so dense (slow) strokes stay denser even as faded records.
+   Defined FIRST so the active .is-underlined rule below wins via CSS cascade
+   when a new drag re-highlights an already-annotated span. */
+.para .g.is-annotated::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -2px;
+  height: 1.5px;
+  background: var(--ink);
+  opacity: calc(var(--underline-opacity, 0.7) * 0.55);
+  mix-blend-mode: multiply;
+  pointer-events: none;
+  border-radius: 1px;
+  transition: opacity 0.45s ease;
+}
+
+.para .g.is-underlined::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -2px;
+  /* Fixed height now — speed maps to opacity instead, so slow drags look
+     denser (more ink soaked in) and fast drags look fainter. The opacity
+     is set inline per-span by applyUnderline and JS-smoothed against
+     neighbors so adjacent grapheme rectangles blend into one continuous
+     line instead of looking like separate blocks. */
+  height: 2.5px;
+  background: var(--ink);
+  opacity: var(--underline-opacity, 0.7);
+  /* Soft red halo feathers the rectangle edges → no visible block seams
+     between adjacent .g elements. Subtle enough not to look glowy. */
+  box-shadow: 0 0 1.6px var(--ink);
+  mix-blend-mode: multiply;
+  pointer-events: none;
+  border-radius: 1px;
+  /* tiny vertical wobble for a hand-drawn feel */
+  filter: url(#ink-jitter);
+  transition: opacity 0.45s ease;
+}
+
+/* Annotation marker — inserted as inline sibling of the anchor word's last
+   grapheme span. Flowing inline-block means it never overlaps text.
+   No mix-blend-mode here: it would propagate to the .anno-tooltip child via
+   the parent's blend group, multiplying its white background into the page
+   underneath and making the popup look transparent. */
+.anno-marker {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  background: var(--ink);
+  border-radius: 50%;
+  vertical-align: super;
+  margin: 0 2px;
+  cursor: help;
+  position: relative;
+}
+
+.anno-tooltip {
+  display: none;
+  position: absolute;
+  bottom: 140%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: white;
+  border: 1px solid var(--ink);
+  padding: 6px 10px;
+  font-family: "Inter", sans-serif;
+  font-size: 12px;
+  color: var(--text);
+  white-space: pre-wrap;
+  max-width: 220px;
+  min-width: 80px;
+  z-index: 30;
+  border-radius: 2px;
+  box-shadow: 0 2px 10px rgba(217, 54, 43, 0.15);
+  pointer-events: none;
+  line-height: 1.5;
+  word-break: keep-all;
+}
+
+.anno-tooltip::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: var(--ink);
+}
+
+.anno-marker:hover .anno-tooltip,
+.anno-marker:focus .anno-tooltip { display: block; }
+
+/* ---------- Ink overlay ---------- */
+
+.ink-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 20;
+  width: 100%;
+  height: 100%;
+}
+
+.ink-layer .anchor-circle {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 2;
+  stroke-linecap: round;
+  mix-blend-mode: multiply;
+  /* stroke-dashoffset transition is set inline by drawAnchorCircle so the
+     "pen drawing" effect runs exactly once on append. */
+}
+
+.ink-layer .ink-stroke {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.8;
+  mix-blend-mode: multiply;
+}
+
+/* ---------- Annotation textarea ---------- */
+
+#annotation-host { position: fixed; inset: 0; pointer-events: none; z-index: 25; }
+
+.annotation-box {
+  position: absolute;
+  width: 240px;
+  pointer-events: auto;
+  background: white;
+  border: 1px solid var(--ink);
+  box-shadow: 0 8px 24px rgba(217, 54, 43, 0.08);
+  padding: 8px;
+  border-radius: 2px;
+  animation: annoPop 200ms ease-out;
+}
+.annotation-box textarea {
+  width: 100%;
+  border: none;
+  outline: none;
+  resize: none;
+  background: transparent;
+  font-family: "Noto Serif KR", serif;
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--text);
+  min-height: 44px;
+}
+.annotation-box .hint {
+  font-family: "Inter", sans-serif;
+  color: var(--muted);
+  font-size: 10px;
+  margin-top: 4px;
+  letter-spacing: 0.02em;
+}
+@keyframes annoPop {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ---------- Toolbar ---------- */
+
+.toolbar {
+  position: fixed;
+  left: 24px;
+  bottom: 24px;
+  display: flex;
+  gap: 6px;
+  background: white;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  padding: 6px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+  z-index: 40;
+}
+.toolbar button {
+  border: none;
+  background: transparent;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 16px;
+  color: var(--text);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.toolbar button:hover { background: var(--paper-edge); }
+.toolbar button.is-active { background: var(--text); color: white; }
+
+/* ---------- Dashboard ---------- */
+
+.dashboard {
+  border-left: 1px solid var(--rule);
+  background: #fff;
+  padding: 32px 24px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  font-family: "Inter", sans-serif;
+}
+.dashboard h2 {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 24px 0 8px 0;
+  font-weight: 600;
+}
+.dashboard h2:first-child { margin-top: 0; }
+
+.metric {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 6px 0;
+  border-bottom: 1px dotted var(--rule);
+  font-size: 13px;
+}
+.metric .label { color: var(--muted); }
+.metric .value { font-variant-numeric: tabular-nums; font-weight: 500; }
+
+.recent-list { margin: 8px 0 0 0; padding: 0; list-style: none; }
+.recent-list li {
+  font-size: 12px;
+  color: var(--text);
+  padding: 6px 8px;
+  margin-bottom: 4px;
+  background: var(--paper);
+  border-left: 2px solid var(--ink);
+  font-family: "Noto Serif KR", serif;
+  line-height: 1.4;
+}
+.recent-list li .meta {
+  display: block;
+  font-family: "Inter", sans-serif;
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 2px;
+  letter-spacing: 0.02em;
+}
+
+.timeline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  max-height: 220px;
+  overflow-y: auto;
+  padding-top: 4px;
+}
+.chip {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  color: white;
+  background: var(--chip-grey);
+  font-family: "Inter", sans-serif;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+.chip[data-type="highlight_underline"] { background: var(--chip-yellow); color: #4a3a00; }
+.chip[data-type="highlight_annotation"] { background: var(--chip-red); }
+.chip[data-type="dwell"] { background: var(--chip-blue); }
+.chip[data-type="bookmark"] { background: #2f6b2f; }
+.chip[data-type="capture"] { background: #6b3a8a; }
+.chip[data-type="reread"] { background: #b85c00; }
+.chip[data-type="circle_gesture"] { background: #2e9e72; }
+
+/* ---------- AI interpretation panel (Phase 2.3) ---------- */
+.interp-load-btn {
+  font-family: "Inter", sans-serif;
+  font-size: 10px;
+  letter-spacing: 0;
+  text-transform: none;
+  padding: 2px 8px;
+  margin-left: 8px;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--text);
+}
+.interp-load-btn:hover { background: var(--paper-edge); border-color: var(--ink); }
+.interp { font-size: 12px; }
+.interp-empty { color: var(--muted); font-size: 12px; }
+.interp-meta { color: var(--muted); font-size: 11px; margin-bottom: 8px; }
+.interp-summary {
+  font-family: "Noto Serif KR", serif;
+  line-height: 1.55;
+  margin: 6px 0 4px;
+}
+.interp-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: 0.02em;
+}
+.interp-badge.low { background: var(--muted); }
+.interp-badge.medium { background: #b85c00; }
+.interp-badge.high { background: #2f6b2f; }
+.interp-subhead {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  font-weight: 600;
+  margin: 12px 0 4px;
+}
+.interp-findings { list-style: none; margin: 0; padding: 0; }
+.interp-findings li {
+  background: var(--paper);
+  border-left: 2px solid var(--ink);
+  padding: 6px 8px;
+  margin-bottom: 4px;
+  cursor: pointer;
+}
+.interp-findings li:hover { background: var(--paper-edge); }
+.interp-finding-text { font-family: "Noto Serif KR", serif; line-height: 1.4; }
+.interp-finding-why { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.interp-pid {
+  display: inline-block;
+  font-family: "Inter", sans-serif;
+  font-size: 9px;
+  color: var(--muted);
+  margin-top: 3px;
+  letter-spacing: 0.02em;
+}
+.interp-interests { display: flex; flex-wrap: wrap; gap: 4px; }
+.interp-interest {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  background: var(--chip-blue);
+  color: #fff;
+}
+.interp-note {
+  font-size: 11px;
+  color: var(--muted);
+  font-style: italic;
+  margin-top: 8px;
+}
+.interp-raw {
+  white-space: pre-wrap;
+  font-size: 11px;
+  background: var(--paper);
+  padding: 8px;
+  border-radius: 4px;
+  max-height: 240px;
+  overflow: auto;
+}
+
+/* Flash a paragraph when a finding referencing it is clicked. */
+.para-flash { animation: para-flash 1.4s ease-out; }
+@keyframes para-flash {
+  0% { background: rgba(217, 54, 43, 0.18); }
+  100% { background: transparent; }
+}
+
+/* ---------- Mouse trail ---------- */
+
+/* Each segment is its own <line> with stroke-opacity driven per-frame in
+   signals.js — slow draws fade out gradually as their points expire, fast
+   draws fade together. Stroke color is opaque here; the per-segment alpha
+   is what makes the trail dissolve. */
+.mouse-trail-seg {
+  fill: none;
+  stroke: rgb(150, 135, 120);
+  stroke-width: 1.6px;
+  stroke-linecap: round;
+  pointer-events: none;
+}
+.mouse-trail-group--circle .mouse-trail-seg {
+  stroke: #2e9e72;
+  stroke-width: 2px;
+}
+
+/* Persistent faint-gray ellipse left around words enclosed by a circle
+   gesture. Anchored to the paragraph (.para is position: relative), so it
+   moves with the text on scroll. */
+.word-circle-mark {
+  position: absolute;
+  border: 1.5px solid rgba(110, 110, 110, 0.42);
+  border-radius: 50%;
+  pointer-events: none;
+  box-sizing: border-box;
+}
+
+/* ---------- Cursor tuning HUD (temporary — remove with cursor-hud.js) ---------- */
+
+#cursor-hud {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: white;
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  padding: 14px 16px;
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 12px;
+  color: var(--text);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 320px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12);
+}
+#cursor-hud .hud-title {
+  font-weight: 600;
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+#cursor-hud .hud-row {
+  display: grid;
+  grid-template-columns: 80px 1fr 36px;
+  align-items: center;
+  gap: 8px;
+}
+#cursor-hud .hud-label {
+  color: var(--muted);
+  font-size: 11px;
+}
+#cursor-hud .hud-val {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--text);
+}
+#cursor-hud input[type="range"] {
+  width: 100%;
+}
+#cursor-hud .hud-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+#cursor-hud button {
+  flex: 1;
+  padding: 6px 8px;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  font: inherit;
+  color: var(--text);
+  cursor: pointer;
+}
+#cursor-hud button:hover {
+  background: var(--paper-edge);
+}
+#cursor-hud #hud-copy {
+  background: var(--text);
+  color: white;
+  border-color: var(--text);
+}
+#cursor-hud pre {
+  margin: 4px 0 0;
+  padding: 8px 10px;
+  background: var(--paper);
+  border-radius: 6px;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 10.5px;
+  white-space: pre-wrap;
+  word-break: break-all;
+  color: var(--text);
+}
+
+/* Motion-vector viz next to the Line break angle slider. Box on the left,
+   live "angle / locked" readout on the right. Vector color flips to ink red
+   when the angle has entered the threshold wedge (= portal.js will commit
+   a line transition on the next eligible frame). */
+#cursor-hud .hud-motion {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 4px 0 8px;
+  padding: 6px 8px;
+  background: var(--paper);
+  border-radius: 6px;
+}
+#cursor-hud .hud-motion svg {
+  flex-shrink: 0;
+  display: block;
+}
+#cursor-hud .hud-motion-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 10.5px;
+  color: var(--muted);
+}
+#cursor-hud .hud-motion-meta > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+#cursor-hud .hud-motion-meta span {
+  color: var(--muted);
+}
+#cursor-hud .hud-motion-meta b {
+  color: var(--text);
+  font-weight: 500;
+}
+
+/* ---------- Cursor Portal (Pointer Lock + line teleport) ---------- */
+
+#portal-toggle {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 110;
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 12px;
+  padding: 8px 14px;
+  background: white;
+  color: var(--text);
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+#portal-toggle:hover {
+  background: var(--paper-edge);
+}
+#portal-toggle.is-active {
+  background: var(--ink);
+  color: white;
+  border-color: var(--ink);
+  box-shadow: 0 4px 16px rgba(217, 54, 43, 0.28);
+}
+
+/* ESC-out hint. The toggle button isn't clickable in Pointer Lock
+   (the system cursor is hidden and clicks land on body, not the button),
+   so the only exit is the browser-standard ESC key. Hidden by default,
+   fades in via .is-visible once the lock engages. */
+#portal-hint {
+  position: fixed;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 109;
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  padding: 6px 12px;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(4px);
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+#portal-hint.is-visible {
+  opacity: 1;
+}
+#portal-hint kbd {
+  display: inline-block;
+  padding: 1px 6px;
+  margin: 0 2px;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 10px;
+  background: var(--paper-edge);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  color: var(--text);
+}
+
+/* Outer: only carries position (JS sets translate3d each frame). No
+   visual — that lives on .portal-cursor-inner. Zero-size so the inner's
+   own translate(-50%, -50%) is the single source of centering. */
+#portal-cursor {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  z-index: 200;
+  will-change: transform;
+}
+
+/* Inner: the actual visual. translate(-50%, -50%) centers it on the
+   outer's render point. Width/height are set inline by portal.js for
+   wrap mode; default is the 0.875rem dot. Its own transform is what
+   the teleport animation scales — by living on a separate element from
+   the position-translate3d, the scale doesn't fight the per-frame
+   translate updates the outer is doing. */
+.portal-cursor-inner {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0.875rem;
+  height: 0.875rem;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(60, 60, 60, 0.35);
+  box-shadow: 0 0 5px rgba(255, 255, 255, 0.4);
+  pointer-events: none;
+  will-change: transform, filter, opacity;
+  transition:
+    width 0.32s cubic-bezier(0.16, 1, 0.3, 1),
+    height 0.32s cubic-bezier(0.16, 1, 0.3, 1),
+    border-radius 0.25s ease,
+    background 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.25s ease;
+}
+
+/* ✏️ ::before on the inner. Default hidden + pre-blurred so .is-pencil
+   transitions it in (opacity → 1, blur → 0); removing the class fades
+   it back out. Drag start/end both blur-morph between dot and pencil. */
+.portal-cursor-inner::before {
+  content: "✏️";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+  font-size: 1.4rem;
+  line-height: 1;
+  transform: translate(-50%, -50%) rotate(180deg);
+  opacity: 0;
+  filter: blur(6px);
+  transition: opacity 0.28s ease, filter 0.28s ease;
+  pointer-events: none;
+}
+
+/* Over a glyph: wrap the character. Width/height inline per-glyph from JS. */
+#portal-cursor.is-wrap .portal-cursor-inner {
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(60, 60, 60, 0.42);
+  border-radius: 4px;
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.32);
+}
+
+/* While actively drawing, swap to ✏️. Force dot dimensions so a stale
+   .is-wrap inline width/height doesn't inflate the pencil container. */
+#portal-cursor.is-pencil .portal-cursor-inner {
+  width: 0.875rem !important;
+  height: 0.875rem !important;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  border-radius: 50%;
+}
+#portal-cursor.is-pencil .portal-cursor-inner::before {
+  opacity: 1;
+  filter: blur(0);
+}
+
+/* Teleport: the inner scales up dramatically as it blurs out, becomes
+   invisible at the halfway mark (when portal.js silently relocates),
+   then scales+blurs back in at the destination. The scale is what
+   makes the blur read — a tiny dot blurred 20px still looks tiny, but
+   a 3.6×-scaled dot blurred 20px is a real portal swirl. The
+   translate(-50%, -50%) is preserved in every keyframe so centering
+   isn't lost. */
+#portal-cursor.is-teleporting .portal-cursor-inner {
+  animation: portalCursorBlur 400ms ease-in-out;
+}
+@keyframes portalCursorBlur {
+  0%   { transform: translate(-50%, -50%) scale(1);    filter: blur(0);    opacity: 1; }
+  35%  { transform: translate(-50%, -50%) scale(2.4);  filter: blur(10px); opacity: 0.4; }
+  50%  { transform: translate(-50%, -50%) scale(3.6);  filter: blur(20px); opacity: 0; }
+  65%  { transform: translate(-50%, -50%) scale(2.4);  filter: blur(10px); opacity: 0.4; }
+  100% { transform: translate(-50%, -50%) scale(1);    filter: blur(0);    opacity: 1; }
+}

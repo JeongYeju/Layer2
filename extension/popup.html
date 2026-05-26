@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<style>
+  body {
+    width: 240px;
+    margin: 0;
+    padding: 14px;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: #fbf9f4;
+    color: #1c1a18;
+  }
+  h1 {
+    font-size: 13px;
+    margin: 0 0 10px;
+    letter-spacing: 0.02em;
+  }
+  button {
+    width: 100%;
+    padding: 9px 10px;
+    font-size: 13px;
+    border: 1px solid #d9362b;
+    background: #d9362b;
+    color: #fff;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+  button:hover { filter: brightness(1.06); }
+  button:disabled { opacity: 0.6; cursor: default; }
+  #msg {
+    margin-top: 10px;
+    font-size: 11px;
+    color: #7a736b;
+    min-height: 14px;
+  }
+  kbd {
+    font-family: ui-monospace, monospace;
+    font-size: 10px;
+    background: #efeae0;
+    border-radius: 3px;
+    padding: 1px 4px;
+  }
+</style>
+</head>
+<body>
+  <h1>📖 Layer2 Reader</h1>
+  <button id="go" type="button">이 글을 Layer2로 읽기</button>
+  <div id="msg">단축키 <kbd>Ctrl/Cmd+Shift+L</kbd></div>
+  <script type="module" src="popup.js"></script>
+</body>
+</html>

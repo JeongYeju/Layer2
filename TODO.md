@@ -19,18 +19,24 @@
   - LLM 해석 없으면(`--no-llm`) refined digest 로 폴백 (가장 오래 머문 문단)
   - finding 클릭 → 리더에서 해당 문단으로 스크롤 + 플래시
   - ⚠ 브라우저 실렌더 테스트 미완 (이 환경에 headless 브라우저 없음 — 로컬에서 확인 필요)
-- [ ] **2.4** Chrome MV3 확장프로그램 — CORS / paywall 우회의 정답 (페이지가 이미 브라우저에 로드돼 있으니 직접 본문 추출)
-  - 후보 구조:
+- [x] **2.4** Chrome MV3 확장프로그램 (`extension/`) — "지금 바로 동작" 버전 (Readability 없이 자체 추출기)
+  - 구조:
     ```
     extension/
-      manifest.json       # MV3, permissions: activeTab, storage
-      background.js       # 단축키 (Cmd+Shift+L) listener
-      content-script.js   # Readability 로 현재 페이지 본문 추출
-      popup.html / popup.js  # "이 글을 Layer2로 읽기" 버튼
-      viewer/             # 현재 index.html + js 그대로 번들
+      manifest.json       # MV3, permissions: activeTab, scripting, storage
+      background.js       # 단축키(Ctrl/Cmd+Shift+L) → 추출+뷰어 열기
+      extract.js          # 자체 본문 추출기(live DOM → Source 블록 모델) + capture 플로우
+      popup.html/.js      # "이 글을 Layer2로 읽기" 버튼
+      src/                # 손으로 쓴 CSP-safe 소스 (빌드 입력)
+        boot-ext.js       #   chrome.storage 에서 source 읽어 viewer 부팅
+        vendor/*-stub.js  #   pretext/readability/pdf/markdown CDN 대체 stub
+      viewer/             # scripts/build-extension.sh 가 루트 viewer 복사+import 치환해서 생성
     ```
-  - 플로우: 단축키 → content-script 가 Readability 실행 → 본문/제목 추출 → 새 탭에서 `viewer/index.html` 열고 source 주입 → 읽기 → "독서 끝내기" → SignalLog + source 를 `chrome.storage.local` 에 저장 → (옵션) "AI 해석 보기" → 백엔드 호출
-  - 이점: CORS 완전 해결 · 로그인/paywall 우회된 페이지 OK · reading session 이 페이지 단위로 묶임 · 누적 데이터가 chrome.storage 에 쌓임
+  - 플로우: 단축키/팝업 → extract.js 가 페이지 본문 추출 → `chrome.storage.local` 저장 → 새 탭에 `viewer/index.html` → boot-ext.js 가 주입 → 읽기 → "독서 끝내기" → 2.1 내보내기
+  - CDN/CSP 처리: MV3 는 원격 모듈 import 금지 → 빌드 스크립트가 esm.sh import 를 로컬 stub 으로 치환. pretext 없이도 핵심 읽기 동작(신호 LayoutCursor 만 null).
+  - 로드 방법: Chrome → `chrome://extensions` → 개발자 모드 ON → "압축 해제된 확장 프로그램 로드" → `extension/` 폴더 선택
+  - ⚠ 빌드 주의: 루트 viewer(*.js, index.html, styles.css) 수정 후엔 `bash scripts/build-extension.sh` 재실행해야 `extension/viewer/` 반영됨
+  - ⚠ 브라우저 실테스트 미완 (이 환경에 headless 브라우저 없음 — Chrome 에 로드해서 확인 필요). 본문 추출 품질은 사이트마다 편차 있음 → 나중에 Readability 벤더링으로 업그레이드
 - [ ] 세션 localStorage 영속화 (새로고침해도 소스 목록 / 마지막 위치 유지)
 
 ## Phase 3 (인프라)
