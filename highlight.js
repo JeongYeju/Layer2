@@ -24,6 +24,11 @@ import {
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 const ANNOTATE_DELAY_MS = 600;
+// Portal repositions the virtual cursor partway through its teleport animation;
+// until then window.__portal is stale. Freeze drawing-move handling for a hair
+// longer than that so a line-wrap mid-underline can't sample a diagonal back to
+// the old line or trip the paragraph-exit transition.
+const TELEPORT_FREEZE_MS = 260;
 
 let state = "idle";
 let session = null;
@@ -74,19 +79,29 @@ export function initHighlight() {
   });
 
   // Reading-mode teleport: portal jumped the virtual cursor to the next/prev
-  // line. Reset interpolation anchor so the next mousemove doesn't drag a
-  // diagonal sample line across the gap, and auto-visit the char we landed
-  // on so the underline chain extends naturally onto the new line.
-  window.addEventListener("portal-teleport", () => {
+  // line at a line edge. Continue the underline onto the wrapped line as one
+  // continuous stroke. We use the teleport DESTINATION from the event detail
+  // (toX/toY) — window.__portal isn't updated until ~halfway through the
+  // teleport animation, so reading it here would give the stale old-line spot.
+  window.addEventListener("portal-teleport", (e) => {
     if (state !== "drawing" || !session) return;
-    const p = window.__portal;
-    if (!p) return;
-    const y = p.actualY ?? p.y;
-    session.prevX = p.x;
-    session.prevY = y;
-    const hit = getCursorFromPoint(p.x, y);
+    const toX = e.detail?.toX;
+    const toY = e.detail?.toY;
+    if (toX == null || toY == null) return;
+
+    const hit = getCursorFromPoint(toX, toY);
     if (hit && hit.paragraphId === session.paragraphId) {
-      session.visitedChars.add(hit.charIndex);
+      // Fill the chain across the wrap so the underline reads as one stroke
+      // (char indices are linear, so the gap between the old line's end and
+      // the new line's start is just the chars in between).
+      const target = hit.charIndex;
+      if (target > session.chainHi) {
+        for (let c = session.chainHi + 1; c <= target; c++) session.visitedChars.add(c);
+      } else if (target < session.chainLo) {
+        for (let c = target; c <= session.chainLo - 1; c++) session.visitedChars.add(c);
+      } else {
+        session.visitedChars.add(target);
+      }
       let lo = session.chainLo;
       let hi = session.chainHi;
       while (session.visitedChars.has(lo - 1)) lo--;
@@ -95,6 +110,12 @@ export function initHighlight() {
       session.chainHi = hi;
       applyUnderline();
     }
+
+    // Anchor the next sample at the destination and freeze move-handling until
+    // the portal position actually lands there.
+    session.prevX = toX;
+    session.prevY = toY;
+    session.teleportUntil = performance.now() + TELEPORT_FREEZE_MS;
   });
 
   initPencilCursor();
@@ -210,6 +231,7 @@ function onMouseDown(e) {
     annotationBox: null,
     textareaAppearedT: 0,
     anchorWord: null,
+    teleportUntil: 0,
   };
   // Lock passive signal collectors so they don't fight the highlight stroke.
   setTrailEnabled(false);
@@ -223,6 +245,12 @@ function onMouseMove(e) {
   if (state === "idle") return;
 
   if (state === "drawing") {
+    // While a line-wrap teleport is animating, the portal's virtual position
+    // is mid-jump (stale until it lands). Skip sampling + the paragraph-exit
+    // check; the portal-teleport handler already extended the chain onto the
+    // new line.
+    if (session.teleportUntil && performance.now() < session.teleportUntil) return;
+
     const { x, y } = pointerPos(e);
 
     // Sample the straight segment between the last mouse position and the
