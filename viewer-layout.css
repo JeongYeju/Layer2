@@ -7,23 +7,97 @@
   display: none !important;
 }
 
-/* Source panel: hidden by default, opened as a left flyout via "모든 도구". */
-#sidebar {
+:root {
+  --hl-color: var(--ink); /* highlight underline / circle / ink-stroke color */
+  --hl-op: 1; /* highlight opacity multiplier */
+}
+
+/* Recolor only the highlight marks (not the rest of the UI accents). */
+.para .g.is-underlined::after {
+  background: var(--hl-color) !important;
+  box-shadow: 0 0 1.6px var(--hl-color) !important;
+  opacity: calc(var(--underline-opacity, 0.7) * var(--hl-op, 1)) !important;
+}
+.para .g.is-annotated::after {
+  background: var(--hl-color) !important;
+  opacity: calc(var(--underline-opacity, 0.7) * 0.55 * var(--hl-op, 1)) !important;
+}
+.ink-layer .anchor-circle,
+.ink-layer .ink-stroke {
+  stroke: var(--hl-color) !important;
+}
+
+/* Source panel + signal dashboard: hidden by default, opened as side flyouts. */
+#sidebar,
+#dashboard {
   display: none;
 }
-#sidebar.as-flyout {
+#sidebar.as-flyout,
+#dashboard.as-flyout {
   display: block;
   position: fixed;
-  left: 54px;
   top: 46px;
   bottom: 0;
-  width: 300px;
   z-index: 40;
   background: var(--paper);
-  border-right: 1px solid var(--rule);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.16);
   overflow: auto;
   padding: 14px 16px;
+}
+#sidebar.as-flyout {
+  left: 54px;
+  width: 300px;
+  border-right: 1px solid var(--rule);
+  box-shadow: 12px 0 40px rgba(0, 0, 0, 0.16);
+}
+#dashboard.as-flyout {
+  right: 54px;
+  width: 340px;
+  border-left: 1px solid var(--rule);
+  box-shadow: -12px 0 40px rgba(0, 0, 0, 0.16);
+}
+
+/* ===== Lucide icons + hover motion ===== */
+.rail-btn svg,
+.page-arrow svg {
+  width: 19px;
+  height: 19px;
+}
+.menu-item svg,
+.view-toggle button svg {
+  width: 15px;
+  height: 15px;
+}
+.menu-item,
+.view-toggle button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+svg.lucide {
+  transition: transform 0.18s ease;
+}
+.rail-btn:hover svg.lucide,
+.menu-item:hover svg.lucide {
+  transform: scale(1.15);
+}
+#hl-tool:hover svg.lucide {
+  transform: rotate(-12deg) scale(1.1);
+}
+#btn-bookmark:hover svg.lucide {
+  transform: translateY(-2px) scale(1.08);
+}
+#btn-capture:hover svg.lucide {
+  transform: scale(1.18);
+}
+#page-prev:hover svg.lucide {
+  transform: translateX(-2px) scale(1.18);
+}
+#page-next:hover svg.lucide {
+  transform: translateX(2px) scale(1.18);
+}
+.rail-btn.flash {
+  background: var(--ink);
+  color: #fff;
 }
 
 body {
@@ -201,7 +275,7 @@ body {
 .color-popup {
   position: absolute;
   left: 60px;
-  top: 280px;
+  top: 8px;
   width: 212px;
   background: #fff;
   border: 1px solid var(--rule);

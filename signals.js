@@ -49,7 +49,7 @@ export function initBaselineCollectors({ readerEl }) {
   bindDwellObserver(readerEl);
   if (_baselineInited) return;
   _baselineInited = true;
-  initScroll();
+  initScroll(readerEl);
   initMouseTrail();
   initGestureDetector();
   initMouseTrailVisual();
@@ -97,21 +97,25 @@ function bindDwellObserver(readerEl) {
         }
       }
     },
-    { threshold: [0, 0.5, 1] },
+    // root = the reader element (the actual scroll container in scroll mode and
+    // the clip box in spread mode), so dwell/reread track in both layouts.
+    { root: readerEl, threshold: [0, 0.5, 1] },
   );
   paras.forEach((p) => _dwellObserver.observe(p));
 }
 
-function initScroll() {
-  let lastY = window.scrollY;
+function initScroll(scrollEl) {
+  const target = scrollEl || window;
+  const getY = () => (scrollEl ? scrollEl.scrollTop : window.scrollY);
+  let lastY = getY();
   let lastT = 0;
-  window.addEventListener(
+  target.addEventListener(
     "scroll",
     () => {
       const now = performance.now();
       if (now - lastT < 200) return;
       lastT = now;
-      const y = window.scrollY;
+      const y = getY();
       const dy = y - lastY;
       lastY = y;
       pushSignal({

@@ -19,69 +19,51 @@
     <div class="topbar-left">
       <span class="brand"><span class="brand-dot"></span>Layer2</span>
       <nav class="menu">
-        <button type="button" class="menu-item" id="open-sources">모든 도구</button>
-        <button type="button" class="menu-item">편집</button>
-        <button type="button" class="menu-item">저장</button>
-        <button type="button" class="menu-item">설정</button>
+        <button type="button" class="menu-item" id="open-sources">
+          <i data-lucide="folder-open"></i> 모든 도구
+        </button>
       </nav>
-      <div class="nav-arrows">
-        <button type="button" class="icon-btn" title="뒤로">←</button>
-        <button type="button" class="icon-btn" title="앞으로">→</button>
-      </div>
     </div>
     <div class="topbar-right">
       <div class="view-toggle" id="view-toggle" role="group" aria-label="읽기 레이아웃">
-        <button type="button" data-mode="scroll" title="무한 스크롤">⤓ 스크롤</button>
-        <button type="button" data-mode="spread" title="종이책 스프레드">▥ 스프레드</button>
+        <button type="button" data-mode="scroll" title="무한 스크롤">
+          <i data-lucide="align-justify"></i> 스크롤
+        </button>
+        <button type="button" data-mode="spread" title="종이책 스프레드">
+          <i data-lucide="book-open"></i> 스프레드
+        </button>
       </div>
-      <button type="button" class="icon-btn" title="검색">⌕</button>
-      <button type="button" class="icon-btn" title="계정">◔</button>
-      <button type="button" class="layer-ai-btn">Layer AI</button>
     </div>
   </header>
 
   <!-- ===== Workspace: left rail · stage · right rail ===== -->
   <div class="workspace">
     <nav class="rail rail-left" aria-label="tools">
-      <button type="button" class="rail-btn" title="선택">⌖</button>
-      <button type="button" class="rail-btn" title="코멘트">❏</button>
-      <button type="button" class="rail-btn is-active" title="펜">✎</button>
-      <button type="button" class="rail-btn" title="텍스트 삽입">⊞</button>
-      <button type="button" class="rail-btn" title="텍스트 상자">A</button>
-      <button type="button" class="rail-btn" title="그리기">✐</button>
-      <button type="button" class="rail-btn" title="고정">⚲</button>
-      <div class="rail-sep"></div>
-      <button type="button" class="rail-btn is-active" id="hl-tool" title="하이라이트">◓</button>
-      <button type="button" class="rail-btn" title="정렬">≡</button>
-      <button type="button" class="rail-btn" title="더보기">⋯</button>
+      <button type="button" class="rail-btn is-active" id="hl-tool" title="하이라이트 색상">
+        <i data-lucide="highlighter"></i>
+      </button>
 
-      <!-- Highlight color flyout (visual mock) -->
+      <!-- Highlight color flyout -->
       <div class="color-popup" id="color-popup" hidden>
-        <div class="color-popup-title">Highlight color</div>
+        <div class="color-popup-title">밑줄 색상</div>
         <div class="swatches">
-          <button class="sw" style="--c:#3c3a37"></button>
-          <button class="sw is-on" style="--c:#6f6a63"></button>
-          <button class="sw" style="--c:#d7d2c8"></button>
-          <button class="sw" style="--c:#b9b3a8"></button>
-          <button class="sw" style="--c:#8a847a"></button>
-          <button class="sw" style="--c:#6f6a63"></button>
-          <button class="sw" style="--c:#4a4641"></button>
-          <button class="sw" style="--c:#e7e2d8"></button>
-          <button class="sw" style="--c:#cfc9be"></button>
-          <button class="sw" style="--c:#a39d92"></button>
-          <button class="sw" style="--c:#7d776d"></button>
-          <button class="sw" style="--c:#56524c"></button>
-          <button class="sw" style="--c:#ffffff;border-color:#cfc9be"></button>
-          <button class="sw" style="--c:#dcd7cd"></button>
-          <button class="sw" style="--c:#9b958b"></button>
-          <button class="sw" style="--c:#5a564f"></button>
-          <button class="sw" style="--c:#2c2a27"></button>
-          <button class="sw" style="--c:#000000"></button>
+          <button class="sw is-on" data-color="#d9362b" style="--c: #d9362b"></button>
+          <button class="sw" data-color="#e8833a" style="--c: #e8833a"></button>
+          <button class="sw" data-color="#e9c25a" style="--c: #e9c25a"></button>
+          <button class="sw" data-color="#5aa469" style="--c: #5aa469"></button>
+          <button class="sw" data-color="#3fa6a0" style="--c: #3fa6a0"></button>
+          <button class="sw" data-color="#4d6ea3" style="--c: #4d6ea3"></button>
+          <button class="sw" data-color="#5b5bd6" style="--c: #5b5bd6"></button>
+          <button class="sw" data-color="#8a6fb0" style="--c: #8a6fb0"></button>
+          <button class="sw" data-color="#cf6f9b" style="--c: #cf6f9b"></button>
+          <button class="sw" data-color="#7a736b" style="--c: #7a736b"></button>
+          <button class="sw" data-color="#4a4641" style="--c: #4a4641"></button>
+          <button class="sw" data-color="#1c1a18" style="--c: #1c1a18"></button>
         </div>
         <div class="opacity-row">
-          <span>Opacity</span>
-          <input type="range" min="0" max="100" value="40" />
-          <span class="op-val">40%</span>
+          <span>불투명도</span>
+          <input type="range" id="op-slider" min="20" max="100" value="100" />
+          <span class="op-val" id="op-val">100%</span>
         </div>
       </div>
     </nav>
@@ -90,31 +72,42 @@
       <main id="reader" class="reader" aria-label="reader"></main>
     </div>
 
-    <nav class="rail rail-right" aria-label="panels">
-      <button type="button" class="rail-btn" title="AI 해석">✦</button>
-      <button type="button" class="rail-btn" title="웹">◍</button>
-      <button type="button" class="rail-btn" title="북마크">⌑</button>
-      <button type="button" class="rail-btn" title="복사">▦</button>
-      <button type="button" class="rail-btn" title="레이어">◆</button>
+    <nav class="rail rail-right" aria-label="actions">
+      <button type="button" class="rail-btn" id="btn-bookmark" title="북마크">
+        <i data-lucide="bookmark"></i>
+      </button>
+      <button type="button" class="rail-btn" id="btn-capture" title="캡쳐">
+        <i data-lucide="camera"></i>
+      </button>
+      <button type="button" class="rail-btn" id="btn-records" title="기록 / 대시보드">
+        <i data-lucide="bar-chart-3"></i>
+      </button>
     </nav>
   </div>
 
   <!-- ===== Page navigation (spread mode only) ===== -->
   <div class="pagenav" id="pagenav" hidden>
-    <button type="button" class="page-arrow" id="page-prev" title="이전">‹</button>
-    <div class="page-count"><span id="page-cur">1</span><span class="page-sep"></span><span id="page-total">1</span></div>
-    <button type="button" class="page-arrow" id="page-next" title="다음">›</button>
+    <button type="button" class="page-arrow" id="page-prev" title="이전">
+      <i data-lucide="chevron-left"></i>
+    </button>
+    <div class="page-count">
+      <span id="page-cur">1</span><span class="page-sep"></span><span id="page-total">1</span>
+    </div>
+    <button type="button" class="page-arrow" id="page-next" title="다음">
+      <i data-lucide="chevron-right"></i>
+    </button>
   </div>
 
-  <!-- Legacy nodes kept so existing modules still find their hosts (hidden). -->
+  <!-- Source panel + signal dashboard open as flyouts; floating toolbar unused. -->
   <aside id="sidebar" class="sidebar" aria-label="sources"></aside>
-  <aside id="dashboard" class="dashboard legacy-hidden" aria-label="signal dashboard"></aside>
+  <aside id="dashboard" class="dashboard" aria-label="signal dashboard"></aside>
   <div id="toolbar" class="toolbar legacy-hidden" aria-label="tools"></div>
 
   <!-- Global SVG layer for ink that flows past text bounds -->
   <svg id="ink-layer" class="ink-layer" xmlns="http://www.w3.org/2000/svg"></svg>
   <div id="annotation-host"></div>
 
+  <script src="https://unpkg.com/lucide@latest"></script>
   <script type="module" src="./app.js"></script>
 </body>
 </html>
