@@ -13,7 +13,12 @@
   - [x] 결과 JSON 출력 (`-o` 또는 stdout)
   - input 은 2.1 export JSON 을 그대로 받음
   - 사용: `python scripts/interpret.py session.json -o result.json` (키: `OPENAI_API_KEY` / `ANTHROPIC_API_KEY`)
-- [ ] **2.3** viewer에서 결과 JSON 불러와서 사이드바/대시보드에 표시
+- [x] **2.3** viewer에서 결과 JSON 불러와서 대시보드에 표시
+  - 대시보드 상단 "AI 해석" 섹션 + `불러오기` 파일 버튼 (interpret.py 결과 JSON)
+  - 요약 / 몰입도 배지 / 멈춘 곳 / 막힌 곳 / 관심사 / 메모 렌더
+  - LLM 해석 없으면(`--no-llm`) refined digest 로 폴백 (가장 오래 머문 문단)
+  - finding 클릭 → 리더에서 해당 문단으로 스크롤 + 플래시
+  - ⚠ 브라우저 실렌더 테스트 미완 (이 환경에 headless 브라우저 없음 — 로컬에서 확인 필요)
 - [ ] **2.4** Chrome MV3 확장프로그램 — CORS / paywall 우회의 정답 (페이지가 이미 브라우저에 로드돼 있으니 직접 본문 추출)
   - 후보 구조:
     ```

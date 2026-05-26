@@ -587,6 +587,99 @@ ol.para-list .para-item {
 .chip[data-type="reread"] { background: #b85c00; }
 .chip[data-type="circle_gesture"] { background: #2e9e72; }
 
+/* ---------- AI interpretation panel (Phase 2.3) ---------- */
+.interp-load-btn {
+  font-family: "Inter", sans-serif;
+  font-size: 10px;
+  letter-spacing: 0;
+  text-transform: none;
+  padding: 2px 8px;
+  margin-left: 8px;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--text);
+}
+.interp-load-btn:hover { background: var(--paper-edge); border-color: var(--ink); }
+.interp { font-size: 12px; }
+.interp-empty { color: var(--muted); font-size: 12px; }
+.interp-meta { color: var(--muted); font-size: 11px; margin-bottom: 8px; }
+.interp-summary {
+  font-family: "Noto Serif KR", serif;
+  line-height: 1.55;
+  margin: 6px 0 4px;
+}
+.interp-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: 0.02em;
+}
+.interp-badge.low { background: var(--muted); }
+.interp-badge.medium { background: #b85c00; }
+.interp-badge.high { background: #2f6b2f; }
+.interp-subhead {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  font-weight: 600;
+  margin: 12px 0 4px;
+}
+.interp-findings { list-style: none; margin: 0; padding: 0; }
+.interp-findings li {
+  background: var(--paper);
+  border-left: 2px solid var(--ink);
+  padding: 6px 8px;
+  margin-bottom: 4px;
+  cursor: pointer;
+}
+.interp-findings li:hover { background: var(--paper-edge); }
+.interp-finding-text { font-family: "Noto Serif KR", serif; line-height: 1.4; }
+.interp-finding-why { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.interp-pid {
+  display: inline-block;
+  font-family: "Inter", sans-serif;
+  font-size: 9px;
+  color: var(--muted);
+  margin-top: 3px;
+  letter-spacing: 0.02em;
+}
+.interp-interests { display: flex; flex-wrap: wrap; gap: 4px; }
+.interp-interest {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  background: var(--chip-blue);
+  color: #fff;
+}
+.interp-note {
+  font-size: 11px;
+  color: var(--muted);
+  font-style: italic;
+  margin-top: 8px;
+}
+.interp-raw {
+  white-space: pre-wrap;
+  font-size: 11px;
+  background: var(--paper);
+  padding: 8px;
+  border-radius: 4px;
+  max-height: 240px;
+  overflow: auto;
+}
+
+/* Flash a paragraph when a finding referencing it is clicked. */
+.para-flash { animation: para-flash 1.4s ease-out; }
+@keyframes para-flash {
+  0% { background: rgba(217, 54, 43, 0.18); }
+  100% { background: transparent; }
+}
+
 /* ---------- Mouse trail ---------- */
 
 /* Each segment is its own <line> with stroke-opacity driven per-frame in
