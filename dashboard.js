@@ -2,6 +2,8 @@
 // Right-side panel that listens to signalBus and aggregates view-state.
 
 import { signalBus, SignalLog } from "./signals.js";
+import { buildSessionExport } from "./sidebar.js";
+import { interpretSession } from "./interpret.js";
 
 const stats = {
   dwellCount: 0,
@@ -28,9 +30,20 @@ let metricsRoot, recentRoot, timelineRoot, interpRoot;
 
 export function renderDashboard(rootEl) {
   rootEl.innerHTML = `
-    <h2>AI 해석 <button type="button" id="interp-load" class="interp-load-btn">불러오기</button></h2>
+    <h2>AI 해석
+      <button type="button" id="interp-run" class="interp-load-btn">해석하기</button>
+      <button type="button" id="interp-load" class="interp-load-btn">불러오기</button>
+    </h2>
+    <div class="interp-settings">
+      <select id="interp-provider" class="interp-provider">
+        <option value="anthropic">Anthropic</option>
+        <option value="openai">OpenAI</option>
+      </select>
+      <input type="password" id="interp-key" class="interp-key"
+        placeholder="API 키 (이 브라우저에만 저장)" autocomplete="off" />
+    </div>
     <div id="m-interpretation" class="interp">
-      <div class="interp-empty">interpret.py 결과 JSON을 불러오면 여기에 표시됩니다.</div>
+      <div class="interp-empty">"해석하기"로 지금 세션을 분석하거나, interpret.py 결과 JSON을 불러오세요.</div>
     </div>
     <input type="file" id="interp-file" accept="application/json,.json" hidden />
 
@@ -55,6 +68,7 @@ export function renderDashboard(rootEl) {
   timelineRoot = rootEl.querySelector("#timeline");
   interpRoot = rootEl.querySelector("#m-interpretation");
   wireInterpLoader(rootEl);
+  wireInterpRunner(rootEl);
 
   signalBus.addEventListener("signal", (e) => onSignal(e.detail));
 
@@ -231,6 +245,51 @@ function wireInterpLoader(rootEl) {
       renderInterpretation(result);
     } catch (err) {
       interpRoot.innerHTML = `<div class="interp-note">불러오기 실패: ${escapeHtml(String(err.message || err))}</div>`;
+    }
+  });
+}
+
+// "해석하기" — build the current session digest and call the LLM in-browser,
+// then render. Key + provider live in localStorage (this browser only).
+function wireInterpRunner(rootEl) {
+  const runBtn = rootEl.querySelector("#interp-run");
+  const provider = rootEl.querySelector("#interp-provider");
+  const keyInput = rootEl.querySelector("#interp-key");
+  if (!runBtn || !provider || !keyInput) return;
+
+  provider.value = localStorage.getItem("layer2.llm.provider") || "anthropic";
+  keyInput.value = localStorage.getItem("layer2.llm.key") || "";
+  const save = () => {
+    try {
+      localStorage.setItem("layer2.llm.provider", provider.value);
+      localStorage.setItem("layer2.llm.key", keyInput.value.trim());
+    } catch {
+      /* best-effort */
+    }
+  };
+  provider.addEventListener("change", save);
+  keyInput.addEventListener("change", save);
+
+  runBtn.addEventListener("click", async () => {
+    const exportData = buildSessionExport();
+    if (!exportData || !exportData.source) {
+      interpRoot.innerHTML = `<div class="interp-note">해석할 독서 세션이 없습니다. 글을 조금 읽은 뒤 다시 시도하세요.</div>`;
+      return;
+    }
+    save();
+    const apiKey = keyInput.value.trim();
+    runBtn.disabled = true;
+    const label = runBtn.textContent;
+    runBtn.textContent = "해석 중…";
+    interpRoot.innerHTML = `<div class="interp-note">${apiKey ? "LLM 해석 중…" : "정제(digest) 생성 중…"}</div>`;
+    try {
+      const result = await interpretSession({ exportData, provider: provider.value, apiKey });
+      renderInterpretation(result);
+    } catch (err) {
+      interpRoot.innerHTML = `<div class="interp-note">해석 실패: ${escapeHtml(String(err.message || err))}</div>`;
+    } finally {
+      runBtn.disabled = false;
+      runBtn.textContent = label;
     }
   });
 }

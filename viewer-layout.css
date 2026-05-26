@@ -136,6 +136,32 @@ body.drawer-open .drawer-handle svg {
   font-size: calc(32px * var(--reader-scale, 1));
 }
 
+/* AI 해석 settings row (provider + API key). */
+.interp-settings {
+  display: flex;
+  gap: 6px;
+  margin: 6px 0 10px;
+}
+.interp-settings .interp-provider {
+  flex: 0 0 auto;
+  font: inherit;
+  font-size: 11px;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  background: #fff;
+  padding: 3px 6px;
+}
+.interp-settings .interp-key {
+  flex: 1 1 auto;
+  min-width: 0;
+  font: inherit;
+  font-size: 11px;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 3px 8px;
+  background: #fff;
+}
+
 /* Perf: bound per-frame paint/layout invalidation to a single paragraph while
    drawing an underline, so span-opacity changes don't repaint the whole scroll
    container. Scroll mode only — the multicol spread needs free fragmentation. */

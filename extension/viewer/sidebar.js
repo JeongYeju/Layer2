@@ -371,7 +371,7 @@ function exportLastSession() {
   setStatus(`내보냄: ${data.signals.length}개 신호 · ${data.session.source_title || "(제목 없음)"}`);
 }
 
-function buildSessionExport() {
+export function buildSessionExport() {
   // Prefer the currently-active session so a read is exportable even if the
   // user never pressed 독서 종료 (sessions auto-start on load). We synthesize
   // the end at "now".
