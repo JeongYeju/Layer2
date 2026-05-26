@@ -1,51 +1,64 @@
 // reader.js
-// Renders content into the page and prepares pretext layout per paragraph.
-// Each grapheme is wrapped in its own span so highlight.js can toggle
-// per-character classes without DOM measurement work.
+// Renders a source's blocks into the page and prepares pretext layout per
+// wrappable block. Each grapheme is wrapped in its own span so highlight.js
+// can toggle per-character classes without DOM measurement work.
+//
+// Source shape (the common block model — see sources/):
+//   {
+//     id, kind, title, byline?, blocks: [
+//       { type: "heading", level: 1..6, text },
+//       { type: "paragraph", text },
+//       { type: "list", ordered: bool, items: [text, ...] },
+//       { type: "blockquote", text },
+//       { type: "code", text },          // NOT grapheme-wrapped
+//       { type: "hr" },
+//     ],
+//     meta?: { url?, fileName?, loadedAt }
+//   }
+//
+// Every wrappable block becomes its own .para element with a unique
+// paragraphId ("p0", "p1", …, "p3_li2" for list items). The signal
+// collectors track these via [data-paragraph-id] without caring about
+// the underlying block type.
 
-import { content } from "./content.js";
 import { preparePara } from "./pretext_helpers.js";
 
 export const PARA_WIDTH = 640;
 const graphemeSeg = new Intl.Segmenter("ko", { granularity: "grapheme" });
 
-export function renderReader(rootEl) {
+export function renderReader(rootEl, source) {
   rootEl.innerHTML = "";
+  if (!source) return;
   const article = document.createElement("article");
   article.className = "article";
 
-  const h1 = document.createElement("h1");
-  h1.textContent = content.title;
-  article.appendChild(h1);
-
-  const byline = document.createElement("div");
-  byline.className = "byline";
-  byline.textContent = content.byline;
-  article.appendChild(byline);
-
-  for (const p of content.paragraphs) {
-    const pEl = document.createElement("p");
-    pEl.className = "para";
-    pEl.dataset.paragraphId = p.id;
-
-    let charIdx = 0;
-    for (const g of graphemeSeg.segment(p.text)) {
-      const span = document.createElement("span");
-      span.className = "g";
-      span.dataset.charIndex = String(charIdx);
-      span.textContent = g.segment;
-      pEl.appendChild(span);
-      charIdx++;
-    }
-    article.appendChild(pEl);
+  if (source.title) {
+    const h1 = document.createElement("h1");
+    h1.textContent = source.title;
+    article.appendChild(h1);
   }
+  if (source.byline) {
+    const byline = document.createElement("div");
+    byline.className = "byline";
+    byline.textContent = source.byline;
+    article.appendChild(byline);
+  }
+
+  // Collect (paragraphId, text) pairs so we can run preparePara after fonts
+  // are ready — once for everything, not block-by-block.
+  const wrappedParas = [];
+
+  source.blocks.forEach((block, idx) => {
+    const paragraphId = `p${idx}`;
+    const el = blockElement(block, paragraphId, wrappedParas);
+    if (el) article.appendChild(el);
+  });
 
   rootEl.appendChild(article);
 
-  // Pretext cache: build only after fonts are ready so widths are accurate.
   const buildPretext = () => {
-    for (const p of content.paragraphs) {
-      preparePara(p.id, p.text, PARA_WIDTH);
+    for (const { id, text } of wrappedParas) {
+      preparePara(id, text, PARA_WIDTH);
     }
   };
   if (document.fonts && document.fonts.ready) {
@@ -54,8 +67,78 @@ export function renderReader(rootEl) {
     buildPretext();
   }
 
-  // SVG filter for the slight underline jitter
   ensureInkFilter();
+}
+
+// Build a DOM element for one block. Wrappable text goes through
+// wrapGraphemes; code/hr stay plain. Pushes any wrapped paras onto the
+// `out` array for later pretext caching.
+function blockElement(block, paragraphId, out) {
+  switch (block.type) {
+    case "heading": {
+      const lvl = Math.min(Math.max(block.level || 2, 1), 6);
+      const el = document.createElement(`h${lvl}`);
+      el.className = "para para-heading";
+      el.dataset.paragraphId = paragraphId;
+      wrapGraphemes(el, block.text);
+      out.push({ id: paragraphId, text: block.text });
+      return el;
+    }
+    case "paragraph": {
+      const el = document.createElement("p");
+      el.className = "para";
+      el.dataset.paragraphId = paragraphId;
+      wrapGraphemes(el, block.text);
+      out.push({ id: paragraphId, text: block.text });
+      return el;
+    }
+    case "blockquote": {
+      const el = document.createElement("blockquote");
+      el.className = "para para-quote";
+      el.dataset.paragraphId = paragraphId;
+      wrapGraphemes(el, block.text);
+      out.push({ id: paragraphId, text: block.text });
+      return el;
+    }
+    case "list": {
+      const wrap = document.createElement(block.ordered ? "ol" : "ul");
+      wrap.className = "para-list";
+      block.items.forEach((itemText, i) => {
+        const li = document.createElement("li");
+        li.className = "para para-item";
+        const itemId = `${paragraphId}_li${i}`;
+        li.dataset.paragraphId = itemId;
+        wrapGraphemes(li, itemText);
+        out.push({ id: itemId, text: itemText });
+        wrap.appendChild(li);
+      });
+      return wrap;
+    }
+    case "code": {
+      // Not grapheme-wrapped (preserve monospace flow, no per-char signals).
+      const pre = document.createElement("pre");
+      pre.className = "para-code";
+      pre.dataset.paragraphId = paragraphId;
+      pre.textContent = block.text;
+      return pre;
+    }
+    case "hr":
+      return document.createElement("hr");
+    default:
+      return null;
+  }
+}
+
+function wrapGraphemes(el, text) {
+  let charIdx = 0;
+  for (const g of graphemeSeg.segment(text)) {
+    const span = document.createElement("span");
+    span.className = "g";
+    span.dataset.charIndex = String(charIdx);
+    span.textContent = g.segment;
+    el.appendChild(span);
+    charIdx++;
+  }
 }
 
 function ensureInkFilter() {

@@ -36,22 +36,35 @@ window.pushSignal = pushSignal;
 // ---------- Baseline collectors ----------
 // Dwell, scroll, reread, mouse trail.
 // (Highlighting lives in highlight.js — these never touch each other.)
+//
+// initBaselineCollectors is called every time the user switches sources
+// (the reader DOM is replaced), so the non-DOM-tracking collectors (scroll,
+// trail, gesture) only init once and the dwell IntersectionObserver gets
+// rebuilt against the new paragraphs.
+
+let _baselineInited = false;
+let _dwellObserver = null;
 
 export function initBaselineCollectors({ readerEl }) {
-  initDwellAndReread(readerEl);
+  bindDwellObserver(readerEl);
+  if (_baselineInited) return;
+  _baselineInited = true;
   initScroll();
   initMouseTrail();
   initGestureDetector();
   initMouseTrailVisual();
 }
 
-function initDwellAndReread(readerEl) {
+function bindDwellObserver(readerEl) {
+  // Disconnect the previous observer (its closure maps go away with it).
+  if (_dwellObserver) _dwellObserver.disconnect();
+
   const paras = Array.from(readerEl.querySelectorAll("[data-paragraph-id]"));
   const enteredAt = new Map();
   const totalDwell = new Map();
   const visitedCount = new Map();
 
-  const io = new IntersectionObserver(
+  _dwellObserver = new IntersectionObserver(
     (entries) => {
       for (const e of entries) {
         const id = e.target.dataset.paragraphId;
@@ -86,7 +99,7 @@ function initDwellAndReread(readerEl) {
     },
     { threshold: [0, 0.5, 1] },
   );
-  paras.forEach((p) => io.observe(p));
+  paras.forEach((p) => _dwellObserver.observe(p));
 }
 
 function initScroll() {
