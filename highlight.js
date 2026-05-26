@@ -285,7 +285,7 @@ function onMouseMove(e) {
 
     applyUnderline();
 
-    if (!isInsideParagraphRect(session.paragraphEl, x, y)) {
+    if (cursorExitedForAnnotation(session.paragraphEl, x, y)) {
       enterTransitioning(e);
     }
     return;
@@ -712,12 +712,21 @@ function readSelectedText(paragraphId, startChar, endCharExclusive) {
   return out;
 }
 
-function isInsideParagraphRect(paraEl, x, y) {
+// True when the cursor has left the paragraph in a way that should start the
+// annotation transition. In reading mode (Pointer Lock) a horizontal line-edge
+// exit is a line wrap handled by the portal teleport — every line starts at the
+// left margin, so a reverse drag hits the paragraph's left edge before the
+// teleport even fires. So in reading mode only a *vertical* exit (dragging the
+// pen above/below the paragraph) counts. In normal mode any exit counts.
+function cursorExitedForAnnotation(paraEl, x, y) {
   if (!paraEl) return false;
   const r = paraEl.getBoundingClientRect();
-  // small tolerance so the very edge doesn't trigger transition prematurely
-  const pad = 2;
-  return (
+  const pad = 2; // small tolerance so the very edge doesn't trigger prematurely
+  const p = window.__portal;
+  if (p && p.locked) {
+    return y < r.top - pad || y > r.bottom + pad;
+  }
+  return !(
     x >= r.left - pad &&
     x <= r.right + pad &&
     y >= r.top - pad &&
