@@ -223,9 +223,9 @@ function pushAndSelect(source, label) {
   }
   currentId = source.id;
   renderList();
-  renderCurrent(source);
   onSelect(source);
   persistSources();
+  startSession(source); // auto-start; renders 현재 소스 with the 종료 button
 }
 
 // Re-open an already-loaded source by id (no re-parse). Shared by the list
@@ -235,9 +235,9 @@ function selectById(id) {
   if (!entry) return;
   currentId = id;
   renderList();
-  renderCurrent(entry.source);
   onSelect(entry.source);
   persistSources();
+  startSession(entry.source); // auto-start reading on selection
 }
 
 function renderList() {
@@ -346,7 +346,7 @@ function endSession(reason) {
 function exportLastSession() {
   const data = buildSessionExport();
   if (!data) {
-    setStatus("내보낼 완료된 독서 세션이 없습니다. 독서 시작 → 끝내기 후 다시 시도하세요.", true);
+    setStatus("내보낼 독서 세션이 없습니다.", true);
     return;
   }
   downloadJson(data);
@@ -354,7 +354,42 @@ function exportLastSession() {
 }
 
 function buildSessionExport() {
-  // Latest session_end, then walk back to its matching session_start.
+  // Prefer the currently-active session so a read is exportable even if the
+  // user never pressed 독서 종료 (sessions auto-start on load). We synthesize
+  // the end at "now".
+  if (sessionActive) {
+    let startIdx = -1;
+    for (let i = SignalLog.length - 1; i >= 0; i--) {
+      const s = SignalLog[i];
+      if (s.type === "session_start" && s.source_id === sessionSourceId) {
+        startIdx = i;
+        break;
+      }
+    }
+    if (startIdx >= 0) {
+      const start = SignalLog[startIdx];
+      const signals = SignalLog.slice(startIdx); // start … now
+      const entry = loaded.find((e) => e.source.id === start.source_id);
+      const nowT = performance.now();
+      return {
+        version: 1,
+        exported_at: new Date().toISOString(),
+        session: {
+          start_t: start.t,
+          end_t: nowT,
+          source_id: start.source_id,
+          source_kind: start.source_kind,
+          source_title: start.source_title,
+          duration_ms: Math.round(nowT - start.t),
+          ongoing: true,
+        },
+        source: entry ? entry.source : null,
+        signals,
+      };
+    }
+  }
+
+  // Otherwise: latest session_end, then walk back to its matching session_start.
   let endIdx = -1;
   for (let i = SignalLog.length - 1; i >= 0; i--) {
     if (SignalLog[i].type === "session_end") {

@@ -8,6 +8,7 @@ import { initHighlight } from "./highlight.js";
 import { initCursorHud } from "./cursor-hud.js"; // tuning panel — remove this line + cursor-hud.js when done
 import { initPortal } from "./portal.js";
 import { initSidebar } from "./sidebar.js";
+import { initAttention, wakeReading } from "./attention.js";
 
 const reader = document.getElementById("reader");
 const dashboard = document.getElementById("dashboard");
@@ -19,6 +20,8 @@ renderDashboard(dashboard);
 initHighlight();
 initCursorHud();
 initPortal();
+// Attention gate must be live before initSidebar fires the first setSource.
+initAttention({ readerEl: reader });
 
 // Source switching: every time the user picks a different source from the
 // sidebar we (a) re-render the reader DOM and (b) re-attach the baseline
@@ -68,6 +71,7 @@ function setSource(source) {
   currentSource = source;
   renderReader(reader, source);
   initBaselineCollectors({ readerEl: reader });
+  wakeReading(); // new source → clear any leftover rest-blur, restart idle clock
   // Restore scroll once layout has settled (reader renders text synchronously,
   // but pretext/fonts finish a tick later). Falls back to top for new sources.
   const y = loadScrollMap()[source.id];

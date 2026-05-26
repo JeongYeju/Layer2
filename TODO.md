@@ -3,6 +3,9 @@
 ## Phase 2 (오늘 밤)
 
 - [x] "독서 끝내기" 버튼 (sidebar 현재 소스 카드)
+- [x] 독서 세션 **자동 시작** + 주의(attention) 감지 블러
+  - 글이 불러와지면 세션 자동 시작 (시작 버튼 없이 기본 "독서 종료"만). 시작을 안 눌러도 유실 없게, 내보내기는 진행 중 세션도 처리(`ongoing:true`)
+  - `attention.js`: 탭 비활성 5초(`away`) 또는 활동 없이 20초(`idle`) → `.article` 점진 블러(CSS transition). 스크롤/휠/키/클릭 = 즉시 해제, 커서는 80px 이상 움직여야 해제. `attention_pause`/`attention_resume` 신호 기록
 - [x] **2.1** SignalLog + source content + meta 를 한 JSON으로 묶어서 다운로드
   - sidebar "현재 소스" 카드의 `⬇ 내보내기` 버튼
   - 가장 최근 session_start~session_end 구간만 잘라서 내보냄 (마커 포함)

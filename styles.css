@@ -229,6 +229,13 @@ html, body {
 .article {
   width: 640px;
   max-width: calc(100% - 48px);
+  transition: filter var(--rest-dur, 2.4s) ease;
+}
+
+/* Attention rest: body text softly blurs when reading attention lapses.
+   --rest-dur is set by attention.js (slow in, quick out). */
+.reader.is-resting .article {
+  filter: blur(5px);
 }
 
 .article h1 {
