@@ -27,10 +27,43 @@ let currentEl = null;
 let statusEl = null;
 let urlInputEl = null;
 
-// In-memory cache so the user can re-open something loaded earlier this
-// session without re-parsing. Phase 2 will move this to localStorage.
+// In-memory cache so the user can re-open something loaded earlier without
+// re-parsing. Mirrored to localStorage (persistSources) so the source list and
+// the current source survive a reload.
 const loaded = []; // [{ source, label }]
 let currentId = null;
+
+const STORAGE_KEY = "layer2.sources.v1";
+const MAX_PERSISTED = 20; // newest-first; cap so we stay well under quota
+
+function persistSources() {
+  try {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ loaded: loaded.slice(0, MAX_PERSISTED), currentId }),
+    );
+  } catch (err) {
+    // Best-effort: a quota/serialization failure shouldn't break the reader.
+    console.warn("[sidebar] persist failed:", err);
+  }
+}
+
+function loadPersisted() {
+  try {
+    const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+    if (!data || !Array.isArray(data.loaded)) return null;
+    return data;
+  } catch {
+    return null;
+  }
+}
+
+function restoreLoaded(persisted) {
+  loaded.length = 0;
+  for (const entry of persisted.loaded) {
+    if (entry?.source?.id) loaded.push(entry);
+  }
+}
 
 // Reading-session state. session_start / session_end signals get emitted
 // when the user explicitly opens/closes a reading. Switching sources mid-
@@ -44,10 +77,19 @@ export function initSidebar(opts = {}) {
   rootEl = document.getElementById("sidebar");
   if (!rootEl) return;
   build();
-  // Seed the reader. An injected source (e.g. handed in by the browser
-  // extension before boot) takes priority over the built-in sample.
+
+  const persisted = loadPersisted();
+
+  // Seed the reader. Priority: an injected source (browser extension) →
+  // persisted state from a previous visit → the built-in sample.
   if (opts.initialSource) {
+    if (persisted) restoreLoaded(persisted);
     pushAndSelect(opts.initialSource, opts.initialSource.title || "불러온 글");
+  } else if (persisted?.loaded?.length) {
+    restoreLoaded(persisted);
+    const want =
+      loaded.find((e) => e.source.id === persisted.currentId) || loaded[0];
+    selectById(want.source.id);
   } else {
     pushAndSelect(sampleSource(), "샘플 글");
   }
@@ -174,6 +216,19 @@ function pushAndSelect(source, label) {
   renderList();
   renderCurrent(source);
   onSelect(source);
+  persistSources();
+}
+
+// Re-open an already-loaded source by id (no re-parse). Shared by the list
+// click handler and the persisted-state restore on boot.
+function selectById(id) {
+  const entry = loaded.find((e) => e.source.id === id);
+  if (!entry) return;
+  currentId = id;
+  renderList();
+  renderCurrent(entry.source);
+  onSelect(entry.source);
+  persistSources();
 }
 
 function renderList() {
@@ -191,15 +246,7 @@ function renderList() {
     )
     .join("");
   listEl.querySelectorAll("li[data-id]").forEach((li) => {
-    li.addEventListener("click", () => {
-      const id = li.dataset.id;
-      const entry = loaded.find((e) => e.source.id === id);
-      if (!entry) return;
-      currentId = id;
-      renderList();
-      renderCurrent(entry.source);
-      onSelect(entry.source);
-    });
+    li.addEventListener("click", () => selectById(li.dataset.id));
   });
 }
 

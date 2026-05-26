@@ -37,7 +37,10 @@
   - 로드 방법: Chrome → `chrome://extensions` → 개발자 모드 ON → "압축 해제된 확장 프로그램 로드" → `extension/` 폴더 선택
   - ⚠ 빌드 주의: 루트 viewer(*.js, index.html, styles.css) 수정 후엔 `bash scripts/build-extension.sh` 재실행해야 `extension/viewer/` 반영됨
   - ⚠ 브라우저 실테스트 미완 (이 환경에 headless 브라우저 없음 — Chrome 에 로드해서 확인 필요). 본문 추출 품질은 사이트마다 편차 있음 → 나중에 Readability 벤더링으로 업그레이드
-- [ ] 세션 localStorage 영속화 (새로고침해도 소스 목록 / 마지막 위치 유지)
+- [x] 세션 localStorage 영속화 (새로고침해도 소스 목록 / 마지막 위치 유지)
+  - sidebar.js: `loaded` 목록 + 현재 소스 → `layer2.sources.v1` (최근 20개, best-effort)
+  - app.js: 소스별 스크롤 위치 → `layer2.scroll.v1`, 소스 열 때 복원 (읽기모드 중 스크롤은 기록 안 함)
+  - 우선순위: 확장 주입 소스 > 영속 상태 > 샘플
 
 ## Phase 3 (인프라)
 
