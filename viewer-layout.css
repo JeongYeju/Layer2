@@ -60,7 +60,7 @@
   z-index: 45;
   background: var(--paper);
   border-right: 1px solid var(--rule);
-  box-shadow: 12px 0 40px rgba(0, 0, 0, 0.1);
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.08);
   overflow: auto;
   padding: 14px 16px;
   transform: translateX(calc(-100% - 56px)); /* tucked off-screen */
