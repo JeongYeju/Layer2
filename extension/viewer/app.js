@@ -1,93 +1,43 @@
-// app.js — entry point. Wire modules in order.
+// app.js — entry point (branch: claude/viewer-layout).
+// New chrome/layout (scroll vs paper-book spread) with the existing features
+// wired in: drag-to-underline highlighting (+ color/opacity from the popup),
+// signal recording (dwell/scroll/reread/trail/bookmark/capture), attention
+// blur, the signal dashboard (기록 button), and the portal reading-mode cursor
+// (독서 모드 rail button), retargeted to scroll inside #reader.
 
 import { renderReader } from "./reader.js";
-import { initBaselineCollectors } from "./signals.js";
-import { renderToolbar } from "./toolbar.js";
-import { renderDashboard } from "./dashboard.js";
 import { initHighlight } from "./highlight.js";
-import { initCursorHud } from "./cursor-hud.js"; // tuning panel — remove this line + cursor-hud.js when done
-import { initPortal } from "./portal.js";
 import { initSidebar } from "./sidebar.js";
+import { initBaselineCollectors } from "./signals.js";
 import { initAttention, wakeReading } from "./attention.js";
+import { renderDashboard } from "./dashboard.js";
+import { initPortal } from "./portal.js";
+import { initViewerShell, relayoutViewer } from "./viewer-shell.js";
 
 const reader = document.getElementById("reader");
 const dashboard = document.getElementById("dashboard");
-const toolbar = document.getElementById("toolbar");
 
-// Persistent UI — wired once, listens to the global signalBus from then on.
-renderToolbar(toolbar);
-renderDashboard(dashboard);
 initHighlight();
-initCursorHud();
-initPortal();
-// Attention gate must be live before initSidebar fires the first setSource.
 initAttention({ readerEl: reader });
+renderDashboard(dashboard);
+initViewerShell();
+// Reading mode rides #reader's scroll and toggles from the 독서 모드 rail button.
+initPortal({ scrollEl: reader, triggerEl: document.getElementById("reading-mode") });
 
-// Source switching: every time the user picks a different source from the
-// sidebar we (a) re-render the reader DOM and (b) re-attach the baseline
-// signal collectors that observe the new paragraph elements. Everything
-// else (highlight, portal, cursor-hud, dashboard) listens via document /
-// signalBus and survives the swap unchanged.
 let currentSource = null;
-
-// Per-source scroll position, persisted so reopening a source (or reloading)
-// lands where the reader left off. Keyed by source id.
-const SCROLL_KEY = "layer2.scroll.v1";
-
-function loadScrollMap() {
-  try {
-    return JSON.parse(localStorage.getItem(SCROLL_KEY) || "{}") || {};
-  } catch {
-    return {};
-  }
-}
-
-function saveScrollPos() {
-  if (!currentSource) return;
-  const map = loadScrollMap();
-  map[currentSource.id] = Math.round(window.scrollY);
-  try {
-    localStorage.setItem(SCROLL_KEY, JSON.stringify(map));
-  } catch {
-    /* best-effort */
-  }
-}
-
-let lastScrollSaveT = 0;
-window.addEventListener(
-  "scroll",
-  () => {
-    // Don't record the virtual reading-mode cursor's scroll syncing as intent.
-    if (window.__portal?.locked) return;
-    const now = Date.now();
-    if (now - lastScrollSaveT < 400) return;
-    lastScrollSaveT = now;
-    saveScrollPos();
-  },
-  { passive: true },
-);
 
 function setSource(source) {
   currentSource = source;
   renderReader(reader, source);
-  initBaselineCollectors({ readerEl: reader });
-  wakeReading(); // new source → clear any leftover rest-blur, restart idle clock
-  // Restore scroll once layout has settled (reader renders text synchronously,
-  // but pretext/fonts finish a tick later). Falls back to top for new sources.
-  const y = loadScrollMap()[source.id];
-  if (typeof y === "number" && y > 0) {
-    requestAnimationFrame(() =>
-      requestAnimationFrame(() => window.scrollTo(0, y)),
-    );
-  } else {
-    window.scrollTo(0, 0);
-  }
+  initBaselineCollectors({ readerEl: reader }); // rebinds dwell to new paragraphs
+  wakeReading();
+  // Spread pagination depends on the rendered DOM + final font metrics.
+  if (document.fonts?.ready) document.fonts.ready.then(relayoutViewer);
+  requestAnimationFrame(() => requestAnimationFrame(relayoutViewer));
 }
 
-// initSidebar fires onSelect once on boot so the reader starts populated.
-// window.__layer2InjectedSource is set by the extension's boot shim before
-// app.js loads; in the standalone viewer it's undefined and we seed the sample.
+// initSidebar seeds the reader (sample / persisted / extension-injected source)
+// via onSelect. Its panel opens as a flyout from "모든 도구".
 initSidebar({ onSelect: setSource, initialSource: window.__layer2InjectedSource });
 
-// Expose for ad-hoc inspection.
 window.__currentSource = () => currentSource;

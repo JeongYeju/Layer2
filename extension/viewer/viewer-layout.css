@@ -1,0 +1,418 @@
+/* viewer-layout.css — experimental viewer shell (branch: claude/viewer-layout).
+   Adds the mockup chrome (top bar · left/right tool rails · color popup ·
+   page nav) and two reading layouts: infinite scroll vs paper-book spread.
+   Loaded after styles.css so it overrides the prototype's .reader/.layout. */
+
+.legacy-hidden {
+  display: none !important;
+}
+
+:root {
+  --hl-color: var(--ink); /* highlight underline / circle / ink-stroke color */
+  --hl-op: 1; /* highlight opacity multiplier */
+}
+
+/* Recolor only the highlight marks (not the rest of the UI accents). */
+.para .g.is-underlined::after {
+  background: var(--hl-color) !important;
+  box-shadow: 0 0 1.6px var(--hl-color) !important;
+  opacity: calc(var(--underline-opacity, 0.7) * var(--hl-op, 1)) !important;
+}
+.para .g.is-annotated::after {
+  background: var(--hl-color) !important;
+  opacity: calc(var(--underline-opacity, 0.7) * 0.55 * var(--hl-op, 1)) !important;
+}
+.ink-layer .anchor-circle,
+.ink-layer .ink-stroke {
+  stroke: var(--hl-color) !important;
+}
+
+/* Source panel + signal dashboard: hidden by default, opened as side flyouts. */
+#sidebar,
+#dashboard {
+  display: none;
+}
+#sidebar.as-flyout,
+#dashboard.as-flyout {
+  display: block;
+  position: fixed;
+  top: 46px;
+  bottom: 0;
+  z-index: 40;
+  background: var(--paper);
+  overflow: auto;
+  padding: 14px 16px;
+}
+#sidebar.as-flyout {
+  left: 54px;
+  width: 300px;
+  border-right: 1px solid var(--rule);
+  box-shadow: 12px 0 40px rgba(0, 0, 0, 0.16);
+}
+#dashboard.as-flyout {
+  right: 54px;
+  width: 340px;
+  border-left: 1px solid var(--rule);
+  box-shadow: -12px 0 40px rgba(0, 0, 0, 0.16);
+}
+
+/* ===== Lucide icons + hover motion ===== */
+.rail-btn svg,
+.page-arrow svg {
+  width: 19px;
+  height: 19px;
+}
+.menu-item svg,
+.view-toggle button svg {
+  width: 15px;
+  height: 15px;
+}
+.menu-item,
+.view-toggle button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+svg.lucide {
+  transition: transform 0.18s ease;
+}
+.rail-btn:hover svg.lucide,
+.menu-item:hover svg.lucide {
+  transform: scale(1.15);
+}
+#hl-tool:hover svg.lucide {
+  transform: rotate(-12deg) scale(1.1);
+}
+#btn-bookmark:hover svg.lucide {
+  transform: translateY(-2px) scale(1.08);
+}
+#btn-capture:hover svg.lucide {
+  transform: scale(1.18);
+}
+#page-prev:hover svg.lucide {
+  transform: translateX(-2px) scale(1.18);
+}
+#page-next:hover svg.lucide {
+  transform: translateX(2px) scale(1.18);
+}
+.rail-btn.flash {
+  background: var(--ink);
+  color: #fff;
+}
+
+body {
+  margin: 0;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: var(--paper);
+  color: var(--text);
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+}
+
+.topbar,
+.workspace,
+.rail,
+.stage,
+.reader,
+.reader .article {
+  box-sizing: border-box;
+}
+
+/* ===== Top bar ===== */
+.topbar {
+  flex: 0 0 auto;
+  height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--rule);
+  background: var(--paper);
+  font-size: 13px;
+}
+.topbar-left,
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-weight: 600;
+}
+.brand-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--ink);
+}
+.menu {
+  display: flex;
+  gap: 2px;
+}
+.menu-item {
+  border: none;
+  background: none;
+  font: inherit;
+  color: var(--text);
+  padding: 4px 8px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+.menu-item:hover {
+  background: var(--paper-edge);
+}
+.nav-arrows {
+  display: flex;
+  gap: 2px;
+}
+.icon-btn {
+  border: none;
+  background: none;
+  font-size: 15px;
+  color: var(--muted);
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.icon-btn:hover {
+  background: var(--paper-edge);
+  color: var(--text);
+}
+.layer-ai-btn {
+  border: 1px solid var(--rule);
+  background: #fff;
+  border-radius: 7px;
+  padding: 5px 12px;
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+.layer-ai-btn:hover {
+  background: var(--paper-edge);
+}
+.view-toggle {
+  display: flex;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.view-toggle button {
+  border: none;
+  background: #fff;
+  font: inherit;
+  font-size: 12px;
+  padding: 5px 10px;
+  cursor: pointer;
+  color: var(--muted);
+}
+.view-toggle button + button {
+  border-left: 1px solid var(--rule);
+}
+.view-toggle button.is-active {
+  background: var(--ink);
+  color: #fff;
+}
+
+/* ===== Workspace + rails ===== */
+.workspace {
+  flex: 1 1 auto;
+  display: flex;
+  min-height: 0;
+}
+.rail {
+  flex: 0 0 auto;
+  width: 54px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 0;
+  border-right: 1px solid var(--rule);
+  background: var(--paper);
+  position: relative;
+}
+.rail-right {
+  border-right: none;
+  border-left: 1px solid var(--rule);
+}
+.rail-btn {
+  width: 34px;
+  height: 34px;
+  border: none;
+  background: none;
+  border-radius: 8px;
+  font-size: 16px;
+  color: var(--muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.rail-btn:hover {
+  background: var(--paper-edge);
+  color: var(--text);
+}
+.rail-btn.is-active {
+  background: var(--text);
+  color: var(--paper);
+}
+.rail-sep {
+  width: 24px;
+  height: 1px;
+  background: var(--rule);
+  margin: 4px 0;
+}
+
+/* Highlight color flyout (visual mock) */
+.color-popup {
+  position: absolute;
+  left: 60px;
+  top: 8px;
+  width: 212px;
+  background: #fff;
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  padding: 14px;
+  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.13);
+  z-index: 30;
+}
+.color-popup-title {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+.swatches {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 7px;
+  margin-bottom: 12px;
+}
+.sw {
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  background: var(--c);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+  position: relative;
+  padding: 0;
+}
+.sw.is-on::after {
+  content: "✓";
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 11px;
+}
+.opacity-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.opacity-row input {
+  flex: 1;
+}
+
+/* ===== Stage + reader ===== */
+.stage {
+  flex: 1 1 auto;
+  min-width: 0;
+  position: relative;
+  overflow: hidden;
+  background: var(--paper);
+}
+.reader {
+  height: 100%;
+  padding: 0;
+  display: block;
+}
+
+/* Infinite scroll: one centered column, scrolls vertically inside the stage. */
+#reader.mode-scroll {
+  overflow-y: auto;
+  display: flex;
+  justify-content: center;
+  padding: 46px 24px 120px;
+}
+#reader.mode-scroll .article {
+  width: 680px;
+  max-width: 100%;
+}
+
+/* Paper-book spread: content flows into fixed-width columns; we show two at a
+   time and translateX to flip. #reader clips the overflowing columns. */
+#reader.mode-spread {
+  overflow: hidden;
+  padding: 42px 56px;
+}
+#reader.mode-spread .article {
+  width: calc(var(--page-w, 360px) * 2 + var(--gutter, 64px));
+  height: 100%;
+  max-width: none;
+  margin: 0;
+  column-width: var(--page-w, 360px);
+  column-gap: var(--gutter, 64px);
+  column-fill: auto;
+  transform: translateX(var(--spread-x, 0px));
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ===== Page navigation (spread only) ===== */
+.pagenav {
+  position: fixed;
+  right: 76px;
+  bottom: 26px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #fff;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  padding: 6px 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  z-index: 25;
+}
+.page-arrow {
+  border: none;
+  background: none;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--muted);
+  cursor: pointer;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+}
+.page-arrow:hover:not(:disabled) {
+  background: var(--paper-edge);
+  color: var(--text);
+}
+.page-arrow:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+.page-count {
+  font-size: 12px;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-variant-numeric: tabular-nums;
+}
+.page-sep::before {
+  content: "/";
+  color: var(--muted);
+}

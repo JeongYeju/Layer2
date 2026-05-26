@@ -94,19 +94,32 @@ let lastMoveT = performance.now();
 let velocity = 0;
 let lastTeleportT = 0;
 let rafId = null;
-let lastScrollY = 0;       // tracks window.scrollY so scroll deltas drag the
-                           // cursor along with the text — see onScroll().
+let lastScrollY = 0;       // tracks the scroll position so scroll deltas drag
+                           // the cursor along with the text — see onScroll().
+let scrollEl = window;     // scroll container: window, or #reader in the new
+                           // viewer layout (set from initPortal opts).
+function getScrollY() {
+  return scrollEl === window ? window.scrollY : scrollEl.scrollTop;
+}
 
 // Visual cursor position (EMA-chased).
 let renderX = 0;
 let renderY = 0;
 
-export function initPortal() {
-  toggleBtn = document.createElement("button");
-  toggleBtn.id = "portal-toggle";
-  toggleBtn.type = "button";
-  toggleBtn.textContent = "📖 독서 모드";
-  toggleBtn.title = "Pointer Lock + 단어 wrap 커서 + 줄 끝 텔레포트";
+export function initPortal(opts = {}) {
+  scrollEl = opts.scrollEl || window;
+
+  if (opts.triggerEl) {
+    // Use a host-provided button (e.g. a rail button) as the toggle.
+    toggleBtn = opts.triggerEl;
+  } else {
+    toggleBtn = document.createElement("button");
+    toggleBtn.id = "portal-toggle";
+    toggleBtn.type = "button";
+    toggleBtn.textContent = "📖 독서 모드";
+    toggleBtn.title = "Pointer Lock + 단어 wrap 커서 + 줄 끝 텔레포트";
+    document.body.appendChild(toggleBtn);
+  }
   toggleBtn.addEventListener("click", () => {
     if (!state.locked) {
       document.body.requestPointerLock?.();
@@ -114,7 +127,6 @@ export function initPortal() {
       document.exitPointerLock?.();
     }
   });
-  document.body.appendChild(toggleBtn);
 
   // Two-element cursor: outer carries position (JS-set transform), inner
   // carries the visual (size, color, ::before pencil, and the teleport
@@ -141,8 +153,8 @@ export function initPortal() {
   // Scroll listener stays installed always — onScroll keeps lastScrollY in
   // sync while unlocked so the first scroll *after* locking doesn't see a
   // huge spurious delta.
-  window.addEventListener("scroll", onScroll, { passive: true });
-  lastScrollY = window.scrollY;
+  scrollEl.addEventListener("scroll", onScroll, { passive: true });
+  lastScrollY = getScrollY();
 }
 
 function onLockChange() {
@@ -163,7 +175,7 @@ function onLockChange() {
     renderX = state.x;
     renderY = state.actualY;
     lastMoveT = performance.now();
-    lastScrollY = window.scrollY;
+    lastScrollY = getScrollY();
     velocity = 0;
     applyCursorVisual();
     startTick();
@@ -299,7 +311,7 @@ function onMouseMove(e) {
 // match, then re-run the hit-test so glyphRect / lastPara reflect the new
 // viewport positions.
 function onScroll() {
-  const cur = window.scrollY;
+  const cur = getScrollY();
   const dy = cur - lastScrollY;
   lastScrollY = cur;
   if (!state.locked || dy === 0) return;

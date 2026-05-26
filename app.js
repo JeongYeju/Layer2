@@ -2,11 +2,8 @@
 // New chrome/layout (scroll vs paper-book spread) with the existing features
 // wired in: drag-to-underline highlighting (+ color/opacity from the popup),
 // signal recording (dwell/scroll/reread/trail/bookmark/capture), attention
-// blur, and the signal dashboard (opened from the 기록 button).
-//
-// The portal reading-mode cursor is intentionally left out here — it is coupled
-// to window scrolling, which this layout replaces with an internal #reader
-// scroller and a transform-based spread.
+// blur, the signal dashboard (기록 button), and the portal reading-mode cursor
+// (독서 모드 rail button), retargeted to scroll inside #reader.
 
 import { renderReader } from "./reader.js";
 import { initHighlight } from "./highlight.js";
@@ -14,11 +11,8 @@ import { initSidebar } from "./sidebar.js";
 import { initBaselineCollectors } from "./signals.js";
 import { initAttention, wakeReading } from "./attention.js";
 import { renderDashboard } from "./dashboard.js";
+import { initPortal } from "./portal.js";
 import { initViewerShell, relayoutViewer } from "./viewer-shell.js";
-
-// The mouse-trail visual reads window.__portal; provide a neutral stub since
-// the portal cursor isn't wired on this branch.
-window.__portal = window.__portal || { locked: false, x: 0, y: 0, actualY: 0 };
 
 const reader = document.getElementById("reader");
 const dashboard = document.getElementById("dashboard");
@@ -27,6 +21,8 @@ initHighlight();
 initAttention({ readerEl: reader });
 renderDashboard(dashboard);
 initViewerShell();
+// Reading mode rides #reader's scroll and toggles from the 독서 모드 rail button.
+initPortal({ scrollEl: reader, triggerEl: document.getElementById("reading-mode") });
 
 let currentSource = null;
 
