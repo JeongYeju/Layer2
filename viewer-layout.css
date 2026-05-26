@@ -136,6 +136,13 @@ body.drawer-open .drawer-handle svg {
   font-size: calc(32px * var(--reader-scale, 1));
 }
 
+/* Perf: bound per-frame paint/layout invalidation to a single paragraph while
+   drawing an underline, so span-opacity changes don't repaint the whole scroll
+   container. Scroll mode only — the multicol spread needs free fragmentation. */
+#reader.mode-scroll .para {
+  contain: layout paint;
+}
+
 /* ===== Lucide icons + hover motion ===== */
 .rail-btn svg,
 .page-arrow svg {
