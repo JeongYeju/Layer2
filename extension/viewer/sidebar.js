@@ -18,7 +18,7 @@ import {
 } from "./sources/markdown.js";
 import { pdfSourceFromFile } from "./sources/pdf.js";
 import { webSourceFromUrl } from "./sources/web.js";
-import { pushSignal, SignalLog } from "./signals.js";
+import { pushSignal, SignalLog, signalBus } from "./signals.js";
 
 let onSelect = () => {};
 let rootEl = null;
@@ -73,6 +73,8 @@ function restoreLoaded(persisted) {
 let sessionActive = false;
 let sessionStartedAt = 0;
 let sessionSourceId = null;
+// Mirrors attention.js rest state so the 현재 소스 card can show 휴식 중 vs 독서 중.
+let attentionResting = false;
 
 export function initSidebar(opts = {}) {
   onSelect = opts.onSelect || (() => {});
@@ -97,6 +99,22 @@ export function initSidebar(opts = {}) {
   }
 
   initExtBridge();
+
+  // Reflect attention rest state in the 현재 소스 status line.
+  signalBus.addEventListener("signal", (e) => {
+    const t = e.detail.type;
+    if (t === "attention_pause") attentionResting = true;
+    else if (t === "attention_resume" || t === "session_start") attentionResting = false;
+    else return;
+    updateSessionStatusLive();
+  });
+}
+
+function updateSessionStatusLive() {
+  const el = currentEl?.querySelector("#src-session-status-live");
+  if (!el) return;
+  el.textContent = attentionResting ? "휴식 중…" : "독서 중…";
+  el.classList.toggle("is-resting", attentionResting);
 }
 
 function build() {
@@ -281,7 +299,7 @@ function renderCurrent(source) {
     ? `<button class="src-session-btn" id="src-session-end" type="button">✓ 독서 끝내기</button>`
     : `<button class="src-session-btn is-primary" id="src-session-start" type="button">📖 독서 시작</button>`;
   const statusHtml = isActiveHere
-    ? `<div class="src-session-status is-active">독서 중…</div>`
+    ? `<div class="src-session-status is-active${attentionResting ? " is-resting" : ""}" id="src-session-status-live">${attentionResting ? "휴식 중…" : "독서 중…"}</div>`
     : sessionActive
       ? `<div class="src-session-status">다른 글 읽는 중</div>`
       : "";

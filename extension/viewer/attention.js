@@ -16,7 +16,8 @@ import { pushSignal } from "./signals.js";
 
 const HIDDEN_BLUR_MS = 5000;   // tab inactive this long → rest
 const IDLE_BLUR_MS = 20000;    // visible but no activity this long → rest
-const RESUME_MOVE_PX = 80;     // accumulated cursor motion needed to resume
+const RESUME_MOVE_PX = 200;    // accumulated cursor motion needed to resume
+                               // (deliberate scribble, not a stray nudge)
 const BLUR_IN_DUR = "2.4s";    // gradual blur-in
 const BLUR_OUT_FAST = "0.18s"; // scroll/key/click resume
 const BLUR_OUT_SMOOTH = "0.6s"; // cursor resume

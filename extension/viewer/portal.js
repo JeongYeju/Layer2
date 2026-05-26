@@ -80,10 +80,10 @@ const state = {
 window.__portal = state;
 
 // Tunables exposed for runtime tweaking — cursor-hud writes lineBreakAngle
-// here. Default 60° = stroke must be at least 60° off horizontal (more
-// vertical than horizontal by a lot) before we transition lines.
+// here. Default 33° = stroke must be at least 33° off horizontal before we
+// transition lines.
 window.__portalConfig = window.__portalConfig || {
-  lineBreakAngle: 60,
+  lineBreakAngle: 33,
 };
 
 let cursorEl = null;       // outer — position only (JS-controlled transform)
@@ -508,7 +508,7 @@ window.__portalMotion = {
 
 function getLineBreakAngle() {
   const v = window.__portalConfig?.lineBreakAngle;
-  if (typeof v !== "number" || !isFinite(v)) return 60;
+  if (typeof v !== "number" || !isFinite(v)) return 33;
   return Math.min(Math.max(v, 5), 89);
 }
 
