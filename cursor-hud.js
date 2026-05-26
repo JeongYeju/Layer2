@@ -27,6 +27,10 @@ export function initCursorHud() {
     ${row("rotate", "Rotate", 0, 360, DEFAULTS.rotate)}
     ${row("hotspotX", "Hotspot X", 0, 48, DEFAULTS.hotspotX)}
     ${row("hotspotY", "Hotspot Y", 0, 48, DEFAULTS.hotspotY)}
+
+    <div class="hud-title" style="margin-top:14px">📖 Portal</div>
+    ${row("stickiness", "Line stickiness", 0, 100, 40)}
+
     <div class="hud-actions">
       <button id="hud-copy" type="button">Copy values</button>
       <button id="hud-reset" type="button">Reset</button>
@@ -53,6 +57,21 @@ export function initCursorHud() {
     });
   });
 
+  // Portal — line-snap stickiness slider. Writes into window.__portalConfig
+  // which portal.js reads from each move. Not part of `state` because it
+  // doesn't drive the cursor SVG (it lives on a different module).
+  const stickinessEl = hud.querySelector("#hud-stickiness");
+  const stickinessValEl = hud.querySelector("#hud-stickiness-val");
+  const writeStickiness = (val) => {
+    window.__portalConfig = window.__portalConfig || {};
+    window.__portalConfig.lineSnapStickiness = val / 100;
+    stickinessValEl.textContent = val;
+  };
+  stickinessEl.addEventListener("input", () => {
+    writeStickiness(parseInt(stickinessEl.value, 10));
+  });
+  writeStickiness(parseInt(stickinessEl.value, 10));
+
   // Buttons
   hud.querySelector("#hud-copy").addEventListener("click", () => {
     navigator.clipboard.writeText(snippet());
@@ -63,6 +82,8 @@ export function initCursorHud() {
       hud.querySelector(`#hud-${key}`).value = state[key];
       hud.querySelector(`#hud-${key}-val`).textContent = state[key];
     });
+    stickinessEl.value = 40;
+    writeStickiness(40);
     apply();
   });
   hud.querySelector("#hud-close").addEventListener("click", () => {
@@ -92,6 +113,7 @@ export function initCursorHud() {
   function snippet() {
     const { glyphX, glyphY, fontSize, svgSize, rotate, hotspotX, hotspotY } =
       state;
+    const sticky = parseInt(stickinessEl.value, 10);
     return [
       `glyphX=${glyphX}`,
       `glyphY=${glyphY}`,
@@ -100,6 +122,7 @@ export function initCursorHud() {
       `rotate=${rotate}`,
       `hotspotX=${hotspotX}`,
       `hotspotY=${hotspotY}`,
+      `lineSnapStickiness=${(sticky / 100).toFixed(2)}`,
     ].join("  ");
   }
 }

@@ -52,6 +52,14 @@ const state = {
 };
 window.__portal = state;
 
+// Tunables exposed for runtime tweaking — cursor-hud's "Portal" slider
+// writes lineSnapStickiness into this. Default 0.4 ≈ 13 px buffer (cursor
+// must drift ~13 px past the current line's bbox before snap commits to
+// the new line).
+window.__portalConfig = window.__portalConfig || {
+  lineSnapStickiness: 0.4,
+};
+
 let cursorEl = null;       // outer — position only (JS-controlled transform)
 let cursorInner = null;    // inner — visual (size, color, scale/blur animation)
 let toggleBtn = null;
@@ -236,6 +244,27 @@ function findGlyphAt(x, y) {
   // Direct hit first.
   const stack = document.elementsFromPoint(x, y);
   let g = stack.find((el) => el.matches && el.matches("[data-char-index]"));
+
+  // Line-snap hysteresis. If the direct hit is on a DIFFERENT line than the
+  // one we were just on, require the cursor's y to be sufficiently past
+  // the previous line's bbox before we accept the switch. Otherwise the
+  // cursor flicks lines on the slightest vertical drift. Buffer is driven
+  // by window.__portalConfig.lineSnapStickiness (0..1; user-tunable via
+  // the slider in cursor-hud).
+  if (g && state.glyphRect) {
+    const oldR = state.glyphRect;
+    const newR = g.getBoundingClientRect();
+    const sameLine = Math.abs(newR.bottom - oldR.bottom) <= LINE_TOLERANCE;
+    if (!sameLine) {
+      const sticky = getLineSnapStickiness();
+      const buffer = LINE_HEIGHT * sticky;
+      if (y >= oldR.top - buffer && y <= oldR.bottom + buffer) {
+        // Stay on the previous line. Pick a glyph on that line near x.
+        const stay = findGlyphOnLineY(oldR.bottom, x);
+        if (stay) return stay;
+      }
+    }
+  }
   if (g) return g;
 
   if (!state.lastPara) return null;
@@ -285,6 +314,34 @@ function findGlyphAt(x, y) {
     }
   }
   return nearestGlyph;
+}
+
+// Find a glyph anywhere on the line whose .bottom is targetBottom, nearest
+// to x. Used by the line-snap hysteresis path to keep the cursor on the
+// previous line when y has drifted but not far enough to commit to the
+// new line.
+function findGlyphOnLineY(targetBottom, x) {
+  if (!state.lastPara) return null;
+  const all = Array.from(state.lastPara.querySelectorAll("[data-char-index]"));
+  let nearest = null;
+  let minD = Infinity;
+  for (const g of all) {
+    const r = g.getBoundingClientRect();
+    if (Math.abs(r.bottom - targetBottom) > LINE_TOLERANCE) continue;
+    const gx = (r.left + r.right) / 2;
+    const d = Math.abs(x - gx);
+    if (d < minD) {
+      minD = d;
+      nearest = g;
+    }
+  }
+  return nearest;
+}
+
+function getLineSnapStickiness() {
+  const v = window.__portalConfig?.lineSnapStickiness;
+  if (typeof v !== "number" || !isFinite(v)) return 0.4;
+  return Math.min(Math.max(v, 0), 1);
 }
 
 function findNearbyPara(x, y) {
