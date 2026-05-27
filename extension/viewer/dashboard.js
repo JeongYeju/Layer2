@@ -38,6 +38,7 @@ export function renderDashboard(rootEl) {
       <select id="interp-provider" class="interp-provider">
         <option value="anthropic">Anthropic</option>
         <option value="openai">OpenAI</option>
+        <option value="gemini">Gemini</option>
       </select>
       <input type="password" id="interp-key" class="interp-key"
         placeholder="API 키 (이 브라우저에만 저장)" autocomplete="off" />

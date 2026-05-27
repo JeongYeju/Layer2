@@ -19,8 +19,8 @@ Usage:
   python scripts/interpret.py session.json --no-llm
   python scripts/interpret.py session.json --provider anthropic --model <id>
 
-API key is read from OPENAI_API_KEY or ANTHROPIC_API_KEY depending on
---provider (default: openai).
+API key is read from OPENAI_API_KEY / ANTHROPIC_API_KEY / GEMINI_API_KEY
+(or GOOGLE_API_KEY) depending on --provider (default: openai).
 """
 
 import argparse
@@ -39,7 +39,18 @@ TRAIL_MAX_POINTS = 80
 # Paragraph text shown inline in the digest is truncated to this many chars.
 PREVIEW_CHARS = 80
 
-DEFAULT_MODELS = {"openai": "gpt-4o", "anthropic": "claude-sonnet-4-6"}
+# Verified against ai.google.dev (2026-05): gemini-2.5-flash is current/stable
+# (2.0 flash retires 2026-06). gemini-2.5-pro / -flash-lite are alternatives.
+DEFAULT_MODELS = {
+    "openai": "gpt-4o",
+    "anthropic": "claude-sonnet-4-6",
+    "gemini": "gemini-2.5-flash",
+}
+KEY_ENVS = {
+    "openai": ["OPENAI_API_KEY"],
+    "anthropic": ["ANTHROPIC_API_KEY"],
+    "gemini": ["GEMINI_API_KEY", "GOOGLE_API_KEY"],
+}
 
 
 # ---------- source / paragraph indexing ----------
@@ -376,15 +387,34 @@ def call_anthropic(model, system, user, api_key):
     return data["content"][0]["text"]
 
 
+def call_gemini(model, system, user, api_key):
+    payload = {
+        "system_instruction": {"parts": [{"text": system}]},
+        "contents": [{"role": "user", "parts": [{"text": user}]}],
+        "generationConfig": {"temperature": 0.3, "responseMimeType": "application/json"},
+    }
+    req = urllib.request.Request(
+        f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent",
+        data=json.dumps(payload).encode("utf-8"),
+        headers={"x-goog-api-key": api_key, "Content-Type": "application/json"},
+        method="POST",
+    )
+    with urllib.request.urlopen(req, timeout=120) as resp:
+        data = json.loads(resp.read().decode("utf-8"))
+    return data["candidates"][0]["content"]["parts"][0]["text"]
+
+
 def interpret_with_llm(provider, model, body, digest):
-    key_env = "OPENAI_API_KEY" if provider == "openai" else "ANTHROPIC_API_KEY"
-    api_key = os.environ.get(key_env)
+    envs = KEY_ENVS[provider]
+    api_key = next((os.environ[e] for e in envs if os.environ.get(e)), None)
     if not api_key:
-        return None, f"{key_env} 미설정 — 2차 LLM 해석 건너뜀"
+        return None, f"{'/'.join(envs)} 미설정 — 2차 LLM 해석 건너뜀"
     user = USER_TEMPLATE.format(body=body, digest=json.dumps(digest, ensure_ascii=False, indent=2))
     try:
         if provider == "openai":
             raw = call_openai(model, SYSTEM_PROMPT, user, api_key)
+        elif provider == "gemini":
+            raw = call_gemini(model, SYSTEM_PROMPT, user, api_key)
         else:
             raw = call_anthropic(model, SYSTEM_PROMPT, user, api_key)
     except urllib.error.HTTPError as e:
@@ -404,7 +434,9 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description="Layer2 reading-session interpreter")
     ap.add_argument("input", help="session export JSON (viewer 내보내기 결과)")
     ap.add_argument("-o", "--output", help="결과 JSON 경로 (생략 시 stdout)")
-    ap.add_argument("--provider", choices=["openai", "anthropic"], default="openai")
+    ap.add_argument(
+        "--provider", choices=["openai", "anthropic", "gemini"], default="openai"
+    )
     ap.add_argument("--model", help="LLM 모델 id (provider 기본값 override)")
     ap.add_argument("--no-llm", action="store_true", help="1차 정제만 수행")
     args = ap.parse_args(argv)

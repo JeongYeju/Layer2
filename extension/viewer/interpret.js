@@ -7,7 +7,14 @@
 const TRAIL_MIN_DIST = 24;
 const TRAIL_MAX_POINTS = 80;
 const PREVIEW_CHARS = 80;
-const DEFAULT_MODELS = { openai: "gpt-4o", anthropic: "claude-sonnet-4-6" };
+// Model defaults verified against ai.google.dev (2026-05): gemini-2.5-flash is
+// current/stable; 2.0 flash retires 2026-06. Swap for gemini-2.5-pro for deeper
+// reasoning or gemini-2.5-flash-lite for cheapest.
+const DEFAULT_MODELS = {
+  openai: "gpt-4o",
+  anthropic: "claude-sonnet-4-6",
+  gemini: "gemini-2.5-flash",
+};
 
 const SYSTEM_PROMPT =
   "당신은 독서 행동 분석가입니다. 사용자가 글을 읽으며 남긴 행동 신호" +
@@ -304,6 +311,24 @@ async function callOpenAI(model, system, user, apiKey) {
   return data.choices?.[0]?.message?.content ?? "";
 }
 
+async function callGemini(model, system, user, apiKey) {
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+    {
+      method: "POST",
+      headers: { "x-goog-api-key": apiKey, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        system_instruction: { parts: [{ text: system }] },
+        contents: [{ role: "user", parts: [{ text: user }] }],
+        generationConfig: { temperature: 0.3, responseMimeType: "application/json" },
+      }),
+    },
+  );
+  if (!res.ok) throw new Error(`gemini HTTP ${res.status}: ${(await res.text()).slice(0, 300)}`);
+  const data = await res.json();
+  return data.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+}
+
 // Build the digest, optionally call the LLM, and return interpret.py's result
 // shape. LLM/transport errors are folded into interpretation_note so the
 // refined digest still renders.
@@ -323,7 +348,9 @@ export async function interpretSession({ exportData, provider = "anthropic", mod
       const raw =
         provider === "openai"
           ? await callOpenAI(mdl, SYSTEM_PROMPT, user, apiKey)
-          : await callAnthropic(mdl, SYSTEM_PROMPT, user, apiKey);
+          : provider === "gemini"
+            ? await callGemini(mdl, SYSTEM_PROMPT, user, apiKey)
+            : await callAnthropic(mdl, SYSTEM_PROMPT, user, apiKey);
       const parsed = parseJsonLoose(raw);
       if (parsed) interpretation = parsed;
       else {
