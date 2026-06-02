@@ -4,6 +4,24 @@
 
 ---
 
+## 2026-06-02
+
+내러티브 — **"나를 아는 독서"** — 가 잡힌 뒤(2026-05-27 회의) 첫 코드 작업. 아교 레이어의 한 축인 **촛불(Stick Candle)** 1차 초안을 얹어, 그동안 모아온 신호(attention / dwell / reread)가 *눈에 보이는 캐릭터*로 번역되는 첫 사례를 만들었다.
+
+### 촛불 1차 초안 (Phase 2.5.1)
+- 새 모듈 `candle.js` + `styles.css` 의 `.candle-mount` 섹션. SVG 촛대 + 흔들리는 불꽃, 단락 우측 여백에 등장.
+- **개입 프로토콜 v0.1** — 신호 → 트리거 조건:
+  - `stuck` (같은 단락 누적 45초), `reread` (visit_count ≥ 2), `welcome` (휴식 후 30초+ 복귀)
+  - 쿨다운 — 같은 단락 2분 / 전역 25초
+- 클릭 또는 12초 무반응 시 **후~** 애니메이션 (불꽃 → 연기) 후 소멸. 새 소스 로드 시 자동 제거.
+- 새 신호 두 개: `candle_intervene`, `candle_dismiss` — 향후 interpret.py · 대시보드가 활용 가능.
+- DevTools 데모 훅: `window.__layer2Candle.fire("stuck"|"reread"|"welcome")`.
+- `scripts/build-extension.sh` 의 `CORE_FILES` 에 `candle.js` 추가 — 확장 빌드도 같이 따라감.
+
+> 이 변경은 **회의록 §10 "민서 — 클로드 코딩으로 기능 하나"** 액션을 다룬 것. 임계값(45s / 30s / 쿨다운)은 추정값이라, 실제 사용 로그 보고 v1 에서 정식화 예정 (`TODO.md` Phase 2.5.2).
+
+---
+
 ## 2026-05-26
 
 프로토타입 → **멀티소스 리더 + 신호 수집/해석 + 브라우저 확장**으로 한 단계 확장.

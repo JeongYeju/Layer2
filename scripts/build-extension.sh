@@ -16,7 +16,8 @@ SRC="$ROOT/extension/src"
 CORE_FILES=(
   index.html styles.css viewer-layout.css content.js reader.js signals.js
   portal.js highlight.js dashboard.js toolbar.js sidebar.js pretext_helpers.js
-  cursor-hud.js attention.js viewer-shell.js icons.js interpret.js app.js
+  cursor-hud.js attention.js viewer-shell.js icons.js interpret.js candle.js
+  app.js
 )
 
 rm -rf "$OUT"

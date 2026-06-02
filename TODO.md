@@ -49,6 +49,27 @@
   - app.js: 소스별 스크롤 위치 → `layer2.scroll.v1`, 소스 열 때 복원 (읽기모드 중 스크롤은 기록 안 함)
   - 우선순위: 확장 주입 소스 > 영속 상태 > 샘플
 
+## Phase 2.5 (내러티브 — "나를 아는 독서")
+
+2026-05-27 회의 결정 반영. 한 문장 = **"나를 아는 독서"**, 두 축(텍스트 × 나) + 아교(뷰어 전환 / 촛불 / AI 티키타카). 자세한 맥락은 `Private/Layer2_회의록_2026-05-27.md`.
+
+- [x] **2.5.1** 촛불(Stick Candle) 1차 초안 — 신호 기반 개입의 의인화
+  - `candle.js` + `styles.css` 의 `.candle-mount` 섹션. `.para` 우측 여백에 등장 → 멘트 → 후~ 사라짐 (SVG flame flicker + smoke).
+  - **개입 프로토콜 v0.1** (정식 정의는 §9 미해결 — 이건 첫 시도):
+    - `stuck` — 같은 단락 viewport 중앙에 누적 45초
+    - `reread` — `visit_count ≥ 2` (signals.js 의 reread 신호)
+    - `welcome` — `attention_resume.paused_ms > 30s`
+  - 쿨다운: 같은 단락 2분 / 전역 25초. 클릭 또는 12초 무반응 시 후~ 소멸. 새 소스 로드 시 제거.
+  - 데모 훅: `window.__layer2Candle.fire("stuck"|"reread"|"welcome")` (DevTools 에서).
+  - 새 신호 추가: `candle_intervene`, `candle_dismiss` — 이후 interpret/대시보드에서 활용 가능.
+- [ ] **2.5.2** 개입 프로토콜 v1 — 회의록 §9 미해결 1번 ("어떤 신호 조합에서 촛불이 등장하는가") 정식화
+  - 현재 v0.1 의 임계값은 추정값. 실제 사용 로그 보고 튜닝
+  - 멘트 풀 확장 (현재 reason 당 3개) + 페르소나 톤 일관성
+  - "X 해볼까?" → AI 티키타카 트리거로 연결 (촛불 클릭 → interpret 호출 등)
+- [ ] **2.5.3** 뷰어 전환 (AFFiNE 아교) — 줄글 / 집중 블럭탄 / 대화 / 포스트잇
+- [ ] **2.5.4** AI 티키타카 — 읽는 동안 옆에 있고 끝난 뒤에도 잠깐 나옴
+- [ ] **2.5.5** 후처리 형식 결정 (회의록 §9 미해결 2번) — 리포트 / 대시보드 / 트래커 중 무엇
+
 ## Phase 3 (인프라)
 
 - [ ] Vercel 배포 (Next.js 또는 static + serverless functions)
