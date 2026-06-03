@@ -70,7 +70,7 @@
   - 새 신호 추가: `candle_intervene`, `candle_dismiss` — 이후 interpret/대시보드에서 활용 가능.
 - [ ] **2.5.2** 개입 프로토콜 v1 — Seam 타겟팅으로 정식화 (디벨롭 §13, 문헌 확정판)
   - 읽기의 물리적 관성을 *부자연스럽게 꺾지 않는* 경계면 3종에서만 비선형 삽입:
-    - **annotation_seam** — `onAnnotationSaved(paragraph_i)`. 주석 확정 *직후* 인라인 one-click prompt 1회 ("왜 중요해?" / "네 말로?"). 목적 = Active→Constructive 승격 (Qlarify 근거). **v0.1 에 없음 → 최우선 추가.**
+    - **annotation_seam** — `onAnnotationSaved(paragraph_i)`. 주석 확정 *직후* 인라인 one-click prompt 1회 ("왜 중요해?" / "네 말로?"). 목적 = Active→Constructive 승격 (Qlarify 근거). ✅ **1차 구현 완료** (candle.js, 2026-06-03) — 품질 임계 통과 시 발동, 전역 쿨다운 우회. 진짜 티키타카(2.5.4) 붙으면 완성.
     - **isolation_seam** — `revisit_i ≥ 3 AND reverseRate_i ≥ 0.5 AND friction_i 상위20% AND annotation_i == 0`. 누적 증거 생겼을 때만 진단형 prompt (D'Mello 근거). v0.1 의 `stuck`+`reread` 를 friction percentile 로 대체.
     - **transition_seam** — `sectionEnd OR sessionResume OR longIdleResume`. 요약/자기설명 prompt. 목적 = flow 보존 + metacognitive consolidation (Hefter: interruption 최소화). v0.1 의 `welcome` 유지·확장.
   - cutoff(≥3, ≥0.5) 는 권고치 — 논문 원문 아님. friction_i 가 percentile 기반이라 절대 초 단위(v0.1 의 45s/30s) 대체됨.
@@ -111,14 +111,15 @@
 - [ ] **2.5.7** 비명시적 신호 보강 — Active Zone 프록시 (제미나이 디벨롭 §2)
   - 화면 중앙 'Active Zone' + scroll delta 방향 전환 + reread 결합 → **역방향 단약시(인지적 머뭇거림)** 정량화.
   - 마우스 호버는 폐기하지 않되 *주력 지표는 dwell + scroll* 로.
-- [ ] **2.5.8** 주석 품질 판별 — 행동 휴리스틱 (G-7, 디벨롭 §12). **실시간 AI X / UI 라벨 X.**
+- [~] **2.5.8** 주석 품질 판별 — 행동 휴리스틱 (G-7, 디벨롭 §12). **실시간 AI X / UI 라벨 X.** ✅ 룰베이스 1차 구현 (candle.js `annotationQuality`, 2026-06-03)
   - 결정 근거: Ollama 실시간 분류 = latency 로 Seam 놓침 + 무의미 텍스트도 추론(낭비). UI 중요도 라벨 = extraneous load 전가(독서를 데이터 라벨링으로 변질). 둘 다 기각.
   - 채택: `highlight.js` 가 *이미 수집 중인* 페이로드만으로 품질 프록시 — **새 신호·UI·실시간 AI 불필요**:
-    - **선택 범위 비율** — `char_range` 길이 / 문단 길이. >80% blanket=Low, 15~40% selective=High (Mason 2024).
-    - **전이 시간** — 밑줄 완료→타이핑 시작 (`textarea_appeared_t − transition_t`). 0.5s=반사적, 3~5s 멈춤=constructive.
-    - **산출물 밀도** — `annotation_text.length` vs `total_duration_ms` 비율. "ㅋㅋㅋㅋ" 쓰레기값 필터.
-  - **Lazy Evaluation 흐름**: ① 자연스럽게 밑줄·주석 → ② interpret.js 가 3 룰베이스 즉시 계산 (Constructive 판별) → ③ 품질 임계 넘긴 주석에만 촛불 즉시(annotation_seam) → ④ 세션 종료 후 **고품질 주석만 batch** 로 백그라운드 AI → Macro 리포트 '개념망 지형도'.
-  - 데이터 준비도: `char_range` `transition_t` `textarea_appeared_t` `annotation_text` `total_duration_ms` 모두 `highlight_annotation` 페이로드에 이미 있음. 추가 수집 0.
+    - [x] **선택 범위 비율** — `anchor_text` 길이 / 문단 글자수. >80% blanket=Low, 15~40% selective=High (Mason 2024).
+    - [x] **전이 시간** — 밑줄 완료→주석창 등장 (`textarea_appeared_t − transition_t`). <0.9s=반사적, 길수록 constructive.
+    - [x] **산출물 밀도** — `annotation_text` 길이 + 반복문자 비율. "ㅋㅋㅋㅋ" 쓰레기값 필터.
+  - **Lazy Evaluation 흐름**: ① 자연스럽게 밑줄·주석 → ② ✅ candle.js 가 3 룰베이스 즉시 계산 (현재는 candle 안. interpret.js 이전은 추후) → ③ ✅ 품질 임계(0.55) 넘긴 주석에만 촛불 즉시(annotation_seam) → ④ ⏳ 세션 종료 후 **고품질 주석만 batch** 로 백그라운드 AI → Macro 리포트 (2.5.4/2.5.6 과 함께).
+  - 남은 일: 가중치·임계(0.4/0.3/0.3, 0.55) 실사용 튜닝 / 계산 로직을 interpret.js 로 이전(현재 candle.js 내) / batch AI 경로(④).
+  - 데이터 준비도: `anchor_text` `transition_t` `textarea_appeared_t` `annotation_text` `total_duration_ms` 모두 `highlight_annotation` 페이로드에 이미 있음. 추가 수집 0.
 
 ## Phase 3 (인프라)
 

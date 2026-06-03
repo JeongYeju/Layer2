@@ -4,6 +4,29 @@
 
 ---
 
+## 2026-06-03
+
+W1 문헌 리뷰(16+편) 의 첫 코드 적용. 촛불에 **annotation_seam** 과 **주석 품질 행동 휴리스틱** 을 얹어, "주석 직후 + 진짜 고민이 담긴 주석에만 사유 확장 질문" 이라는 Seam 타겟팅의 첫 사례를 만들었다.
+
+### annotation_seam + 주석 품질 휴리스틱 (Phase 2.5.8 / 2.5.2)
+- `candle.js` 에 네 번째 트리거 `annotation` 추가 — `highlight_annotation` 신호 직후 발동.
+- **주석 품질** 을 행동 휴리스틱 3종으로 산출 (`annotationQuality`, 0~1):
+  - 선택 범위 비율 (anchor_text / 문단 글자수) — selective(15~40%) 우대, blanket(>80%) 감점 (Mason 2024)
+  - 전이 시간 (textarea_appeared_t − transition_t) — 오래 망설일수록 constructive
+  - 산출물 밀도 (annotation_text 길이 + 반복문자 패널티) — "ㅋㅋㅋㅋ" 필터
+- 품질 ≥ 0.55 인 주석에만 촛불이 사유 확장 질문 ("방금 친 거, 왜 중요하다고 느꼈어?" 등) → Active→Constructive 승격.
+- annotation 트리거는 **전역 쿨다운 우회** (사용자 능동 행동 직후 = 개입 환영도 최고). per-para 쿨다운 + 품질 임계가 spam 방지.
+- **실시간 AI·UI 라벨 없이** `highlight_annotation` 페이로드만으로 동작 — 추가 신호 수집 0.
+- 데모 훅 확장: `window.__layer2Candle.fire("annotation")`.
+
+### 빌드 스크립트 portable 수정
+- `scripts/build-extension.sh` 의 CDN import 치환을 `sed -i` → `perl -i` 로 교체. BSD/macOS 에서 `sed -i` 가 백업 확장자를 요구해 깨지던 문제 해결 (GNU/Linux·BSD/macOS 양쪽 동작).
+- `extension/viewer/` 재빌드 — candle.js annotation_seam 반영.
+
+> 가중치(0.4/0.3/0.3)·임계(0.55) 는 1차 추정값. 품질 계산 로직의 interpret.js 이전 + batch AI 경로(Lazy Evaluation ④)는 2.5.4 채팅 모듈과 함께. (`TODO.md` 2.5.8)
+
+---
+
 ## 2026-06-02
 
 오전엔 **촛불(Stick Candle) v0.1 코드** 가 들어갔고, 오후엔 **제미나이와의 디벨롭 의논** 으로 5 레이어 프레임이 정렬됐다. 같은 날 컨셉이 한 단계 더 좁혀짐:

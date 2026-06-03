@@ -13,12 +13,14 @@ import { initAttention, wakeReading } from "./attention.js";
 import { renderDashboard } from "./dashboard.js";
 import { initPortal } from "./portal.js";
 import { initViewerShell, relayoutViewer, flipSpread } from "./viewer-shell.js";
+import { initCandle, resetCandle } from "./candle.js";
 
 const reader = document.getElementById("reader");
 const dashboard = document.getElementById("dashboard");
 
 initHighlight();
 initAttention({ readerEl: reader });
+initCandle({ readerEl: reader });
 renderDashboard(dashboard);
 initViewerShell();
 // Reading mode rides #reader's scroll (and flips pages in spread) and toggles
@@ -35,6 +37,7 @@ function setSource(source) {
   currentSource = source;
   renderReader(reader, source);
   initBaselineCollectors({ readerEl: reader }); // rebinds dwell to new paragraphs
+  resetCandle();
   wakeReading();
   // Spread pagination depends on the rendered DOM + final font metrics.
   if (document.fonts?.ready) document.fonts.ready.then(relayoutViewer);

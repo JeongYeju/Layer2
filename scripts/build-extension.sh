@@ -37,15 +37,17 @@ cp -R "$SRC/vendor/pretext" "$OUT/vendor/pretext"
 
 # Rewrite CDN imports. pretext -> the real vendored module; the loaders that
 # can't run under CSP -> stubs (unused by the extension's injected-source flow).
-sed -i 's|https://esm.sh/@chenglou/pretext|./vendor/pretext/layout.js|' "$OUT/pretext_helpers.js"
-sed -i 's|https://esm.sh/@mozilla/readability@0.5|../vendor/readability-stub.js|' "$OUT/sources/web.js"
-sed -i 's|https://esm.sh/pdfjs-dist@4/build/pdf.worker.mjs|../vendor/pdf-stub.js|' "$OUT/sources/pdf.js"
-sed -i 's|https://esm.sh/pdfjs-dist@4/build/pdf.mjs|../vendor/pdf-stub.js|' "$OUT/sources/pdf.js"
-sed -i 's|https://esm.sh/markdown-it@14|../vendor/markdown-stub.js|' "$OUT/sources/markdown.js"
+# perl -i (not sed -i) so the same in-place edit works on both GNU/Linux and
+# BSD/macOS — BSD sed's -i requires a backup-suffix arg and breaks otherwise.
+perl -i -pe 's|https://esm.sh/\@chenglou/pretext|./vendor/pretext/layout.js|' "$OUT/pretext_helpers.js"
+perl -i -pe 's|https://esm.sh/\@mozilla/readability\@0.5|../vendor/readability-stub.js|' "$OUT/sources/web.js"
+perl -i -pe 's|https://esm.sh/pdfjs-dist\@4/build/pdf.worker.mjs|../vendor/pdf-stub.js|' "$OUT/sources/pdf.js"
+perl -i -pe 's|https://esm.sh/pdfjs-dist\@4/build/pdf.mjs|../vendor/pdf-stub.js|' "$OUT/sources/pdf.js"
+perl -i -pe 's|https://esm.sh/markdown-it\@14|../vendor/markdown-stub.js|' "$OUT/sources/markdown.js"
 
 # The bundled viewer boots through boot-ext.js (reads the captured source from
 # chrome.storage) instead of app.js directly.
-sed -i 's|src="./app.js"|src="./boot-ext.js"|' "$OUT/index.html"
+perl -i -pe 's|src="./app.js"|src="./boot-ext.js"|' "$OUT/index.html"
 
 echo "Built extension/viewer/ ($(find "$OUT" -type f | wc -l | tr -d ' ') files)"
 if grep -rn "esm.sh" "$OUT" >/dev/null 2>&1; then
