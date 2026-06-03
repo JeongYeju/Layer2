@@ -45,16 +45,18 @@
   - `Private/Layer2_제미나이_디벨롭_2026-06-02.md` — 페르소나 가설 + 5 레이어(수집/해석/뷰어/개입/리포트) 정렬
   - 발표 슬라이드: `~/Desktop/wrks/한예종/26-1/인터랙션디자인융합/Layer 2 class/Layer 2 0602.pdf`
 
-### 핵심 프레임워크 (제미나이 디벨롭에서 확정)
-- **해석 레이어 — 마찰 계수** — LLM 호출 *전* 에 단락별 3단계 양상 분류: 스캐닝(Low) / 유창한 읽기(Normal) / 인지적 마찰·숙고(High).
-- **촛불 Seam 타겟팅** — 비선형 개입 3 지점: ① 능동적 정지(주석 직후) / ② 인지적 고립(reread) / ③ 세션 전환점(휴식 후 복귀).
+### 핵심 프레임워크 (제미나이 디벨롭 + 2026-06-02 문헌 리뷰에서 확정)
+문헌 근거: Grusky 2017(viewport attention) · Luo 2017(height-effort) · Chi&Wylie 2014(ICAP) · Mason 2024·Zhang 2025(주석 품질) · D'Mello 2017·Qlarify 2024·Hefter 2023(개입 타이밍). 상세는 `Private/Layer2_제미나이_디벨롭_2026-06-02.md` §9~§14.
+- **해석 레이어 — 마찰 계수** — `interpret.js` 가 LLM 호출 *전* 에 단락별 behavioral state object 산출. raw dwell 아니라 **visibility-weighted attention** + 회귀 프록시(return_effort/reverseRate). `friction_i = z-score 합`, 임계는 **문서 내 percentile(상위 20%)** — 절대 초 단위 아님. ICAP 태깅(P<A<C<I) 으로 germane vs extraneous 분리.
+- **촛불 Seam 타겟팅** — 비선형 개입 3 지점: ① annotation_seam(주석 직후, Active→Constructive 승격) / ② isolation_seam(friction 상위20% + 산출물 없음) / ③ transition_seam(섹션 종료·세션 복귀). Hefter — 지각된 interruption 수가 학습 저하 → 빈도 보수적.
+- **주석 품질 = 행동 휴리스틱** (실시간 AI X / UI 라벨 X). 선택 범위 비율 + 전이 시간 + 산출물 밀도 3종으로 Constructive 판별. 데이터는 `highlight_annotation` 페이로드(char_range/transition_t/annotation_text/total_duration_ms)에 *이미 있음*. 고품질만 세션 끝 batch AI (Lazy Evaluation).
 - **리포트 2 레벨** — Micro = Mental Model Map (single source). Macro = 시간대별 인지 리듬 + 관심사 크로스오버 맵 + 마찰 추이 곡선.
 
-### 진행 우선순위 (PDF Next Plan + Appendix 04 + 제미나이 디벨롭 §8)
-- 촛불 v1 정식화 — Seam 3종(능동적 정지 / 인지적 고립 / 세션 전환점) 으로 재정의. 현재 v0.1 임계값은 추정.
-- 마찰 프레임 — 3단계 양상을 뒷받침할 인지심리·독서 논문 1~2개 서치.
+### 진행 우선순위 (PDF Next Plan + Appendix 04 + 디벨롭 §8)
+- 촛불 v1 정식화 — Seam 3종으로 재정의. **annotation_seam(주석 직후)이 최우선 신규** — friction percentile 이 v0.1 의 45s/30s 추정값 대체.
+- 마찰 계수 구현 — signals.js dwell observer 에 visibleFrac(intersectionRatio) 누적 추가 → interpret.js 에서 z-score/percentile 산출. (문헌 W1 완료, 구현 남음)
 - 결과 화면 와이어 1차 — Mental Map(Micro) + 거시 대시보드 3카드.
-- 보드 모드 와이어 — 텍스트 ↔ 보드 토글 + 의미론적 접기.
+- 보드 모드 와이어 — 텍스트 ↔ 보드 토글 + 의미론적 접기(마찰 계수 색상 위계).
 - 미루기로 결정: 디자인 비주얼 polish, 캐릭터 비주얼 추가 (촛불 외).
 
 ### 모듈 결합 메모 (브랜치 머지할 때 충돌 주의)

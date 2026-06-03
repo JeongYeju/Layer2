@@ -51,11 +51,13 @@
 
 ## Phase 2.5 (내러티브 — "나를 아는 독서")
 
-2026-05-27 회의 ("나를 아는 독서" 잠금) + 2026-06-02 제미나이 디벨롭 (페르소나 가설 + 다회독 framing + Seam 타겟팅 + 마찰 프레임) 까지 반영. 자세한 맥락은 `Private/Layer2_회의록_2026-05-27.md` + `Private/Layer2_제미나이_디벨롭_2026-06-02.md`.
+2026-05-27 회의 ("나를 아는 독서" 잠금) + 2026-06-02 제미나이 디벨롭 (페르소나 가설 + 다회독 framing + Seam 타겟팅 + 마찰 프레임 + **4차 문헌 리뷰 적용**) 까지 반영. 자세한 맥락은 `Private/Layer2_회의록_2026-05-27.md` + `Private/Layer2_제미나이_디벨롭_2026-06-02.md` (§9~§14 = 문헌 기반 코드 명세).
 
 핵심 페르소나 가설(확정): *"독자는 자신의 독서 패턴을 발견하기 위해 시스템의 능동적인 개입(AI 촛불)을 원하고 환영한다."*
 
 차별화 노선: Readwise = "유창한 deep flow 진입". Layer 2 = **다회독 시 인지적 마찰 감소 + 메타인지 리포트**.
+
+문헌 근거 확보(2026-06-02 W1 완료): Grusky(viewport attention) / Luo(height-effort) / Chi&Wylie(ICAP) / Mason·Zhang(주석 품질) / D'Mello·Qlarify·Hefter(개입 타이밍) 등 16+편. 절대 초 단위 임계 대신 **문서 내 percentile + z-score 상대량 + explicit signal 결합** 이 설계 원칙.
 
 - [x] **2.5.1** 촛불(Stick Candle) 1차 초안 — 신호 기반 개입의 의인화
   - `candle.js` + `styles.css` 의 `.candle-mount` 섹션. `.para` 우측 여백에 등장 → 멘트 → 후~ 사라짐 (SVG flame flicker + smoke).
@@ -66,14 +68,14 @@
   - 쿨다운: 같은 단락 2분 / 전역 25초. 클릭 또는 12초 무반응 시 후~ 소멸. 새 소스 로드 시 제거.
   - 데모 훅: `window.__layer2Candle.fire("stuck"|"reread"|"welcome")` (DevTools 에서).
   - 새 신호 추가: `candle_intervene`, `candle_dismiss` — 이후 interpret/대시보드에서 활용 가능.
-- [ ] **2.5.2** 개입 프로토콜 v1 — Seam 타겟팅으로 정식화 (제미나이 디벨롭 §5)
+- [ ] **2.5.2** 개입 프로토콜 v1 — Seam 타겟팅으로 정식화 (디벨롭 §13, 문헌 확정판)
   - 읽기의 물리적 관성을 *부자연스럽게 꺾지 않는* 경계면 3종에서만 비선형 삽입:
-    - **Seam 1 · 능동적 정지** — `highlight_annotation` confirm *직후* (사유 확장 질문). v0.1 에 없음 → 추가 필요.
-    - **Seam 2 · 인지적 고립** — reread 누적 (단독 또는 dwell 결합) (개념 연결 도움). v0.1 의 `stuck` + `reread` 통합.
-    - **Seam 3 · 세션 전환점** — 챕터 종료 / 휴식 후 복귀 (요약 + 환기). v0.1 의 `welcome` 유지.
-  - 멘트 풀 확장 (현재 reason 당 3개 → Seam 별 톤 가이드 + 5~7개) + 페르소나 톤 일관성
+    - **annotation_seam** — `onAnnotationSaved(paragraph_i)`. 주석 확정 *직후* 인라인 one-click prompt 1회 ("왜 중요해?" / "네 말로?"). 목적 = Active→Constructive 승격 (Qlarify 근거). **v0.1 에 없음 → 최우선 추가.**
+    - **isolation_seam** — `revisit_i ≥ 3 AND reverseRate_i ≥ 0.5 AND friction_i 상위20% AND annotation_i == 0`. 누적 증거 생겼을 때만 진단형 prompt (D'Mello 근거). v0.1 의 `stuck`+`reread` 를 friction percentile 로 대체.
+    - **transition_seam** — `sectionEnd OR sessionResume OR longIdleResume`. 요약/자기설명 prompt. 목적 = flow 보존 + metacognitive consolidation (Hefter: interruption 최소화). v0.1 의 `welcome` 유지·확장.
+  - cutoff(≥3, ≥0.5) 는 권고치 — 논문 원문 아님. friction_i 가 percentile 기반이라 절대 초 단위(v0.1 의 45s/30s) 대체됨.
+  - 멘트 풀 확장 (현재 reason 당 3개 → Seam 별 톤 가이드 + 5~7개) + 페르소나 톤 일관성. **단, Hefter — 지각된 interruption 수가 학습성과를 떨어뜨림 → 빈도·쿨다운 보수적으로.**
   - "X 해볼까?" → AI 티키타카 트리거로 연결 (촛불 클릭 → 2.5.4 채팅 호출)
-  - v0.1 임계값(45s/30s/쿨다운) 은 추정 — 실제 사용 로그 보고 튜닝
 - [ ] **2.5.3** 뷰어 전환 — 텍스트 모드 ↔ 보드 모드 (제미나이 디벨롭 §4)
   - 텍스트 모드 = 글 + 작은 인덱스만. 보드 모드 = 중앙 칼럼 + *우측으로 상호작용 흔적이 늘어남* (화이트보드 + 대시보드 느낌).
   - `viewer-shell.js` 패턴 따라가기 — CSS 클래스 토글 + DOM 보존 (scroll/spread 와 같은 구조).
@@ -82,13 +84,23 @@
 - [ ] **2.5.4** AI 티키타카 — 채팅 모듈 (읽는 동안 in-flow + 세션 종료 후 잠깐)
   - 촛불 클릭 → 채팅 사이드바 mount. 명시적 신호(밑줄·주석)를 *Anchor* 로 받아 "왜 이 부분에 주목했는지" 시작.
   - `signalBus` 의 `candle_chat_request` 이벤트로 트리거 (candle.js 가 발화 → chat.js 가 구독).
-- [ ] **2.5.5** 해석 레이어 — *마찰 계수* 프레임워크 (제미나이 디벨롭 §3)
-  - `interpret.js` LLM 호출 *전 단계* 에서 신호 JSON 을 단락별로 3단계 양상 분류:
-    - **스캐닝** (Low) — 짧은 dwell, reread 없음
-    - **유창한 읽기** (Normal) — dwell 이 WPM 비례, 일정
-    - **인지적 마찰 / 숙고** (High) — dwell 초과 + visit ≥ 2 + 주석 있음
-  - 산출: 단락별 마찰 계수 0~1 → 보드 모드 색상 위계 + 리포트(2.5.6) 입력.
-  - 인지심리 / 독서 연구 논문 1~2개 서치해서 근거화.
+- [ ] **2.5.5** 해석 레이어 — *마찰 계수* 프레임워크 (디벨롭 §10~§11, 문헌 명세)
+  - `interpret.js` LLM 호출 *전 단계* 에서 단락별 **behavioral state object** 산출 (raw DOM 로그를 LLM 에 넘기지 않음).
+  - **(a) 가시성 가중 주의량** — raw dwell 대신 "보인 만큼" 가중 (Grusky UVAM 단순화):
+    `attention_i = Σ_k(Δt_k · visibleFrac_ik) / Σ_j Σ_k(Δt_k · visibleFrac_jk)`
+    — `visibleFrac` = IntersectionObserver `intersectionRatio`. → signals.js dwell observer 에 ratio 누적 추가 필요.
+  - **(b) 회귀 프록시** (Luo height-effort):
+    `return_effort_i = Σ_r |scrollTop_return_r − scrollTop_i| / viewportHeight`
+    `revisit_i = max(0, enterCount−1)`, `reverseRate_i = backwardEntry / max(1,enterCount)`
+  - **(c) 마찰 계수** = z-score 합, 문서 내 상대량:
+    `friction_i = z(attention_i) + z(revisit_i) + z(return_effort_i) + z(reverseRate_i)`
+    임계 = **문서 내 percentile (상위 20%)**. 절대 초 단위 X.
+  - **(d) ICAP 태깅** — P(dwell만) < A(표시만) < C(주석·재구성) < I(촛불 대화). loadTag = germane/extraneous/ambiguous.
+    - `productive_struggle = friction high AND (annotation>0 OR highlightQuality high)`
+    - `ui_friction = friction high AND no output AND short_oscillations high`
+    - `mind_wandering = dwell very high AND progress_after low AND no constructive output`
+  - 산출: 단락별 friction + icapMode + loadTag → 보드 모드 색상 위계(2.5.3) + Seam 판정(2.5.2) + 리포트(2.5.6) 입력.
+  - 한계: germane vs extraneous 가 행동만으로 완전 분리 X → "정답 분류기" 아니라 *행동 증거 압축기* 로 설계.
 - [ ] **2.5.6** 다회독 리포트 (제미나이 디벨롭 §6)
   - **Micro (Single Source)** — *Mental Model Map*. 가장 치열하게 읽은 구간(짙은 블록) + 티키타카 + 주석이 얽힌 지형도.
   - **Macro (Multi-Session)**:
@@ -99,6 +111,14 @@
 - [ ] **2.5.7** 비명시적 신호 보강 — Active Zone 프록시 (제미나이 디벨롭 §2)
   - 화면 중앙 'Active Zone' + scroll delta 방향 전환 + reread 결합 → **역방향 단약시(인지적 머뭇거림)** 정량화.
   - 마우스 호버는 폐기하지 않되 *주력 지표는 dwell + scroll* 로.
+- [ ] **2.5.8** 주석 품질 판별 — 행동 휴리스틱 (G-7, 디벨롭 §12). **실시간 AI X / UI 라벨 X.**
+  - 결정 근거: Ollama 실시간 분류 = latency 로 Seam 놓침 + 무의미 텍스트도 추론(낭비). UI 중요도 라벨 = extraneous load 전가(독서를 데이터 라벨링으로 변질). 둘 다 기각.
+  - 채택: `highlight.js` 가 *이미 수집 중인* 페이로드만으로 품질 프록시 — **새 신호·UI·실시간 AI 불필요**:
+    - **선택 범위 비율** — `char_range` 길이 / 문단 길이. >80% blanket=Low, 15~40% selective=High (Mason 2024).
+    - **전이 시간** — 밑줄 완료→타이핑 시작 (`textarea_appeared_t − transition_t`). 0.5s=반사적, 3~5s 멈춤=constructive.
+    - **산출물 밀도** — `annotation_text.length` vs `total_duration_ms` 비율. "ㅋㅋㅋㅋ" 쓰레기값 필터.
+  - **Lazy Evaluation 흐름**: ① 자연스럽게 밑줄·주석 → ② interpret.js 가 3 룰베이스 즉시 계산 (Constructive 판별) → ③ 품질 임계 넘긴 주석에만 촛불 즉시(annotation_seam) → ④ 세션 종료 후 **고품질 주석만 batch** 로 백그라운드 AI → Macro 리포트 '개념망 지형도'.
+  - 데이터 준비도: `char_range` `transition_t` `textarea_appeared_t` `annotation_text` `total_duration_ms` 모두 `highlight_annotation` 페이로드에 이미 있음. 추가 수집 0.
 
 ## Phase 3 (인프라)
 
