@@ -22,7 +22,7 @@
 - `signals.js` — 신호 단일 진입점 (`pushSignal` / `signalBus` EventTarget). baseline collectors: dwell·reread (IntersectionObserver 기반), scroll, mouse_trail, circle_gesture.
 - `highlight.js` — 밑줄 → 동그라미 → 주석 상태머신. `highlight_underline` / `highlight_annotation` 신호 발화.
 - `attention.js` — 비활성 5s / 무활동 20s → `.article` 점진 블러. `attention_pause` / `attention_resume` 발화.
-- `candle.js` ★ 2026-06-02 신규 — 촛불(Stick Candle). 신호 → 개입 프로토콜 v0.1. `candle_intervene` / `candle_dismiss` 발화.
+- `candle.js` ★ 촛불(Stick Candle) v0.2 — 신호 → Seam 개입 (annotation_seam + 주석 품질 휴리스틱 / reread / welcome / stuck). `candle_intervene` / `candle_dismiss` 발화. **기능 문서: `docs/features/candle.md`.**
 - `viewer-shell.js` `viewer-layout.css` — 스크롤 vs 스프레드 레이아웃 전환 (CSS 클래스 토글, DOM 재사용).
 - `portal.js` — 독서 모드(Pointer Lock 가상 커서). `window.__portal` 로 좌표 노출.
 - `dashboard.js` — 우측 패널. `signalBus` 구독 + interpret 결과 JSON 불러오기.
@@ -31,7 +31,13 @@
 - `interpret.js` `scripts/interpret.py` — 신호 → digest → LLM 해석 (OpenAI / Anthropic / Gemini).
 - `extension/` — Chrome MV3 확장. `scripts/build-extension.sh` 가 루트 viewer 를 복사·치환해 빌드 (루트 변경 시 재실행).
 - `sources/` — markdown / PDF / web 소스 로더.
+- `docs/features/` — 기능별 케이스 스터디 문서 (왜 생겼고 어떻게 작동하나). 인덱스 `docs/features/README.md`, 새 기능은 `_TEMPLATE.md` 복사. **공개용 — Private 회의록(왜)과 코드(어떻게) 사이의 다리.**
 - `Private/` — 회의록·발화문 보존. `.gitignore` 처리됨 (`.gitkeep` 만 추적).
+
+### 문서 관리 규칙
+- **새 기능을 만들면 `docs/features/<기능>.md` 도 같이** (템플릿 8섹션: 한줄→왜→UX→기술→데이터(신호 in/out)→근거→상태/한계→링크). 코드와 같은 커밋에서 갱신 — 어긋나면 문서가 틀린 것.
+- 임계값/함수명/신호명은 *실제 코드 기준*. 추정값은 "추정값, 튜닝 필요" 명시.
+- 진행=`TODO.md`(Phase별), 변경 이력=`CHANGELOG.md`(최신 위로), 의사결정 맥락=`Private/*.md`(비공개), 외부 공개 설명=`docs/features/`.
 
 ### 내러티브 (2026-05-27 회의에서 잠금)
 - 한 문장 = **"나를 아는 독서"**.
