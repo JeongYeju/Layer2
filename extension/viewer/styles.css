@@ -650,6 +650,31 @@ ol.para-list .para-item {
 .interp-badge.low { background: var(--muted); }
 .interp-badge.medium { background: #b85c00; }
 .interp-badge.high { background: #2f6b2f; }
+
+/* Friction / ICAP badges (단락별 인지 상태) */
+.friction-badge {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 8px;
+  font-size: 9px;
+  font-weight: 600;
+  color: #fff;
+  margin-left: 4px;
+  letter-spacing: 0.02em;
+  vertical-align: middle;
+}
+.friction-badge.icap-p { background: #9a958c; } /* Passive */
+.friction-badge.icap-a { background: #4d6ea3; } /* Active */
+.friction-badge.icap-c { background: #2f6b2f; } /* Constructive */
+.friction-badge.icap-i { background: #7a4fb0; } /* Interactive */
+.friction-badge.load-germane    { background: #2f6b2f; }
+.friction-badge.load-extraneous { background: #b8442b; }
+.friction-badge.load-ambiguous  { background: #9a958c; }
+.friction-badge.friction-hot {
+  background: transparent;
+  color: #b8442b;
+  border: 1px solid #b8442b;
+}
 .interp-subhead {
   font-size: 10px;
   text-transform: uppercase;

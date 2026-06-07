@@ -336,10 +336,42 @@ function renderInterpretation(result) {
     parts.push(refinedFallback(result.refined));
   }
 
+  // 단락별 마찰 — interp(LLM) 유무와 무관하게 refined 에 friction 이 있으면 표시.
+  parts.push(frictionSection(result.refined));
+
   interpRoot.innerHTML = parts.filter(Boolean).join("");
   interpRoot.querySelectorAll("li[data-pid]").forEach((li) => {
     li.addEventListener("click", () => scrollToPara(li.dataset.pid));
   });
+}
+
+// 단락별 인지 상태 — friction 계수 상위 문단을 ICAP/load 배지와 함께.
+// (interpret.js computeFriction 산출. friction 없으면 섹션 숨김.)
+function frictionSection(refined) {
+  if (!refined) return "";
+  const paras = (refined.paragraphs || [])
+    .filter((p) => typeof p.friction === "number")
+    .sort((a, b) => b.friction - a.friction)
+    .slice(0, 5);
+  if (!paras.length) return "";
+  const lis = paras
+    .map((p) => {
+      const icap = p.icap_mode || "P";
+      const load = p.load_tag || "";
+      const pctTxt = p.friction_pct != null ? `${Math.round(p.friction_pct * 100)}%ile` : "";
+      const badges = [
+        `<span class="friction-badge icap-${icap.toLowerCase()}" title="ICAP engagement">${icap}</span>`,
+        load ? `<span class="friction-badge load-${escapeHtml(load)}" title="cognitive load">${escapeHtml(load)}</span>` : "",
+        p.friction_high ? `<span class="friction-badge friction-hot">상위20%</span>` : "",
+      ].join("");
+      return `<li data-pid="${escapeHtml(p.id)}">
+        <div class="interp-finding-text">${escapeHtml(p.text_preview || "")}</div>
+        <div class="interp-finding-why">마찰 ${p.friction.toFixed(1)} · ${pctTxt} ${badges}</div>
+        <span class="interp-pid">${escapeHtml(p.id)} ↗</span>
+      </li>`;
+    })
+    .join("");
+  return `<div class="interp-subhead">단락별 인지 상태 (마찰 계수)</div><ul class="interp-findings">${lis}</ul>`;
 }
 
 function metaLine(result) {
