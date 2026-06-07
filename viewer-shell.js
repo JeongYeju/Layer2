@@ -4,7 +4,7 @@
 // the highlight color/opacity popup, the source + dashboard flyouts, and the
 // bookmark / capture signal buttons. Icons are Lucide (rendered on init).
 
-import { pushSignal } from "./signals.js";
+import { pushSignal, signalBus } from "./signals.js";
 import { renderIcons } from "./icons.js";
 
 const GUTTER = 64; // px gap between book columns
@@ -46,7 +46,7 @@ export function initViewerShell() {
   });
 
   const saved = localStorage.getItem(MODE_KEY);
-  setMode(saved === "spread" ? "spread" : "scroll");
+  setMode(saved === "spread" || saved === "board" ? saved : "scroll");
 }
 
 // ===== Layout toggle + spread pagination =====
@@ -69,9 +69,10 @@ function wirePageNav() {
 }
 
 function setMode(m) {
-  mode = m === "spread" ? "spread" : "scroll";
+  mode = m === "spread" ? "spread" : m === "board" ? "board" : "scroll";
   readerEl.classList.toggle("mode-spread", mode === "spread");
   readerEl.classList.toggle("mode-scroll", mode === "scroll");
+  readerEl.classList.toggle("mode-board", mode === "board");
   toggleEl?.querySelectorAll("button[data-mode]").forEach((b) =>
     b.classList.toggle("is-active", b.dataset.mode === mode),
   );
@@ -81,12 +82,124 @@ function setMode(m) {
   } catch {
     /* best-effort */
   }
-  if (mode === "scroll") {
+  if (mode !== "spread") {
     const a = readerEl.querySelector(".article");
     if (a) a.style.removeProperty("--spread-x");
   }
+  // Board mode: render the per-paragraph trace cards on the right; otherwise
+  // tear them down so scroll/spread layouts stay clean.
+  if (mode === "board") renderBoardCards();
+  else clearBoardCards();
   spread = 0;
   relayoutViewer();
+}
+
+// ===== Board mode — interaction traces unfold to the right of each paragraph =====
+// MODE 02 (이원화 뷰어, PDF). 원문 칼럼은 왼쪽으로 고정되고, 단락별 흔적(밑줄·
+// 동그라미·주석)이 우측 카드로 펼쳐진다. 의미론적 접기: 흔적 없는 단락은 작은
+// 점만. 마찰 색상 위계: interpret 결과(window.__lastInterpretation)가 있으면
+// 단락 좌측 보더가 friction 으로 물든다.
+let boardSubBound = false;
+let boardRenderTimer = 0;
+
+function clearBoardCards() {
+  readerEl
+    .querySelectorAll(".board-card, .board-dot")
+    .forEach((el) => el.remove());
+  readerEl
+    .querySelectorAll(".para.has-board-card, .para.board-friction")
+    .forEach((p) => {
+      p.classList.remove("has-board-card", "board-friction");
+      p.style.removeProperty("--friction-pct");
+    });
+}
+
+function collectTraces(para) {
+  const out = [];
+  para.querySelectorAll(".anno-marker .anno-tooltip").forEach((t) => {
+    const txt = (t.textContent || "").trim();
+    out.push({ kind: "annotation", text: txt || "주석" });
+  });
+  if (para.querySelector(".is-annotated, .is-underlined")) {
+    out.push({ kind: "underline", text: "밑줄" });
+  }
+  if (para.querySelector(".word-circle-mark")) {
+    out.push({ kind: "circle", text: "동그라미" });
+  }
+  return out;
+}
+
+// friction by paragraph id, from the last interpret run (batch). Optional.
+function frictionByPid() {
+  const map = new Map();
+  const paras = window.__lastInterpretation?.refined?.paragraphs;
+  if (Array.isArray(paras)) {
+    for (const p of paras) {
+      if (typeof p.friction_pct === "number") map.set(p.id, p);
+    }
+  }
+  return map;
+}
+
+function renderBoardCards() {
+  if (mode !== "board") return;
+  clearBoardCards();
+  const fr = frictionByPid();
+  for (const para of readerEl.querySelectorAll(".para[data-paragraph-id]")) {
+    const pid = para.dataset.paragraphId;
+
+    // Friction color hierarchy (좌측 보더 채도) — only if a digest exists.
+    const f = fr.get(pid);
+    if (f) {
+      para.classList.add("board-friction");
+      para.style.setProperty("--friction-pct", String(f.friction_pct ?? 0));
+      if (f.friction_high) para.classList.add("has-board-card"); // ensure visible
+    }
+
+    const traces = collectTraces(para);
+    if (!traces.length) {
+      // Semantic folding: no trace → just a compact dot indicator.
+      const dot = document.createElement("span");
+      dot.className = "board-dot";
+      para.appendChild(dot);
+      continue;
+    }
+    para.classList.add("has-board-card");
+    const card = document.createElement("div");
+    card.className = "board-card";
+    card.innerHTML = traces
+      .map(
+        (t) =>
+          `<div class="board-trace board-trace--${t.kind}">${escapeHtml(t.text)}</div>`,
+      )
+      .join("");
+    para.appendChild(card);
+  }
+
+  // Live refresh: while in board mode, re-render when a new trace lands.
+  if (!boardSubBound) {
+    boardSubBound = true;
+    signalBus.addEventListener("signal", (e) => {
+      if (mode !== "board") return;
+      const t = e.detail?.type;
+      if (
+        t === "highlight_annotation" ||
+        t === "highlight_underline" ||
+        t === "circle_gesture"
+      ) {
+        clearTimeout(boardRenderTimer);
+        boardRenderTimer = setTimeout(renderBoardCards, 200);
+      }
+    });
+  }
+}
+
+function escapeHtml(s) {
+  return String(s).replace(
+    /[&<>"']/g,
+    (c) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c],
+  );
 }
 
 // Called by app.js after content (re)renders, and on resize / mode change.

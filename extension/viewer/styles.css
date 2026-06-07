@@ -1160,3 +1160,78 @@ ol.para-list .para-item {
   .candle-stick { fill: #d9cb9c; stroke: #a89671; }
 }
 
+/* ===== Board mode (이원화 뷰어 MODE 02) — traces unfold to the right ===== */
+/* 원문 칼럼은 왼쪽 고정, 단락별 흔적이 우측 카드로 전개. viewer-shell.js 가
+   .mode-board 토글 + .board-card / .board-dot / .board-friction 부여. */
+.reader.mode-board {
+  justify-content: flex-start;
+  overflow-x: auto;
+}
+.reader.mode-board .article {
+  margin-left: 6%;
+  /* leave room on the right for the trace column */
+  margin-right: 360px;
+}
+
+/* Friction color hierarchy — left border deepens with friction percentile.
+   --friction-pct (0..1) set per paragraph from the last interpret digest. */
+.reader.mode-board .para.board-friction {
+  border-left: 3px solid rgba(184, 68, 43, calc(0.15 + 0.85 * var(--friction-pct, 0)));
+  padding-left: 12px;
+  margin-left: -15px; /* keep text aligned despite the border+pad */
+}
+
+/* Semantic folding — paragraphs with no trace get only a compact dot. */
+.board-dot {
+  position: absolute;
+  top: 10px;
+  left: 100%;
+  margin-left: 28px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--rule, #d8d2c4);
+}
+
+/* Trace card — only on paragraphs that actually have interaction traces. */
+.board-card {
+  position: absolute;
+  top: -2px;
+  left: 100%;
+  margin-left: 28px;
+  width: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 4;
+}
+.board-trace {
+  font-family: "Inter", "Noto Serif KR", system-ui, sans-serif;
+  font-size: 12px;
+  line-height: 1.5;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--line, #e6e1d4);
+  background: var(--paper, #fff);
+  color: var(--text, #1a1a1a);
+}
+.board-trace--annotation {
+  border-left: 3px solid #e8833a;
+  background: #fdf3ea;
+}
+.board-trace--underline {
+  border-left: 3px solid #d9362b;
+  color: var(--muted, #6b6b6b);
+  font-size: 11px;
+}
+.board-trace--circle {
+  border-left: 3px solid #5aa469;
+  color: var(--muted, #6b6b6b);
+  font-size: 11px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .board-trace { background: #2a2622; color: #ece7df; border-color: #3a352e; }
+  .board-trace--annotation { background: #3a2c1e; }
+}
+

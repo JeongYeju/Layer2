@@ -339,6 +339,9 @@ function renderInterpretation(result) {
   // 단락별 마찰 — interp(LLM) 유무와 무관하게 refined 에 friction 이 있으면 표시.
   parts.push(frictionSection(result.refined));
 
+  // Board mode reads this to color paragraphs by friction. Best-effort.
+  window.__lastInterpretation = result;
+
   interpRoot.innerHTML = parts.filter(Boolean).join("");
   interpRoot.querySelectorAll("li[data-pid]").forEach((li) => {
     li.addEventListener("click", () => scrollToPara(li.dataset.pid));
