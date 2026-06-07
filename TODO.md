@@ -103,7 +103,9 @@
 - [ ] **2.5.4** AI 티키타카 — 채팅 모듈 (읽는 동안 in-flow + 세션 종료 후 잠깐)
   - 촛불 클릭 → 채팅 사이드바 mount. 명시적 신호(밑줄·주석)를 *Anchor* 로 받아 "왜 이 부분에 주목했는지" 시작.
   - `signalBus` 의 `candle_chat_request` 이벤트로 트리거 (candle.js 가 발화 → chat.js 가 구독).
-- [ ] **2.5.5** 해석 레이어 — *마찰 계수* 프레임워크 (디벨롭 §10~§11, 문헌 명세)
+- [~] **2.5.5** 해석 레이어 — *마찰 계수* 프레임워크 (디벨롭 §10~§11, 문헌 명세). ✅ 산출 1차 구현 (interpret.js+py `computeFriction`, 2026-06-03)
+  - ✅ `refine()` 에서 단락별 `friction`(z합)·`friction_pct`·`friction_high`(상위20%)·`icap_mode`·`load_tag` 산출. attention=visibility-weighted, revisit·return_effort·reverse_rate 결합. interpret.py 동일 미러 + 합성 세션 검증 완료.
+  - ⏳ 남은 일: candle isolation_seam 에 friction_high 실시간 결합(현재 행동조건만) / 대시보드 표시(단계4) / 보드 색상위계(단계5).
   - `interpret.js` LLM 호출 *전 단계* 에서 단락별 **behavioral state object** 산출 (raw DOM 로그를 LLM 에 넘기지 않음).
   - **(a) 가시성 가중 주의량** — raw dwell 대신 "보인 만큼" 가중 (Grusky UVAM 단순화):
     `attention_i = Σ_k(Δt_k · visibleFrac_ik) / Σ_j Σ_k(Δt_k · visibleFrac_jk)`

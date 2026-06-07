@@ -141,6 +141,64 @@ def summarize_scroll(scrolls):
     }
 
 
+def compute_friction(para_list, viewport_h):
+    """Per-paragraph friction coefficient (문헌 명세, 디벨롭 §10~§11).
+
+    visibility-weighted attention + regression proxies (revisit/return_effort/
+    reverse_rate), z-scored over the document's own distribution. Threshold is a
+    percentile (top 20% = friction_high), not an absolute. ICAP/load tagging
+    separates germane (productive struggle) from extraneous (wandering).
+    """
+    n = len(para_list)
+    if n == 0:
+        return
+    vh = viewport_h or 800
+
+    for p in para_list:
+        p["attention"] = p.get("visible_ms") or p.get("dwell_ms") or 0
+        p["revisit"] = max(0, (p.get("reread_count") or 0) - 1)
+        tops = p.get("return_tops") or []
+        p["return_effort"] = round((max(tops) - min(tops)) / vh, 3) if len(tops) > 1 else 0
+        if not isinstance(p.get("reverse_rate"), (int, float)):
+            p["reverse_rate"] = 0
+
+    def zfn(vals):
+        mean = sum(vals) / len(vals)
+        sd = (sum((v - mean) ** 2 for v in vals) / len(vals)) ** 0.5 or 1
+        return lambda x: (x - mean) / sd
+
+    z_att = zfn([p["attention"] for p in para_list])
+    z_rev = zfn([p["revisit"] for p in para_list])
+    z_ret = zfn([p["return_effort"] for p in para_list])
+    z_rvr = zfn([p["reverse_rate"] for p in para_list])
+    for p in para_list:
+        p["friction"] = round(
+            z_att(p["attention"])
+            + z_rev(p["revisit"])
+            + z_ret(p["return_effort"])
+            + z_rvr(p["reverse_rate"]),
+            3,
+        )
+
+    for i, p in enumerate(sorted(para_list, key=lambda p: p["friction"])):
+        p["friction_pct"] = round(i / (n - 1), 3) if n > 1 else 1
+    cut = max(1, -(-n // 5))  # ceil(n * 0.2)
+    for i, p in enumerate(sorted(para_list, key=lambda p: -p["friction"])):
+        p["friction_high"] = i < cut
+
+    for p in para_list:
+        has_ann = len(p.get("annotations") or []) > 0
+        has_mark = len(p.get("highlights") or []) > 0 or len(p.get("circles") or []) > 0
+        p["icap_mode"] = "C" if has_ann else ("A" if has_mark else "P")
+        if p["friction_high"] and has_ann:
+            p["load_tag"] = "germane"
+        elif p["friction_high"] and not has_ann and not has_mark:
+            p["load_tag"] = "extraneous"
+        else:
+            p["load_tag"] = "ambiguous"
+        p.pop("return_tops", None)
+
+
 def refine(export):
     """Turn the raw SignalLog into a compact, text-resolved reading digest."""
     session = export.get("session", {})
@@ -166,7 +224,10 @@ def refine(export):
                 "text_preview": preview(text_of(index, pid)),
                 "dwell_ms": 0,
                 "dwell_events": 0,
+                "visible_ms": 0.0,
                 "reread_count": 0,
+                "reverse_rate": 0.0,
+                "return_tops": [],
                 "highlights": [],
                 "annotations": [],
                 "circles": [],
@@ -179,9 +240,20 @@ def refine(export):
         slot = para_slot(s.get("paragraph_id"))
         slot["dwell_ms"] += s.get("duration_ms", 0)
         slot["dwell_events"] += 1
+        vf = s.get("visible_frac")
+        vf = vf if isinstance(vf, (int, float)) else 1
+        slot["visible_ms"] += s.get("duration_ms", 0) * vf
     for s in by_type.get("reread", []):
         slot = para_slot(s.get("paragraph_id"))
-        slot["reread_count"] = max(slot["reread_count"], s.get("visit_count", 0))
+        slot["reread_count"] = max(
+            slot["reread_count"], s.get("enter_count") or s.get("visit_count", 0)
+        )
+        rr = s.get("reverse_rate")
+        if isinstance(rr, (int, float)):
+            slot["reverse_rate"] = max(slot["reverse_rate"], rr)
+        st = s.get("scroll_top")
+        if isinstance(st, (int, float)):
+            slot["return_tops"].append(st)
 
     highlights = []
     for s in by_type.get("highlight_underline", []):
@@ -239,6 +311,14 @@ def refine(export):
     for pid, slot in paras.items():
         if pid not in index:
             para_list.append(slot)
+
+    # Friction coefficient per paragraph (해석 레이어, 디벨롭 §10~§11).
+    viewport_h = (
+        (session.get("viewport") or {}).get("h")
+        or ((export.get("meta") or {}).get("viewport") or {}).get("h")
+        or 800
+    )
+    compute_friction(para_list, viewport_h)
 
     trail, trail_len = downsample_trail(by_type.get("mouse_trail", []))
 

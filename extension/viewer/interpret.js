@@ -123,6 +123,66 @@ function summarizeScroll(scrolls) {
   };
 }
 
+// Friction coefficient per paragraph (문헌 명세, 디벨롭 §10~§11).
+// raw dwell 이 아니라 visibility-weighted attention + 회귀 프록시(revisit·
+// return_effort·reverse_rate)를 z-score 합산. 임계는 절대값이 아니라 문서 내
+// percentile (상위 20% = friction_high). ICAP/load 태깅으로 germane vs
+// extraneous 분리. "정답 분류기"가 아니라 행동 증거 압축기.
+function computeFriction(paraList, viewportH) {
+  const n = paraList.length;
+  if (n === 0) return;
+  const vh = viewportH || 800;
+
+  for (const p of paraList) {
+    p.attention = p.visible_ms || p.dwell_ms || 0;
+    p.revisit = Math.max(0, (p.reread_count || 0) - 1);
+    const tops = p.return_tops || [];
+    p.return_effort =
+      tops.length > 1 ? +((Math.max(...tops) - Math.min(...tops)) / vh).toFixed(3) : 0;
+    if (typeof p.reverse_rate !== "number") p.reverse_rate = 0;
+  }
+
+  // z-score over the document's own distribution (relative, not absolute).
+  const zfn = (vals) => {
+    const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
+    const sd =
+      Math.sqrt(vals.reduce((a, b) => a + (b - mean) ** 2, 0) / vals.length) || 1;
+    return (x) => (x - mean) / sd;
+  };
+  const zAtt = zfn(paraList.map((p) => p.attention));
+  const zRev = zfn(paraList.map((p) => p.revisit));
+  const zRet = zfn(paraList.map((p) => p.return_effort));
+  const zRvr = zfn(paraList.map((p) => p.reverse_rate));
+  for (const p of paraList) {
+    p.friction = +(
+      zAtt(p.attention) + zRev(p.revisit) + zRet(p.return_effort) + zRvr(p.reverse_rate)
+    ).toFixed(3);
+  }
+
+  // Percentile rank + top-20% flag.
+  const byFr = [...paraList].sort((a, b) => a.friction - b.friction);
+  byFr.forEach((p, i) => {
+    p.friction_pct = n > 1 ? +(i / (n - 1)).toFixed(3) : 1;
+  });
+  const cut = Math.max(1, Math.ceil(n * 0.2));
+  [...paraList]
+    .sort((a, b) => b.friction - a.friction)
+    .forEach((p, i) => {
+      p.friction_high = i < cut;
+    });
+
+  // ICAP engagement + cognitive-load tag.
+  for (const p of paraList) {
+    const hasAnn = (p.annotations || []).length > 0;
+    const hasMark = (p.highlights || []).length > 0 || (p.circles || []).length > 0;
+    p.icap_mode = hasAnn ? "C" : hasMark ? "A" : "P"; // Constructive/Active/Passive
+    if (p.friction_high && hasAnn) p.load_tag = "germane"; // productive struggle
+    else if (p.friction_high && !hasAnn && !hasMark) p.load_tag = "extraneous"; // wandering
+    else p.load_tag = "ambiguous";
+    delete p.return_tops; // internal scratch — not for output
+  }
+}
+
 function refine(exportData, index, order) {
   const session = exportData.session || {};
   const signals = exportData.signals || [];
@@ -141,7 +201,10 @@ function refine(exportData, index, order) {
         text_preview: preview(textOf(index, pid)),
         dwell_ms: 0,
         dwell_events: 0,
+        visible_ms: 0,      // visibility-weighted dwell (Σ duration·visible_frac)
         reread_count: 0,
+        reverse_rate: 0,    // max scroll-back fraction across reread signals
+        return_tops: [],    // scrollTop at each reread (for return_effort)
         highlights: [],
         annotations: [],
         circles: [],
@@ -156,10 +219,14 @@ function refine(exportData, index, order) {
     const p = slot(s.paragraph_id);
     p.dwell_ms += s.duration_ms || 0;
     p.dwell_events += 1;
+    const vf = typeof s.visible_frac === "number" ? s.visible_frac : 1;
+    p.visible_ms += (s.duration_ms || 0) * vf;
   }
   for (const s of of("reread")) {
     const p = slot(s.paragraph_id);
-    p.reread_count = Math.max(p.reread_count, s.visit_count || 0);
+    p.reread_count = Math.max(p.reread_count, s.enter_count || s.visit_count || 0);
+    if (typeof s.reverse_rate === "number") p.reverse_rate = Math.max(p.reverse_rate, s.reverse_rate);
+    if (typeof s.scroll_top === "number") p.return_tops.push(s.scroll_top);
   }
 
   const highlights = [];
@@ -202,6 +269,14 @@ function refine(exportData, index, order) {
 
   const paraList = order.filter((pid) => paras[pid]).map((pid) => paras[pid]);
   for (const [pid, s] of Object.entries(paras)) if (!index[pid]) paraList.push(s);
+
+  // Friction coefficient (해석 레이어, 디벨롭 §10~§11). LLM 호출 전 단락별
+  // behavioral state 산출 — friction + ICAP/load 태깅.
+  const viewportH =
+    (session.viewport && session.viewport.h) ||
+    (exportData.meta && exportData.meta.viewport && exportData.meta.viewport.h) ||
+    800;
+  computeFriction(paraList, viewportH);
 
   const trail = downsampleTrail(of("mouse_trail"));
 
