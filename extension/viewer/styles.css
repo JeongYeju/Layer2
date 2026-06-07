@@ -1164,31 +1164,21 @@ ol.para-list .para-item {
   margin-right: 360px;
 }
 
-/* Semantic blocks (AFFiNE-ish). Each paragraph becomes a card whose
-   BACKGROUND encodes friction (the more cognitive friction, the warmer/denser)
-   and whose LEFT BORDER COLOR encodes the ICAP engagement mode. So "어디를
-   어떻게 읽었나"가 색으로 한눈에 — friction(얼마나 치열) × ICAP(어떤 관여). */
+/* Semantic blocks. Friction (얼마나 치열하게 읽었나) is the only thing the
+   paragraph BACKGROUND carries — a very quiet warm wash. ICAP engagement is
+   shown by the state chip in the right card, NOT a colored left accent border
+   (that reads as a generic AI card). Blocks stay near-borderless. */
 .reader.mode-board .para {
   padding: 14px 18px;
   margin: 0 0 14px 0;
-  border: 1px solid var(--line, #e6e1d4);
-  border-left: 4px solid var(--rule, #d8d2c4);
+  border: 1px solid transparent;
   border-radius: 10px;
-  background: var(--paper, #fff);
-  transition: background 0.25s ease, box-shadow 0.25s ease;
+  background: transparent;
+  transition: background 0.25s ease;
 }
-/* friction tone: warm wash that deepens with the document-relative percentile */
+/* friction tone: quiet warm wash that deepens with the percentile */
 .reader.mode-board .para.board-friction {
-  background: rgba(216, 96, 43, calc(0.04 + 0.18 * var(--friction-pct, 0)));
-}
-/* ICAP engagement → left border color (Passive/Active/Constructive/Interactive) */
-.reader.mode-board .para.icap-p { border-left-color: #c2bcae; }
-.reader.mode-board .para.icap-a { border-left-color: #4d6ea3; }
-.reader.mode-board .para.icap-c { border-left-color: #2f6b2f; }
-.reader.mode-board .para.icap-i { border-left-color: #7a4fb0; }
-/* high-friction paragraphs get a faint ring to draw the eye */
-.reader.mode-board .para.friction-high {
-  box-shadow: 0 0 0 1px rgba(184, 68, 43, 0.28);
+  background: rgba(216, 96, 43, calc(0.03 + 0.13 * var(--friction-pct, 0)));
 }
 
 /* State chip at the top of the right card */
