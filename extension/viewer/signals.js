@@ -44,6 +44,11 @@ window.pushSignal = pushSignal;
 
 let _baselineInited = false;
 let _dwellObserver = null;
+// Most recent scroll direction ("down"/"up"), updated immediately (un-throttled)
+// by initScroll. The dwell observer reads it to decide whether a paragraph was
+// entered while scrolling back up (backwardEntry → reverseRate). This is the
+// eye-tracking-free proxy for cognitive hesitation (regression).
+let _lastScrollDir = "down";
 
 export function initBaselineCollectors({ readerEl }) {
   bindDwellObserver(readerEl);
@@ -60,31 +65,58 @@ function bindDwellObserver(readerEl) {
   if (_dwellObserver) _dwellObserver.disconnect();
 
   const paras = Array.from(readerEl.querySelectorAll("[data-paragraph-id]"));
+  // enteredAt value = { t, dir, ratioSum, ratioN }: enter time, scroll direction
+  // at entry, and running sum/count of intersectionRatio samples (for the
+  // visibility-weighted dwell — "how much of the paragraph was actually on
+  // screen", Grusky UVAM proxy).
   const enteredAt = new Map();
   const totalDwell = new Map();
-  const visitedCount = new Map();
+  const enterCount = new Map();    // separate entries (= reread visit count)
+  const backwardCount = new Map(); // entries made while scrolling up (regression)
 
   _dwellObserver = new IntersectionObserver(
     (entries) => {
       for (const e of entries) {
         const id = e.target.dataset.paragraphId;
-        if (e.isIntersecting && e.intersectionRatio > 0.5) {
+        const ratio = e.intersectionRatio;
+        if (e.isIntersecting && ratio > 0.5) {
           if (!enteredAt.has(id)) {
-            enteredAt.set(id, performance.now());
-            const visit = (visitedCount.get(id) || 0) + 1;
-            visitedCount.set(id, visit);
-            if (visit > 1) {
+            // Entry.
+            const dir = _lastScrollDir;
+            enteredAt.set(id, {
+              t: performance.now(),
+              dir,
+              ratioSum: ratio,
+              ratioN: 1,
+            });
+            const n = (enterCount.get(id) || 0) + 1;
+            enterCount.set(id, n);
+            if (dir === "up") {
+              backwardCount.set(id, (backwardCount.get(id) || 0) + 1);
+            }
+            if (n > 1) {
+              const back = backwardCount.get(id) || 0;
               pushSignal({
                 type: "reread",
                 paragraph_id: id,
-                visit_count: visit,
+                visit_count: n,
+                enter_count: n,
+                // reverseRate: fraction of entries that were scroll-backs.
+                reverse_rate: +(back / n).toFixed(3),
+                scroll_top: Math.round(readerEl.scrollTop || 0),
               });
             }
+          } else {
+            // Still inside — accumulate a visibility sample.
+            const rec = enteredAt.get(id);
+            rec.ratioSum += ratio;
+            rec.ratioN += 1;
           }
         } else if (enteredAt.has(id)) {
-          const t0 = enteredAt.get(id);
+          // Exit.
+          const rec = enteredAt.get(id);
           enteredAt.delete(id);
-          const dur = Math.round(performance.now() - t0);
+          const dur = Math.round(performance.now() - rec.t);
           totalDwell.set(id, (totalDwell.get(id) || 0) + dur);
           if (dur > 400) {
             pushSignal({
@@ -92,6 +124,9 @@ function bindDwellObserver(readerEl) {
               paragraph_id: id,
               duration_ms: dur,
               total_ms: totalDwell.get(id),
+              // visible_frac: mean on-screen ratio during this visit (0..1).
+              visible_frac: +(rec.ratioSum / rec.ratioN).toFixed(3),
+              enter_count: enterCount.get(id) || 1,
             });
           }
         }
@@ -99,7 +134,8 @@ function bindDwellObserver(readerEl) {
     },
     // root = the reader element (the actual scroll container in scroll mode and
     // the clip box in spread mode), so dwell/reread track in both layouts.
-    { root: readerEl, threshold: [0, 0.5, 1] },
+    // Extra thresholds above 0.5 give more ratio samples for visible_frac.
+    { root: readerEl, threshold: [0, 0.5, 0.7, 0.85, 1] },
   );
   paras.forEach((p) => _dwellObserver.observe(p));
 }
@@ -108,14 +144,22 @@ function initScroll(scrollEl) {
   const target = scrollEl || window;
   const getY = () => (scrollEl ? scrollEl.scrollTop : window.scrollY);
   let lastY = getY();
+  let lastYImmediate = lastY;
   let lastT = 0;
   target.addEventListener(
     "scroll",
     () => {
       const now = performance.now();
+      const y = getY();
+      // Update direction immediately (every scroll event, no throttle) so the
+      // dwell observer sees a fresh direction at the moment a paragraph enters.
+      if (y !== lastYImmediate) {
+        _lastScrollDir = y >= lastYImmediate ? "down" : "up";
+        lastYImmediate = y;
+      }
+      // The scroll *signal* itself stays throttled to ~5/s.
       if (now - lastT < 200) return;
       lastT = now;
-      const y = getY();
       const dy = y - lastY;
       lastY = y;
       pushSignal({
