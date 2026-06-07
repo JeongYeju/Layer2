@@ -6,6 +6,20 @@
 
 ## 2026-06-03
 
+2026-06-03 발표 PDF(이원화 뷰어 + 촛불 3 Seam 정식 조건 + 신호 처리 3단계)를 코드로 빌드. 신호 인프라 → 촛불 Seam 정식화 → 마찰 계수 → 대시보드 → 보드 모드를 순서대로 완성, 데모에서 보이는 단계까지 끌어올렸다.
+
+### 신호 파이프라인 정식 빌드 (단계 1~5)
+- **단계1 · 신호 보강** (`signals.js`) — dwell observer 가 단락별 `enter_count`·`backwardEntry`(역방향 진입)·`visible_frac`(intersectionRatio 평균) 추적. `reread` += `reverse_rate`·`enter_count`·`scroll_top`, `dwell` += `visible_frac`. 아이트래킹 없는 인지 머뭇거림 프록시.
+- **단계2 · 촛불 Seam 2/3 정식화** (`candle.js` v0.3) — v0.2 의 단순 트리거(reread visit≥2 / welcome 30s)를 PDF 정식 조건으로 교체. **isolation** = `enter_count≥3 AND reverse_rate≥0.5 AND 무흔적`(paraTraces Map 으로 단락별 밑줄·주석 유무 추적). **transition** = 탭 hidden→복귀(3s+) OR 완전 비활성 180s 복귀.
+- **단계3 · 마찰 계수** (`interpret.js`+`scripts/interpret.py`) — `computeFriction`: visibility-weighted attention + revisit·return_effort·reverse_rate 를 z-score 합산, 문서 내 percentile(상위20%=`friction_high`), ICAP(P/A/C)·load(germane/extraneous/ambiguous) 태깅. 합성 세션으로 검증.
+- **단계4 · 대시보드** (`dashboard.js`) — "단락별 인지 상태(마찰 계수)" 섹션. friction 상위 5단락 + ICAP/load 배지 + 클릭 시 스크롤.
+- **단계5 · 보드 모드** (`viewer-shell.js`) — 3-way 뷰 토글(scroll/spread/**board**). 단락별 흔적(밑줄·동그라미·주석)을 우측 `.board-card` 로 전개, 흔적 없으면 점으로 접기(의미론적 접기), 마찰 색상 위계(좌측 보더). 새 기능 문서 `docs/features/board-mode.md`.
+
+### 빌드 스크립트 portable
+- `scripts/build-extension.sh` 의 CDN import 치환을 `sed -i` → `perl -i` 로 (BSD/macOS·GNU/Linux 양쪽 동작).
+
+### (오전) annotation_seam + 주석 품질 휴리스틱 (Phase 2.5.8 / 2.5.2)
+
 W1 문헌 리뷰(16+편) 의 첫 코드 적용. 촛불에 **annotation_seam** 과 **주석 품질 행동 휴리스틱** 을 얹어, "주석 직후 + 진짜 고민이 담긴 주석에만 사유 확장 질문" 이라는 Seam 타겟팅의 첫 사례를 만들었다.
 
 ### annotation_seam + 주석 품질 휴리스틱 (Phase 2.5.8 / 2.5.2)
