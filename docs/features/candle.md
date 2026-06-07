@@ -4,7 +4,7 @@
 
 | | |
 |---|---|
-| **상태** | v0.2 (1차 구현 — annotation_seam + 주석 품질 휴리스틱까지) |
+| **상태** | v0.3 (Seam 3종 정식화 — annotation·isolation·transition) |
 | **핵심 파일** | `candle.js`, `styles.css` (`.candle-mount` 섹션) |
 | **발화 신호** | `candle_intervene`, `candle_dismiss` |
 | **구독 신호** | `highlight_annotation`, `reread`, `attention_resume`, `scroll` |
@@ -50,9 +50,11 @@
 | 트리거 | 언제 | 무슨 Seam | 멘트 톤 |
 |---|---|---|---|
 | **annotation** | `highlight_annotation` 신호 + **품질 ≥ 0.55** | 능동적 정지 (주석 직후) | 사유 확장 질문 |
-| **reread** | `reread` 신호, `visit_count ≥ 2` | 인지적 고립 (되돌아옴) | 정리 제안 |
-| **welcome** | `attention_resume`, `paused_ms ≥ 30초` | 세션 전환점 (휴식 후 복귀) | 흐름 환기 |
-| **stuck** | 같은 단락 화면 중앙에 누적 **45초** (폴링) | (v0.1 추정값) | 막힘 거들기 |
+| **isolation** | `reread` 신호: `enter_count ≥ 3 AND reverse_rate ≥ 0.5 AND 무흔적` | 인지적 고립 (막혀서 헤맴) | 구조 진단 |
+| **transition** | 완전 비활성 **180초** 복귀 OR 탭 hidden→복귀(3초+) | 세션 전환점 | 흐름 환기 |
+| **stuck** | 같은 단락 화면 중앙에 누적 **45초** (폴링) | (추정값, friction 대체 예정) | 막힘 거들기 |
+
+> v0.3 (2026-06-03): `reread`(visit≥2)·`welcome`(30초)를 PDF 1차본의 정식 조건으로 교체. **isolation** 은 단순 재방문이 아니라 *역방향으로 되돌아 읽으며(reverse_rate) 아무 흔적도 안 남긴* 막힘 상태에서만 발동 — `paraTraces` Map 으로 단락별 밑줄·주석 유무를 추적해 "무흔적"을 판정한다. **transition** 은 candle 자체 `visibilitychange` 리스너(탭 복귀) + `attention_resume.paused_ms ≥ 180s`(완전 비활성)로 발동.
 
 > `stuck` 의 45초는 1차 추정값이다. v1 에서는 문헌 기반 **마찰 계수(friction)의 문서 내 상위 20% percentile** 로 대체할 계획 (→ [예정: friction.md], `TODO.md` 2.5.5).
 
@@ -94,12 +96,14 @@ quality = 0.4·선택범위비율 + 0.3·전이시간 + 0.3·산출물밀도
 
 | 신호 | 페이로드 |
 |---|---|
-| `candle_intervene` | `{ paragraph_id, reason }` (reason = annotation/reread/welcome/stuck) |
+| `candle_intervene` | `{ paragraph_id, reason }` (reason = annotation/isolation/transition/stuck) |
 | `candle_dismiss` | `{ reason }` (user/timeout/replace/source_switch …) |
 
+구독 신호에 `highlight_underline`(흔적 기록), `reread`(enter_count·reverse_rate, isolation 판정) 추가됨 (v0.3).
+
 **DevTools 데모 훅** — `window.__layer2Candle`:
-- `.fire("annotation"\|"reread"\|"welcome"\|"stuck")` — 쿨다운 무시하고 즉시 발동
-- `.enable(bool)` · `.dismiss()` · `.state()` (현재 상태 덤프)
+- `.fire("annotation"\|"isolation"\|"transition"\|"stuck")` — 쿨다운 무시하고 즉시 발동
+- `.enable(bool)` · `.dismiss()` · `.state()` (현재 상태 덤프 — paraTraces 포함)
 
 ## 6. 설계 근거 (왜 이렇게)
 
@@ -114,14 +118,13 @@ quality = 0.4·선택범위비율 + 0.3·전이시간 + 0.3·산출물밀도
 
 ## 7. 현재 상태 & 한계
 
-**됐다 (v0.2):** 트리거 4종, 주석 품질 3종 휴리스틱, 쿨다운, 후~ 소멸 애니메이션, 확장 빌드 반영.
+**됐다 (v0.3):** 트리거 4종(annotation·isolation·transition·stuck), 주석 품질 3종 휴리스틱, isolation 의 역방향·무흔적 판정, transition 의 탭복귀·180초, 쿨다운, 후~ 소멸 애니메이션, 확장 빌드 반영.
 
 **한계 / 다음:**
-- **Seam 2/3 이 아직 정식 조건이 아님** — 2026-06-03 PDF 1차본이 정확한 조건을 줬으나 v0.2 는 단순 버전:
-  - `reread`(visit≥2) → 정식 isolation_seam = `revisit≥3 AND reverseRate≥0.5 AND friction상위20% AND 무흔적`. **reverseRate·friction·무흔적 판정 미구현** (단계1·2·3에서 빌드).
-  - `welcome`(idle 30s) → 정식 transition_seam = `완전비활성 180s OR 탭 hidden→복귀`. **180s·탭복귀 트리거 미구현** (단계2).
-- **숫자는 전부 추정값** — `stuck` 45초, 품질 가중치 0.4/0.3/0.3, 임계 0.55. 실사용 로그로 튜닝 필요.
+- **isolation_seam 의 friction 조건이 아직 빠짐** — v0.3 은 행동 조건(enter_count≥3, reverse_rate≥0.5, 무흔적)만. "friction 상위 20%" 는 단계3(마찰 계수)이 서면 결합 예정. 그래야 "오래 머물렀다"까지 묶여 정밀해진다.
+- **숫자는 전부 추정값** — `stuck` 45초, isolation 임계(3·0.5), transition(180s·3s 탭), 품질 가중치 0.4/0.3/0.3·임계 0.55. 실사용 로그로 튜닝 필요.
 - **`stuck` 은 friction 으로 대체 예정** — 절대 45초가 아니라 문서 내 percentile 로 (2.5.5 마찰 계수).
+- **paraTraces 는 세션 한정** — 새 소스 로드 시 초기화. 다중 세션 흔적은 영속화 안 됨 (Phase 3).
 - **품질 계산이 candle.js 안에 있음** — 원래 설계는 `interpret.js` 의 일이다. 해석 레이어가 서면 이전.
 - **티키타카가 없다** — 지금은 촛불이 질문을 *던지고 끝*. 클릭하면 그냥 사라진다. 진짜 왕복 대화는 [예정: tikitaka] (2.5.4). 그게 붙어야 annotation_seam 이 "Active→Constructive 승격"을 완성한다.
 - **Lazy Evaluation 의 batch 절반 미구현** — 세션 끝에 고품질 주석만 모아 AI 로 개념망 그리는 부분 (2.5.6 리포트).
