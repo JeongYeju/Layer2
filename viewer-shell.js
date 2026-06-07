@@ -6,6 +6,8 @@
 
 import { pushSignal, signalBus } from "./signals.js";
 import { renderIcons } from "./icons.js";
+import { refineExport } from "./interpret.js";
+import { buildSessionExport } from "./sidebar.js";
 
 const GUTTER = 64; // px gap between book columns
 
@@ -110,12 +112,43 @@ function clearBoardCards() {
   readerEl
     .querySelectorAll(".board-card, .board-dot")
     .forEach((el) => el.remove());
-  readerEl
-    .querySelectorAll(".para.has-board-card, .para.board-friction")
-    .forEach((p) => {
-      p.classList.remove("has-board-card", "board-friction");
-      p.style.removeProperty("--friction-pct");
-    });
+  readerEl.querySelectorAll(".para").forEach((p) => {
+    p.classList.remove(
+      "has-board-card",
+      "board-friction",
+      "friction-high",
+      "icap-p",
+      "icap-a",
+      "icap-c",
+      "icap-i",
+    );
+    p.style.removeProperty("--friction-pct");
+    delete p.dataset.icap;
+  });
+}
+
+// Live digest from the current SignalLog (no LLM) — gives every paragraph a
+// friction percentile + ICAP mode so board mode is semantic by default, not
+// only after pressing 해석하기.
+function liveDigest() {
+  try {
+    const exp = buildSessionExport();
+    if (!exp || !exp.source) return null;
+    return refineExport(exp);
+  } catch {
+    return null;
+  }
+}
+
+const ICAP_LABEL = { P: "훑어봄", A: "표시", C: "구성", I: "대화" };
+
+function frictionByPid() {
+  const map = new Map();
+  // Prefer the live digest (always current); fall back to a loaded LLM result.
+  const digest = liveDigest() || window.__lastInterpretation?.refined;
+  const ps = digest?.paragraphs;
+  if (Array.isArray(ps)) for (const p of ps) map.set(p.id, p);
+  return map;
 }
 
 function collectTraces(para) {
@@ -133,36 +166,38 @@ function collectTraces(para) {
   return out;
 }
 
-// friction by paragraph id, from the last interpret run (batch). Optional.
-function frictionByPid() {
-  const map = new Map();
-  const paras = window.__lastInterpretation?.refined?.paragraphs;
-  if (Array.isArray(paras)) {
-    for (const p of paras) {
-      if (typeof p.friction_pct === "number") map.set(p.id, p);
-    }
-  }
-  return map;
-}
-
 function renderBoardCards() {
   if (mode !== "board") return;
   clearBoardCards();
   const fr = frictionByPid();
   for (const para of readerEl.querySelectorAll(".para[data-paragraph-id]")) {
     const pid = para.dataset.paragraphId;
-
-    // Friction color hierarchy (좌측 보더 채도) — only if a digest exists.
     const f = fr.get(pid);
-    if (f) {
-      para.classList.add("board-friction");
-      para.style.setProperty("--friction-pct", String(f.friction_pct ?? 0));
-      if (f.friction_high) para.classList.add("has-board-card"); // ensure visible
-    }
 
+    // Semantic styling: every paragraph gets a friction tone (background) and
+    // an ICAP mode (left-border color), so the board reads as a state map.
+    const icap = (f?.icap_mode || "P").toUpperCase();
+    para.classList.add("board-friction", `icap-${icap.toLowerCase()}`);
+    para.dataset.icap = icap;
+    para.style.setProperty("--friction-pct", String(f?.friction_pct ?? 0));
+    if (f?.friction_high) para.classList.add("friction-high");
+
+    // Right column: a state chip + the interaction traces. Paragraphs with
+    // neither a notable state nor a trace fold down to a dot.
     const traces = collectTraces(para);
-    if (!traces.length) {
-      // Semantic folding: no trace → just a compact dot indicator.
+    const cards = [];
+    if (f && (icap !== "P" || f.friction_high)) {
+      const hot = f.friction_high ? ` · 마찰↑` : "";
+      cards.push(
+        `<div class="board-state board-state--${icap.toLowerCase()}">${ICAP_LABEL[icap] || icap}${hot}</div>`,
+      );
+    }
+    for (const t of traces) {
+      cards.push(
+        `<div class="board-trace board-trace--${t.kind}">${escapeHtml(t.text)}</div>`,
+      );
+    }
+    if (!cards.length) {
       const dot = document.createElement("span");
       dot.className = "board-dot";
       para.appendChild(dot);
@@ -171,16 +206,11 @@ function renderBoardCards() {
     para.classList.add("has-board-card");
     const card = document.createElement("div");
     card.className = "board-card";
-    card.innerHTML = traces
-      .map(
-        (t) =>
-          `<div class="board-trace board-trace--${t.kind}">${escapeHtml(t.text)}</div>`,
-      )
-      .join("");
+    card.innerHTML = cards.join("");
     para.appendChild(card);
   }
 
-  // Live refresh: while in board mode, re-render when a new trace lands.
+  // Live refresh: re-render when a new trace or chat turn lands while in board.
   if (!boardSubBound) {
     boardSubBound = true;
     signalBus.addEventListener("signal", (e) => {
@@ -189,10 +219,13 @@ function renderBoardCards() {
       if (
         t === "highlight_annotation" ||
         t === "highlight_underline" ||
-        t === "circle_gesture"
+        t === "circle_gesture" ||
+        t === "chat_turn" ||
+        t === "dwell" ||
+        t === "reread"
       ) {
         clearTimeout(boardRenderTimer);
-        boardRenderTimer = setTimeout(renderBoardCards, 200);
+        boardRenderTimer = setTimeout(renderBoardCards, 250);
       }
     });
   }

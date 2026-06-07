@@ -185,6 +185,14 @@ function computeFriction(paraList, viewportH) {
   }
 }
 
+// Public helper: build the friction-tagged digest straight from a session
+// export (board mode uses this for live semantic coloring, no LLM).
+export function refineExport(exportData) {
+  const blocks = (exportData && exportData.source && exportData.source.blocks) || [];
+  const { index, order } = buildParagraphIndex(blocks);
+  return refine(exportData, index, order);
+}
+
 function refine(exportData, index, order) {
   const session = exportData.session || {};
   const signals = exportData.signals || [];

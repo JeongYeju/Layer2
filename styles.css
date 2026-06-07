@@ -1164,13 +1164,48 @@ ol.para-list .para-item {
   margin-right: 360px;
 }
 
-/* Friction color hierarchy — left border deepens with friction percentile.
-   --friction-pct (0..1) set per paragraph from the last interpret digest. */
-.reader.mode-board .para.board-friction {
-  border-left: 3px solid rgba(184, 68, 43, calc(0.15 + 0.85 * var(--friction-pct, 0)));
-  padding-left: 12px;
-  margin-left: -15px; /* keep text aligned despite the border+pad */
+/* Semantic blocks (AFFiNE-ish). Each paragraph becomes a card whose
+   BACKGROUND encodes friction (the more cognitive friction, the warmer/denser)
+   and whose LEFT BORDER COLOR encodes the ICAP engagement mode. So "어디를
+   어떻게 읽었나"가 색으로 한눈에 — friction(얼마나 치열) × ICAP(어떤 관여). */
+.reader.mode-board .para {
+  padding: 14px 18px;
+  margin: 0 0 14px 0;
+  border: 1px solid var(--line, #e6e1d4);
+  border-left: 4px solid var(--rule, #d8d2c4);
+  border-radius: 10px;
+  background: var(--paper, #fff);
+  transition: background 0.25s ease, box-shadow 0.25s ease;
 }
+/* friction tone: warm wash that deepens with the document-relative percentile */
+.reader.mode-board .para.board-friction {
+  background: rgba(216, 96, 43, calc(0.04 + 0.18 * var(--friction-pct, 0)));
+}
+/* ICAP engagement → left border color (Passive/Active/Constructive/Interactive) */
+.reader.mode-board .para.icap-p { border-left-color: #c2bcae; }
+.reader.mode-board .para.icap-a { border-left-color: #4d6ea3; }
+.reader.mode-board .para.icap-c { border-left-color: #2f6b2f; }
+.reader.mode-board .para.icap-i { border-left-color: #7a4fb0; }
+/* high-friction paragraphs get a faint ring to draw the eye */
+.reader.mode-board .para.friction-high {
+  box-shadow: 0 0 0 1px rgba(184, 68, 43, 0.28);
+}
+
+/* State chip at the top of the right card */
+.board-state {
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  padding: 3px 9px;
+  border-radius: 999px;
+  align-self: flex-start;
+  color: #fff;
+}
+.board-state--a { background: #4d6ea3; }
+.board-state--c { background: #2f6b2f; }
+.board-state--i { background: #7a4fb0; }
+.board-state--p { background: #9a958c; }
 
 /* Semantic folding — paragraphs with no trace get only a compact dot. */
 .board-dot {
