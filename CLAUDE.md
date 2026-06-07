@@ -25,7 +25,10 @@
 - `candle.js` ★ 촛불(Stick Candle) v0.2 — 신호 → Seam 개입 (annotation_seam + 주석 품질 휴리스틱 / reread / welcome / stuck). `candle_intervene` / `candle_dismiss` 발화. **기능 문서: `docs/features/candle.md`.**
 - `viewer-shell.js` `viewer-layout.css` — 스크롤 vs 스프레드 레이아웃 전환 (CSS 클래스 토글, DOM 재사용).
 - `portal.js` — 독서 모드(Pointer Lock 가상 커서). `window.__portal` 로 좌표 노출.
-- `dashboard.js` — 우측 패널. `signalBus` 구독 + interpret 결과 JSON 불러오기.
+- `dashboard.js` — 우측 패널. `signalBus` 구독 + interpret 결과 JSON 불러오기 + 단락별 마찰 섹션 + 다중 세션 거시 리포트.
+- `candle.js` `chat.js` — 촛불(개입) + AI 티키타카(왕복 대화). 내러티브 아교.
+- `demo.js` — 더미 신호 생성기 (`window.__layer2Demo.seed/play/seedSessions`). 데모·검증용.
+- `sessions.js` — 다중 세션 누적(`localStorage.layer2.sessions.v1`) + 거시 리포트 요약. session_end 시 friction/ICAP 요약 저장.
 - `sidebar.js` — 소스 패널 + 저장된 글 + localStorage 영속화.
 - `toolbar.js` — 레거시(현재 hidden). `cursor-hud.js` — 튜닝용.
 - `interpret.js` `scripts/interpret.py` — 신호 → digest → LLM 해석 (OpenAI / Anthropic / Gemini).

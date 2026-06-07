@@ -125,12 +125,14 @@
     - `mind_wandering = dwell very high AND progress_after low AND no constructive output`
   - 산출: 단락별 friction + icapMode + loadTag → 보드 모드 색상 위계(2.5.3) + Seam 판정(2.5.2) + 리포트(2.5.6) 입력.
   - 한계: germane vs extraneous 가 행동만으로 완전 분리 X → "정답 분류기" 아니라 *행동 증거 압축기* 로 설계.
-- [ ] **2.5.6** 다회독 리포트 (제미나이 디벨롭 §6)
-  - **Micro (Single Source)** — *Mental Model Map*. 가장 치열하게 읽은 구간(짙은 블록) + 티키타카 + 주석이 얽힌 지형도.
-  - **Macro (Multi-Session)**:
-    1. *시간대별 인지 리듬* — 딥 리딩 빈발 요일·시간대.
-    2. *관심사 크로스오버 맵* — 문서 간 주석 ↔ 하이라이트 의미론적 교집합.
-    3. *마찰 추이 곡선* — 동일/유사 주제 다회독 시 마찰 → 유창함 변화 궤적.
+- [~] **2.5.6** 다회독 리포트 (제미나이 디벨롭 §6). ✅ Macro 1차 구현 (sessions.js, 2026-06-03)
+  - **Micro (Single Source)** — *Mental Model Map*. 가장 치열하게 읽은 구간(짙은 블록) + 티키타카 + 주석이 얽힌 지형도. (보드 모드가 단일 세션 Micro 의 1차 형태)
+  - **Macro (Multi-Session)** ✅ — `sessions.js`: session_end 시 요약(`{t, hour, source, friction{mean·max·high}, icap{P/A/C/I}}`)을 `localStorage.layer2.sessions.v1` 에 누적(최근 80). 대시보드 "다중 세션" 섹션:
+    1. ✅ *시간대별 인지 리듬* — 밤/오전/오후/저녁 막대(길이=세션 수, 색=평균 마찰).
+    2. ✅ *마찰 추이* — 세션 순 friction.mean 스파크라인.
+    3. ✅ *관심사* — source_title 빈도 (1차). ⏳ 크로스오버 맵(주석↔하이라이트 의미론적 교집합)은 추후.
+  - **DB 불필요** — 단일 브라우저 localStorage 로 데모 충분. 여러 기기·사용자 동기화는 Phase 3.
+  - 데모: `window.__layer2Demo.seedSessions(8)` 로 과거 세션 더미 채우기.
   - 후처리 형식 결정 (리포트 / 대시보드 / 트래커) 은 이 두 레이어를 모두 보여주는 *대시보드* 로 수렴.
 - [ ] **2.5.7** 비명시적 신호 보강 — Active Zone 프록시 (제미나이 디벨롭 §2)
   - 화면 중앙 'Active Zone' + scroll delta 방향 전환 + reread 결합 → **역방향 단약시(인지적 머뭇거림)** 정량화.

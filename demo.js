@@ -8,12 +8,60 @@
 //   window.__layer2Demo.clear()  // 비우고 새로고침
 
 import { pushSignal, SignalLog } from "./signals.js";
+import { pushSummary } from "./sessions.js";
 
 let readerEl = null;
 
 export function initDemo(opts) {
   readerEl = opts.readerEl;
-  window.__layer2Demo = { seed, play, clear, roleFor };
+  window.__layer2Demo = { seed, play, clear, roleFor, seedSessions };
+}
+
+// Seed several past sessions across different times of day / topics so the
+// multi-session macro report (dashboard) has something to show without
+// actually reading N documents. Best-effort timestamps relative to now.
+function seedSessions(count = 8) {
+  let now;
+  try {
+    now = Date.now();
+  } catch {
+    now = 0;
+  }
+  const DAY = 86400000;
+  const topics = [
+    "표면장력과 계면 현상",
+    "에리히 프롬, 사랑의 기술",
+    "그리스 신화 원전 읽기",
+    "SwiftUI 상태 관리",
+    "디지털 시대의 읽기",
+    "인지부하 이론 개관",
+  ];
+  // hours skew toward evening/late-night deep reading
+  const hours = [9, 14, 16, 22, 23, 1, 20, 15, 11, 2];
+  const out = [];
+  for (let i = 0; i < count; i++) {
+    const t = now - (count - i) * (DAY / 2) - Math.floor((i % 3) * 1.5e6);
+    const hour = hours[i % hours.length];
+    // later/evening sessions trend to higher friction (heavier reading)
+    const base = hour >= 20 || hour <= 2 ? 1.4 : 0.6;
+    const mean = +(base + (i % 4) * 0.25 - 0.3).toFixed(2);
+    const high = Math.max(0, Math.round(mean * 2));
+    const P = 3 + (i % 3), A = 1 + (i % 2), C = (i % 2), I = hour >= 20 ? 1 : 0;
+    out.push({
+      id: `demo_${t}_${i}`,
+      t,
+      hour,
+      source_id: `demo${i}`,
+      source_title: topics[i % topics.length],
+      duration_ms: (12 + (i % 5) * 6) * 60000,
+      paragraphs: 6 + (i % 4),
+      friction: { mean, max: +(mean + 0.8).toFixed(2), high },
+      icap: { P, A, C, I },
+    });
+  }
+  out.forEach(pushSummary);
+  console.log(`[demo] seeded ${out.length} past sessions`);
+  return out.length;
 }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));

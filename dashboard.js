@@ -4,6 +4,7 @@
 import { signalBus, SignalLog } from "./signals.js";
 import { buildSessionExport } from "./sidebar.js";
 import { interpretSession } from "./interpret.js";
+import { loadSessions, summarizeMacro } from "./sessions.js";
 
 const stats = {
   dwellCount: 0,
@@ -26,10 +27,13 @@ const TIMELINE_TYPES = new Set([
   "circle_gesture",
 ]);
 
-let metricsRoot, recentRoot, timelineRoot, interpRoot;
+let metricsRoot, recentRoot, timelineRoot, interpRoot, sessionsRoot;
 
 export function renderDashboard(rootEl) {
   rootEl.innerHTML = `
+    <h2>다중 세션</h2>
+    <div id="m-sessions" class="sessions"></div>
+
     <h2>AI 해석
       <button type="button" id="interp-run" class="interp-load-btn">해석하기</button>
       <button type="button" id="interp-load" class="interp-load-btn">불러오기</button>
@@ -68,6 +72,7 @@ export function renderDashboard(rootEl) {
   recentRoot = rootEl.querySelector("#recent-list");
   timelineRoot = rootEl.querySelector("#timeline");
   interpRoot = rootEl.querySelector("#m-interpretation");
+  sessionsRoot = rootEl.querySelector("#m-sessions");
   wireInterpLoader(rootEl);
   wireInterpRunner(rootEl);
 
@@ -77,6 +82,7 @@ export function renderDashboard(rootEl) {
   for (const s of SignalLog) onSignal(s);
 
   paint();
+  renderSessions();
 }
 
 function onSignal(sig) {
@@ -112,10 +118,105 @@ function onSignal(sig) {
         t: sig.t,
       });
       break;
+    case "session_end":
+      // sessions.js saves the summary on the same event; re-render shortly after.
+      setTimeout(renderSessions, 30);
+      break;
   }
 
   if (TIMELINE_TYPES.has(sig.type)) appendChip(sig);
   paint();
+}
+
+// ===== Multi-session macro report =====
+function renderSessions() {
+  if (!sessionsRoot) return;
+  const sessions = loadSessions();
+  if (!sessions.length) {
+    sessionsRoot.innerHTML = `<div class="interp-note">아직 누적된 세션이 없어요. 글을 읽고 '독서 종료'를 하면 쌓입니다.<br>데모: <code>__layer2Demo.seedSessions()</code></div>`;
+    return;
+  }
+  const m = summarizeMacro(sessions);
+  const parts = [];
+  parts.push(
+    `<div class="sess-total">${m.n}개 세션 · 총 ${Math.round(m.totalMs / 60000)}분 읽음</div>`,
+  );
+  parts.push(`<div class="interp-subhead">시간대별 인지 리듬</div>`);
+  parts.push(hourBuckets(m.byHour));
+  parts.push(`<div class="interp-subhead">마찰 추이 (세션 순)</div>`);
+  parts.push(sparkline(m.trend.map((x) => x.mean)));
+  parts.push(`<div class="interp-subhead">관심사</div>`);
+  parts.push(
+    `<div class="interp-interests">${Object.entries(m.titles)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6)
+      .map(([t, c]) => `<span class="interp-interest">${escapeHtml(t)}${c > 1 ? ` ×${c}` : ""}</span>`)
+      .join("")}</div>`,
+  );
+  parts.push(`<div class="interp-subhead">최근 세션</div>`);
+  parts.push(
+    `<ul class="interp-findings">${sessions
+      .slice(-6)
+      .reverse()
+      .map(
+        (s) => `<li>
+        <div class="interp-finding-text">${escapeHtml(s.source_title)}</div>
+        <div class="interp-finding-why">${s.hour}시 · ${Math.round((s.duration_ms || 0) / 60000)}분 · 마찰 ${s.friction?.mean ?? 0} · I${s.icap?.I || 0}·C${s.icap?.C || 0}·A${s.icap?.A || 0}·P${s.icap?.P || 0}</div>
+      </li>`,
+      )
+      .join("")}</ul>`,
+  );
+  sessionsRoot.innerHTML = parts.join("");
+}
+
+// 시간대 4구간 막대 — 길이=세션 수, 색 농도=평균 마찰 (딥리딩 시간대일수록 진함).
+function hourBuckets(byHour) {
+  const buckets = [
+    { label: "밤", hrs: [0, 1, 2, 3, 4, 5] },
+    { label: "오전", hrs: [6, 7, 8, 9, 10, 11] },
+    { label: "오후", hrs: [12, 13, 14, 15, 16, 17] },
+    { label: "저녁", hrs: [18, 19, 20, 21, 22, 23] },
+  ];
+  const rows = buckets.map((b) => {
+    let count = 0,
+      fsum = 0;
+    for (const h of b.hrs) {
+      const x = byHour[h];
+      if (x) {
+        count += x.count;
+        fsum += x.frictionSum;
+      }
+    }
+    return { label: b.label, count, avg: count ? fsum / count : 0 };
+  });
+  const maxCount = Math.max(1, ...rows.map((r) => r.count));
+  return `<div class="sess-bars">${rows
+    .map(
+      (r) => `<div class="sess-bar-row">
+      <span class="sess-bar-label">${r.label}</span>
+      <span class="sess-bar-track"><span class="sess-bar-fill" style="width:${Math.round((r.count / maxCount) * 100)}%;opacity:${(0.35 + Math.min(1, r.avg / 2) * 0.65).toFixed(2)}"></span></span>
+      <span class="sess-bar-val">${r.count}</span>
+    </div>`,
+    )
+    .join("")}</div>`;
+}
+
+function sparkline(vals) {
+  if (!vals.length) return "";
+  const w = 240,
+    h = 40,
+    pad = 5;
+  const min = Math.min(...vals),
+    max = Math.max(...vals),
+    range = max - min || 1;
+  const pts = vals
+    .map((v, i) => {
+      const x = pad + (i / Math.max(1, vals.length - 1)) * (w - 2 * pad);
+      const y = h - pad - ((v - min) / range) * (h - 2 * pad);
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    })
+    .join(" ");
+  return `<svg class="sess-spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><polyline points="${pts}" fill="none" stroke="#b8442b" stroke-width="2" stroke-linejoin="round"/></svg>`;
 }
 
 function addRecent(item) {
