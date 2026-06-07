@@ -117,6 +117,9 @@ quality = 0.4·선택범위비율 + 0.3·전이시간 + 0.3·산출물밀도
 **됐다 (v0.2):** 트리거 4종, 주석 품질 3종 휴리스틱, 쿨다운, 후~ 소멸 애니메이션, 확장 빌드 반영.
 
 **한계 / 다음:**
+- **Seam 2/3 이 아직 정식 조건이 아님** — 2026-06-03 PDF 1차본이 정확한 조건을 줬으나 v0.2 는 단순 버전:
+  - `reread`(visit≥2) → 정식 isolation_seam = `revisit≥3 AND reverseRate≥0.5 AND friction상위20% AND 무흔적`. **reverseRate·friction·무흔적 판정 미구현** (단계1·2·3에서 빌드).
+  - `welcome`(idle 30s) → 정식 transition_seam = `완전비활성 180s OR 탭 hidden→복귀`. **180s·탭복귀 트리거 미구현** (단계2).
 - **숫자는 전부 추정값** — `stuck` 45초, 품질 가중치 0.4/0.3/0.3, 임계 0.55. 실사용 로그로 튜닝 필요.
 - **`stuck` 은 friction 으로 대체 예정** — 절대 45초가 아니라 문서 내 percentile 로 (2.5.5 마찰 계수).
 - **품질 계산이 candle.js 안에 있음** — 원래 설계는 `interpret.js` 의 일이다. 해석 레이어가 서면 이전.

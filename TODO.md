@@ -59,6 +59,25 @@
 
 문헌 근거 확보(2026-06-02 W1 완료): Grusky(viewport attention) / Luo(height-effort) / Chi&Wylie(ICAP) / Mason·Zhang(주석 품질) / D'Mello·Qlarify·Hefter(개입 타이밍) 등 16+편. 절대 초 단위 임계 대신 **문서 내 percentile + z-score 상대량 + explicit signal 결합** 이 설계 원칙.
 
+### 빌드 진행 상태 (2026-06-03 PDF 명세 대조)
+2026-06-03 발표 PDF 2종이 빌드 가능한 기술 명세를 확정. 현재 코드 vs 명세 갭:
+
+| 영역 | 명세 | 현재 | 상태 |
+|---|---|---|---|
+| 신호: 역방향 진입 | reverseRate = backwardEntry/enterCount | visitedCount/totalDwell만 | ❌ 미구현 → 단계1 |
+| 신호: 가시성 가중 | visibleFrac (intersectionRatio) 누적 | threshold 0.5만 | ❌ 미구현 → 단계1 |
+| 신호: 회귀 거리 | return_effort | scroll 전역 delta만 | ❌ 미구현 → 단계1 |
+| 촛불 Seam1 능동정지 | 주석 직후 + 품질 | annotation_seam v0.2 | ✅ 구현 |
+| 촛불 Seam2 인지고립 | revisit≥3 AND reverseRate≥0.5 AND friction상위20% AND 무흔적 | reread(visit≥2) 단순 | ⚠️ 단순버전 → 단계2 |
+| 촛불 Seam3 세션전환 | 완전비활성 180s OR 탭 hidden→복귀 | welcome(idle 30s) | ⚠️ 기준다름 → 단계2 |
+| 마찰 계수 | attention_i·return_effort·revisit·reverseRate → z합 → 상위20% | 없음 | ❌ 미구현 → 단계3 |
+| 대시보드 마찰표시 | 단락별 인지 상태 | dwell/highlight 카운트만 | ❌ 미구현 → 단계4 |
+| 보드 모드 | 텍스트↔보드, 우측 흔적전개, 마찰 색상위계 | scroll/spread만 | ❌ 미구현 → 단계5 |
+| 티키타카 챗봇 | 촛불 클릭 → 대화 | 클릭=dismiss | ❌ 범위밖(2.5.4) |
+| 패턴분류 + DB | 유형분류 + vercel/neon | 없음 | ❌ 범위밖(Phase 3) |
+
+빌드 순서(이 세션): 단계1 신호 → 단계2 촛불 Seam2/3 → 단계3 마찰계수 → 단계4 대시보드 → 단계5 보드모드.
+
 - [x] **2.5.1** 촛불(Stick Candle) 1차 초안 — 신호 기반 개입의 의인화
   - `candle.js` + `styles.css` 의 `.candle-mount` 섹션. `.para` 우측 여백에 등장 → 멘트 → 후~ 사라짐 (SVG flame flicker + smoke).
   - **개입 프로토콜 v0.1** (정식 정의는 2.5.2 — 이건 첫 시도):
@@ -71,8 +90,8 @@
 - [ ] **2.5.2** 개입 프로토콜 v1 — Seam 타겟팅으로 정식화 (디벨롭 §13, 문헌 확정판)
   - 읽기의 물리적 관성을 *부자연스럽게 꺾지 않는* 경계면 3종에서만 비선형 삽입:
     - **annotation_seam** — `onAnnotationSaved(paragraph_i)`. 주석 확정 *직후* 인라인 one-click prompt 1회 ("왜 중요해?" / "네 말로?"). 목적 = Active→Constructive 승격 (Qlarify 근거). ✅ **1차 구현 완료** (candle.js, 2026-06-03) — 품질 임계 통과 시 발동, 전역 쿨다운 우회. 진짜 티키타카(2.5.4) 붙으면 완성.
-    - **isolation_seam** — `revisit_i ≥ 3 AND reverseRate_i ≥ 0.5 AND friction_i 상위20% AND annotation_i == 0`. 누적 증거 생겼을 때만 진단형 prompt (D'Mello 근거). v0.1 의 `stuck`+`reread` 를 friction percentile 로 대체.
-    - **transition_seam** — `sectionEnd OR sessionResume OR longIdleResume`. 요약/자기설명 prompt. 목적 = flow 보존 + metacognitive consolidation (Hefter: interruption 최소화). v0.1 의 `welcome` 유지·확장.
+    - **isolation_seam** ⚠️ 현재 `reread`(visit≥2) 단순버전만 — 정식 조건: `revisit_i ≥ 3 AND reverseRate_i ≥ 0.5 AND friction_i 상위20% AND 무흔적(annotation·highlight 없음)`. 단계2에서 행동조건(revisit·reverseRate·무흔적) 1차 → 단계3 후 friction 결합. 누적 증거 생겼을 때만 진단형 prompt (D'Mello).
+    - **transition_seam** ⚠️ 현재 `welcome`(idle 30s) — 정식 조건(PDF 1차본): `완전 비활성 180s(스크롤·마우스 무동작) OR document.visibilityState hidden→visible 복귀`. 복귀 시 "지난번 오래 붙잡았던 단락" 안내. flow 보존 + metacognitive consolidation (Hefter). 단계2에서 구현.
   - cutoff(≥3, ≥0.5) 는 권고치 — 논문 원문 아님. friction_i 가 percentile 기반이라 절대 초 단위(v0.1 의 45s/30s) 대체됨.
   - 멘트 풀 확장 (현재 reason 당 3개 → Seam 별 톤 가이드 + 5~7개) + 페르소나 톤 일관성. **단, Hefter — 지각된 interruption 수가 학습성과를 떨어뜨림 → 빈도·쿨다운 보수적으로.**
   - "X 해볼까?" → AI 티키타카 트리거로 연결 (촛불 클릭 → 2.5.4 채팅 호출)
