@@ -15,6 +15,12 @@
 - **단계4 · 대시보드** (`dashboard.js`) — "단락별 인지 상태(마찰 계수)" 섹션. friction 상위 5단락 + ICAP/load 배지 + 클릭 시 스크롤.
 - **단계5 · 보드 모드** (`viewer-shell.js`) — 3-way 뷰 토글(scroll/spread/**board**). 단락별 흔적(밑줄·동그라미·주석)을 우측 `.board-card` 로 전개, 흔적 없으면 점으로 접기(의미론적 접기), 마찰 색상 위계(좌측 보더). 새 기능 문서 `docs/features/board-mode.md`.
 
+### AI 티키타카 (단계 6 · Phase 2.5.4) — 내러티브 아교 완성
+- 촛불 말풍선에 **💬 대화** 버튼 → `candle_chat_request` 발화 → 새 모듈 `chat.js` 가 우측 슬라이드 채팅 패널을 연다. Seam(annotation/isolation/transition) + 단락 텍스트를 Anchor 로 시스템 프롬프트에 주입, 멀티턴.
+- `interpret.js` 에 `chatLLM`(평문·멀티턴, provider 3종) 추가. 대시보드와 키 공유(`layer2.llm.*`).
+- 대화를 `chat_opened`/`chat_turn` 신호로 기록 → interpret 이 단락별 집계 → **ICAP 의 I(Interactive) 단계 완성** (촛불 대화 > 주석 > 표시 > 체류).
+- 이로써 내러티브 아교 3종(뷰어 전환 · 촛불 · 티키타카) 모두 1차 구현. 새 기능 문서 `docs/features/tikitaka.md`.
+
 ### 빌드 스크립트 portable
 - `scripts/build-extension.sh` 의 CDN import 치환을 `sed -i` → `perl -i` 로 (BSD/macOS·GNU/Linux 양쪽 동작).
 
