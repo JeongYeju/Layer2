@@ -404,6 +404,62 @@ async function callGemini(model, system, user, apiKey) {
   return data.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
 }
 
+// Multi-turn chat for the 티키타카 (촛불 클릭 → 왕복 대화). Unlike interpret's
+// JSON calls, this returns plain conversational text. `messages` is the running
+// [{role:"user"|"assistant", content}] history (system is passed separately).
+export async function chatLLM({ provider = "anthropic", model, apiKey, system, messages }) {
+  const mdl = model || DEFAULT_MODELS[provider] || DEFAULT_MODELS.anthropic;
+  if (provider === "openai") {
+    const res = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: mdl,
+        messages: [{ role: "system", content: system }, ...messages],
+        temperature: 0.6,
+      }),
+    });
+    if (!res.ok) throw new Error(`openai HTTP ${res.status}`);
+    const data = await res.json();
+    return data.choices?.[0]?.message?.content ?? "";
+  }
+  if (provider === "gemini") {
+    const contents = messages.map((m) => ({
+      role: m.role === "assistant" ? "model" : "user",
+      parts: [{ text: m.content }],
+    }));
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${mdl}:generateContent`,
+      {
+        method: "POST",
+        headers: { "x-goog-api-key": apiKey, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          system_instruction: { parts: [{ text: system }] },
+          contents,
+          generationConfig: { temperature: 0.6 },
+        }),
+      },
+    );
+    if (!res.ok) throw new Error(`gemini HTTP ${res.status}`);
+    const data = await res.json();
+    return data.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+  }
+  // anthropic
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+      "anthropic-dangerous-direct-browser-access": "true",
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({ model: mdl, max_tokens: 1024, system, messages }),
+  });
+  if (!res.ok) throw new Error(`anthropic HTTP ${res.status}`);
+  const data = await res.json();
+  return data.content?.[0]?.text ?? "";
+}
+
 // Build the digest, optionally call the LLM, and return interpret.py's result
 // shape. LLM/transport errors are folded into interpretation_note so the
 // refined digest still renders.

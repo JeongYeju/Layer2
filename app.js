@@ -14,6 +14,7 @@ import { renderDashboard } from "./dashboard.js";
 import { initPortal } from "./portal.js";
 import { initViewerShell, relayoutViewer, flipSpread } from "./viewer-shell.js";
 import { initCandle, resetCandle } from "./candle.js";
+import { initChat } from "./chat.js";
 
 const reader = document.getElementById("reader");
 const dashboard = document.getElementById("dashboard");
@@ -21,6 +22,7 @@ const dashboard = document.getElementById("dashboard");
 initHighlight();
 initAttention({ readerEl: reader });
 initCandle({ readerEl: reader });
+initChat();
 renderDashboard(dashboard);
 initViewerShell();
 // Reading mode rides #reader's scroll (and flips pages in spread) and toggles

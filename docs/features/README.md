@@ -28,8 +28,8 @@ Layer 2 의 자료는 세 층으로 나뉩니다. 가운데가 비어 있었습�
 |---|---|---|---|
 | 촛불 (Stick Candle) | [candle.md](candle.md) | v0.3 (Seam 3종 정식화) | 신호 기반 AI 개입의 의인화 — 읽다가 *적절한 순간*에 나타나 말을 건다 |
 | 보드 모드 (Board Mode) | [board-mode.md](board-mode.md) | v0.1 (1차 구현) | 텍스트 ↔ 보드. 흔적이 단락 우측으로 펼쳐지는 이원화 뷰어 |
+| AI 티키타카 (Dialogue) | [tikitaka.md](tikitaka.md) | v0.1 (1차 구현) | 촛불을 클릭하면 시작되는 소크라테스식 왕복 대화 |
 | _마찰 계수 (Friction)_ | _candle/board 안에서 사용_ | 산출 구현됨 | 단락별 인지 마찰을 행동 신호로 정량화 (interpret.js `computeFriction`) |
-| _AI 티키타카_ | _예정_ | 미착수 | 촛불을 클릭하면 시작되는 왕복 대화 |
 
 (상태 표기: `설계 중` → `설계 완료` → `vN.x 1차 구현` → `안정화`)
 

@@ -101,9 +101,11 @@
   - ✅ **의미론적 접기** — 흔적 없는 단락은 `.board-dot` 작은 점만.
   - ✅ **마찰 색상 위계** — interpret 결과(`window.__lastInterpretation`) 있으면 단락 좌측 보더가 friction_pct 로 물듦.
   - ⏳ 남은 일: 활성 단락만 카드 확대(현재 전부 동일) / 마찰 색상의 실시간화(현재 batch 해석 후만) / AI 티키타카 카드(2.5.4 의존) / 좁은 화면 대응.
-- [ ] **2.5.4** AI 티키타카 — 채팅 모듈 (읽는 동안 in-flow + 세션 종료 후 잠깐)
-  - 촛불 클릭 → 채팅 사이드바 mount. 명시적 신호(밑줄·주석)를 *Anchor* 로 받아 "왜 이 부분에 주목했는지" 시작.
-  - `signalBus` 의 `candle_chat_request` 이벤트로 트리거 (candle.js 가 발화 → chat.js 가 구독).
+- [~] **2.5.4** AI 티키타카 — 채팅 모듈. ✅ 1차 구현 (chat.js, 2026-06-03). 문서: `docs/features/tikitaka.md`.
+  - ✅ 촛불 말풍선 "💬 대화" → `candle_chat_request` 발화 → `chat.js` 우측 패널 mount.
+  - ✅ Seam(annotation/isolation/transition) + 단락 텍스트를 Anchor 로 시스템 프롬프트에 주입. 멀티턴.
+  - ✅ `interpret.js` `chatLLM`(평문·멀티턴) — provider 3종, 대시보드와 키 공유(`layer2.llm.*`).
+  - ⏳ 남은 일: LLM 생성 첫 질문(현재 정적 멘트) / 대화를 신호로 기록(상호작용 축) / 보드 카드에서 직접 열기 / 서버 프록시(키 노출 해소, Phase 3).
 - [~] **2.5.5** 해석 레이어 — *마찰 계수* 프레임워크 (디벨롭 §10~§11, 문헌 명세). ✅ 산출 1차 구현 (interpret.js+py `computeFriction`, 2026-06-03)
   - ✅ `refine()` 에서 단락별 `friction`(z합)·`friction_pct`·`friction_high`(상위20%)·`icap_mode`·`load_tag` 산출. attention=visibility-weighted, revisit·return_effort·reverse_rate 결합. interpret.py 동일 미러 + 합성 세션 검증 완료.
   - ⏳ 남은 일: candle isolation_seam 에 friction_high 실시간 결합(현재 행동조건만) / 대시보드 표시(단계4) / 보드 색상위계(단계5).

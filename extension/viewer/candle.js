@@ -312,14 +312,22 @@ function showCandle(pid, reason) {
   const para = readerEl.querySelector(`[data-paragraph-id="${pid}"]`);
   if (!para) return;
 
+  // Capture paragraph text BEFORE appending the mount (else the candle's own
+  // text leaks into para.textContent). Used as the 티키타카 anchor.
+  const paraText = (para.textContent || "").slice(0, 600);
+  const line = pickLine(reason);
+
   const mount = document.createElement("div");
   mount.className = "candle-mount";
   mount.dataset.reason = reason;
   mount.innerHTML = `
     <button type="button" class="candle-fig" aria-label="촛불 닫기">${FIG_SVG}</button>
-    <div class="candle-bubble"><span class="candle-line"></span></div>
+    <div class="candle-bubble">
+      <span class="candle-line"></span>
+      <button type="button" class="candle-chat-btn">💬 대화</button>
+    </div>
   `;
-  mount.querySelector(".candle-line").textContent = pickLine(reason);
+  mount.querySelector(".candle-line").textContent = line;
 
   para.appendChild(mount);
   activeMount = mount;
@@ -332,6 +340,19 @@ function showCandle(pid, reason) {
 
   mount.querySelector(".candle-fig")
     .addEventListener("click", () => dismissActive("user"));
+
+  // 대화 버튼 → 티키타카 요청 발화 (chat.js 가 구독) + 촛불은 후~.
+  mount.querySelector(".candle-chat-btn").addEventListener("click", (e) => {
+    e.stopPropagation();
+    pushSignal({
+      type: "candle_chat_request",
+      paragraph_id: pid,
+      reason,
+      line,
+      para_text: paraText,
+    });
+    dismissActive("chat");
+  });
 
   mount.__dismissTimer = setTimeout(
     () => dismissActive("timeout"),
