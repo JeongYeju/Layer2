@@ -9,7 +9,7 @@
 // 트리거: candle.js 가 촛불 풍선의 "대화" 버튼에서 `candle_chat_request` 발화
 //   { paragraph_id, reason, line, para_text } → 이 모듈이 구독.
 
-import { signalBus } from "./signals.js";
+import { signalBus, pushSignal } from "./signals.js";
 import { chatLLM } from "./interpret.js";
 
 const SYSTEM =
@@ -84,6 +84,12 @@ function openFor(req) {
   logEl.innerHTML = "";
   titleEl.textContent = `촛불 · ${REASON_LABEL[req.reason] || "대화"}`;
   panel.classList.add("is-open");
+  // 상호작용 축 데이터 — 어느 단락/Seam 에서 티키타카가 열렸나.
+  pushSignal({
+    type: "chat_opened",
+    paragraph_id: req.paragraph_id,
+    reason: req.reason,
+  });
   // 촛불이 먼저 건넨 한 마디로 대화를 연다 (화면에만, 대화 히스토리엔 미포함 —
   // 첫 LLM 메시지는 user 여야 하므로).
   addBubble("assistant", req.line || "이 부분, 같이 볼까?");
@@ -108,6 +114,13 @@ async function send() {
   inputEl.value = "";
   addBubble("user", text);
   conversation.push({ role: "user", content: text });
+  pushSignal({
+    type: "chat_turn",
+    role: "user",
+    len: text.length,
+    paragraph_id: ctx.paragraph_id,
+    reason: ctx.reason,
+  });
 
   const { provider, apiKey } = creds();
   if (!apiKey) {
@@ -130,6 +143,13 @@ async function send() {
     const clean = (reply || "").trim() || "(응답이 비었어요)";
     typing.textContent = clean;
     conversation.push({ role: "assistant", content: clean });
+    pushSignal({
+      type: "chat_turn",
+      role: "assistant",
+      len: clean.length,
+      paragraph_id: ctx?.paragraph_id,
+      reason: ctx?.reason,
+    });
   } catch (err) {
     typing.textContent = "대화 실패: " + (err?.message || err);
   } finally {

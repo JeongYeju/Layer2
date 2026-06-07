@@ -187,10 +187,11 @@ def compute_friction(para_list, viewport_h):
         p["friction_high"] = i < cut
 
     for p in para_list:
+        has_chat = (p.get("chat_turns") or 0) > 0
         has_ann = len(p.get("annotations") or []) > 0
         has_mark = len(p.get("highlights") or []) > 0 or len(p.get("circles") or []) > 0
-        p["icap_mode"] = "C" if has_ann else ("A" if has_mark else "P")
-        if p["friction_high"] and has_ann:
+        p["icap_mode"] = "I" if has_chat else ("C" if has_ann else ("A" if has_mark else "P"))
+        if p["friction_high"] and (has_ann or has_chat):
             p["load_tag"] = "germane"
         elif p["friction_high"] and not has_ann and not has_mark:
             p["load_tag"] = "extraneous"
@@ -231,6 +232,7 @@ def refine(export):
                 "highlights": [],
                 "annotations": [],
                 "circles": [],
+                "chat_turns": 0,
                 "bookmarked": False,
                 "captured": False,
             }
@@ -296,6 +298,11 @@ def refine(export):
         circles.append(item)
         if pid:
             para_slot(pid)["circles"].append(item["enclosed_text"])
+
+    for s in by_type.get("chat_turn", []):
+        pid = s.get("paragraph_id")
+        if pid:
+            para_slot(pid)["chat_turns"] += 1
 
     for s in by_type.get("bookmark", []):
         for pid in s.get("paragraph_ids", []) or []:

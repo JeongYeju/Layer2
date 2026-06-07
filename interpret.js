@@ -173,10 +173,12 @@ function computeFriction(paraList, viewportH) {
 
   // ICAP engagement + cognitive-load tag.
   for (const p of paraList) {
+    const hasChat = (p.chat_turns || 0) > 0;
     const hasAnn = (p.annotations || []).length > 0;
     const hasMark = (p.highlights || []).length > 0 || (p.circles || []).length > 0;
-    p.icap_mode = hasAnn ? "C" : hasMark ? "A" : "P"; // Constructive/Active/Passive
-    if (p.friction_high && hasAnn) p.load_tag = "germane"; // productive struggle
+    // Interactive(촛불 대화) > Constructive(주석) > Active(표시) > Passive(체류만)
+    p.icap_mode = hasChat ? "I" : hasAnn ? "C" : hasMark ? "A" : "P";
+    if (p.friction_high && (hasAnn || hasChat)) p.load_tag = "germane"; // productive struggle
     else if (p.friction_high && !hasAnn && !hasMark) p.load_tag = "extraneous"; // wandering
     else p.load_tag = "ambiguous";
     delete p.return_tops; // internal scratch — not for output
@@ -208,6 +210,7 @@ function refine(exportData, index, order) {
         highlights: [],
         annotations: [],
         circles: [],
+        chat_turns: 0,      // 티키타카 turns anchored here (ICAP "I")
         bookmarked: false,
         captured: false,
       };
@@ -262,6 +265,11 @@ function refine(exportData, index, order) {
     const item = { paragraph_id: pid, enclosed_text: s.enclosed_text || "", radius: s.radius || 0, rel_ms: rel(s.t) };
     circles.push(item);
     if (pid) slot(pid).circles.push(item.enclosed_text);
+  }
+
+  for (const s of of("chat_turn")) {
+    if (!s.paragraph_id) continue;
+    slot(s.paragraph_id).chat_turns += 1;
   }
 
   for (const s of of("bookmark")) for (const pid of s.paragraph_ids || []) slot(pid).bookmarked = true;
