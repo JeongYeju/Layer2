@@ -86,10 +86,14 @@ function setMode(m) {
     const a = readerEl.querySelector(".article");
     if (a) a.style.removeProperty("--spread-x");
   }
-  // Board mode: render the per-paragraph trace cards on the right; otherwise
-  // tear them down so scroll/spread layouts stay clean.
-  if (mode === "board") renderBoardCards();
-  else clearBoardCards();
+  // Board mode: the source drawer is a fixed overlay that would cover the
+  // left-aligned column, so tuck it away on entry. Then render the trace cards.
+  if (mode === "board") {
+    document.body.classList.remove("drawer-open");
+    renderBoardCards();
+  } else {
+    clearBoardCards();
+  }
   spread = 0;
   relayoutViewer();
 }

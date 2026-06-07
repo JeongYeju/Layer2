@@ -484,6 +484,7 @@ body {
 }
 
 /* ===== Page navigation (spread only) ===== */
+.pagenav[hidden] { display: none; } /* author display:flex was overriding [hidden] */
 .pagenav {
   position: fixed;
   right: 76px;

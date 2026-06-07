@@ -312,8 +312,7 @@ function showCandle(pid, reason) {
   const para = readerEl.querySelector(`[data-paragraph-id="${pid}"]`);
   if (!para) return;
 
-  // Capture paragraph text BEFORE appending the mount (else the candle's own
-  // text leaks into para.textContent). Used as the 티키타카 anchor.
+  // Capture paragraph text BEFORE building the mount. Used as the 티키타카 anchor.
   const paraText = (para.textContent || "").slice(0, 600);
   const line = pickLine(reason);
 
@@ -329,7 +328,21 @@ function showCandle(pid, reason) {
   `;
   mount.querySelector(".candle-line").textContent = line;
 
-  para.appendChild(mount);
+  // position: fixed on <body> so the candle floats above the reader's overflow
+  // /stacking context. Place it in the right margin of the paragraph; if that
+  // would run off-screen (narrow viewport / board mode), flip to the left.
+  const r = para.getBoundingClientRect();
+  const W = 200;
+  const GAP = 24;
+  let left = r.right + GAP;
+  if (left + W + 16 > window.innerWidth) {
+    left = Math.max(12, r.left - W - GAP);
+  }
+  const top = Math.max(8, Math.min(r.top - 4, window.innerHeight - 120));
+  mount.style.left = `${Math.round(left)}px`;
+  mount.style.top = `${Math.round(top)}px`;
+
+  document.body.appendChild(mount);
   activeMount = mount;
 
   // Two RAFs: first lets the browser register the initial style, second triggers the

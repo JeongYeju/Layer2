@@ -1046,19 +1046,16 @@ ol.para-list .para-item {
 }
 
 /* ===== Stick Candle — signal-based intervention (candle.js) =====
-   Anchored to .para (position: relative). Sticks out into the right margin
-   of .reader so it sits visually beside the triggering paragraph without
-   reflowing the body text. */
+   position: fixed and appended to <body> so it floats above the reader's
+   overflow/stacking context (anchoring to .para left it clipped by the
+   scroll container). candle.js sets left/top from the paragraph's rect. */
 .candle-mount {
-  position: absolute;
-  top: -4px;
-  left: 100%;
-  margin-left: 24px;
+  position: fixed;
   width: 200px;
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  z-index: 6;
+  z-index: 28;
   opacity: 0;
   transform: translateY(8px) scale(0.96);
   transition: opacity 520ms ease, transform 520ms ease;
@@ -1138,15 +1135,9 @@ ol.para-list .para-item {
   max-width: 170px;
 }
 
-/* Narrow viewports: fall back to inline placement below the paragraph
-   instead of overflowing past the right edge. */
+/* Narrow viewports: candle.js clamps the fixed position to stay on-screen;
+   just let the bubble use the full width here. */
 @media (max-width: 980px) {
-  .candle-mount {
-    position: static;
-    width: auto;
-    max-width: 280px;
-    margin: 8px 0 0 0;
-  }
   .candle-bubble { max-width: none; }
 }
 
