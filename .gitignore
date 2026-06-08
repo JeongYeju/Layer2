@@ -2,3 +2,9 @@
 .claude/
 Private/*
 !Private/.gitkeep
+
+# Node / Playwright (e2e harness)
+node_modules/
+test-results/
+playwright-report/
+.playwright/
