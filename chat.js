@@ -12,6 +12,17 @@
 import { signalBus, pushSignal } from "./signals.js";
 import { chatLLM } from "./interpret.js";
 
+// small lit candle for the panel header
+const CANDLE_ICO = `
+  <svg class="chat-candle-ico" viewBox="0 0 28 56" aria-hidden="true">
+    <rect x="11" y="22" width="6" height="30" rx="1.5" fill="#e8dec3" stroke="#b09d75" stroke-width="0.6"/>
+    <line x1="14" y1="22" x2="14" y2="18" stroke="#4a3a22" stroke-width="1.4" stroke-linecap="round"/>
+    <path d="M14 6 C 18 12, 19 16, 14 20 C 9 16, 10 12, 14 6 Z" fill="#f0a830" opacity="0.92">
+      <animate attributeName="opacity" values="0.92;0.7;0.92" dur="1.8s" repeatCount="indefinite"/>
+    </path>
+    <path d="M14 10 C 16 14, 16.5 16, 14 19 C 11.5 16, 12 14, 14 10 Z" fill="#fff2b8"/>
+  </svg>`;
+
 const SYSTEM =
   "당신은 '촛불' — 독서 중 곁에서 돕는 따뜻한 AI 동반자입니다. " +
   "짧고 담백하게(2~4문장), 소크라테스식으로 독자가 스스로 생각하도록 돕습니다. " +
@@ -47,7 +58,7 @@ function buildPanel() {
   panel.className = "chat-panel";
   panel.innerHTML = `
     <header class="chat-head">
-      <span class="chat-title" id="chat-title">촛불과의 대화</span>
+      <span class="chat-title-wrap">${CANDLE_ICO}<span class="chat-title" id="chat-title">촛불과의 대화</span></span>
       <button type="button" class="chat-close" id="chat-close" aria-label="닫기">✕</button>
     </header>
     <div class="chat-log" id="chat-log"></div>
@@ -131,7 +142,7 @@ async function send() {
     return;
   }
 
-  const typing = addBubble("assistant", "…");
+  const typing = addTyping();
   sendBtn.disabled = true;
   try {
     const system =
@@ -141,6 +152,7 @@ async function send() {
       (ctx.para_text ? "\n[독자가 보던 단락]\n" + ctx.para_text : "");
     const reply = await chatLLM({ provider, apiKey, system, messages: conversation });
     const clean = (reply || "").trim() || "(응답이 비었어요)";
+    typing.classList.remove("chat-typing");
     typing.textContent = clean;
     conversation.push({ role: "assistant", content: clean });
     pushSignal({
@@ -162,6 +174,16 @@ function addBubble(role, text) {
   const b = document.createElement("div");
   b.className = `chat-msg chat-msg--${role}`;
   b.textContent = text;
+  logEl.appendChild(b);
+  logEl.scrollTop = logEl.scrollHeight;
+  return b;
+}
+
+// Bouncing-dots typing indicator (replaced with the reply text on arrival).
+function addTyping() {
+  const b = document.createElement("div");
+  b.className = "chat-msg chat-msg--assistant chat-typing";
+  b.innerHTML = `<span></span><span></span><span></span>`;
   logEl.appendChild(b);
   logEl.scrollTop = logEl.scrollHeight;
   return b;
