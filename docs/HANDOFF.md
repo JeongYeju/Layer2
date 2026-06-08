@@ -26,7 +26,8 @@
   - viewer-shell `setMode("board")` 가 mount, 나갈 때 unmount.
   - 검증: `tests/board-summary.spec.js` (헤드풀 pass) — 폴백 초안·편집·소스별 영속.
 - [ ] (보류 합의) 재독 디프(소스별 지난 세션 비교) · 간격 회상 · DB(Vercel/Neon)
-- [ ] (선택) 마찰→촛불 트리거 연결 (지금 촛불은 행동 임계만, friction 미연결)
+- [x] (선택) **마찰→촛불 트리거 연결** ✅ (2026-06-08, 로컬 세션)
+  - `candle.js` isolation_seam 에 `friction 상위20%` 결합 — 행동 조건(enter_count≥3·reverse_rate≥0.5·무흔적) AND friction_high. `refineExport(buildSessionExport())` 2초 캐시(`frictionHighSet`), friction 미산출 시 폴백(행동 조건만). 디버그 `__layer2Candle.frictionHigh()`. theory-base §4 원설계(Seam = friction 상위 + 무산출) 완성.
 
 ## 3. 시각 검증 (헤드풀) — 로컬에서
 이 PR이 `tests/` 하니스를 추가함. `tests/README.md` 참고:

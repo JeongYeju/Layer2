@@ -25,6 +25,8 @@
 // 데모 훅 (DevTools): window.__layer2Candle.fire("annotation"|"isolation"|"transition"|"stuck")
 
 import { signalBus, pushSignal } from "./signals.js";
+import { buildSessionExport } from "./sidebar.js";
+import { refineExport } from "./interpret.js";
 
 const STUCK_DWELL_MS       = 45000;
 // isolation_seam — 인지적 고립 (PDF 1차본 정식 조건). 같은 단락을 여러 번
@@ -106,6 +108,35 @@ function hasTrace(pid) {
   return !!(t && (t.highlight || t.annotation));
 }
 
+// 마찰→촛불 연결 — friction(문서 내 percentile) 상위20% 단락 집합. refineExport
+// 는 비싸니 2초 캐시. friction 을 못 구하면 null → frictionOk 가 통과(폴백)시켜
+// 행동 조건만으로도 동작(데모/세션 초기 안 깨짐).
+let _frSet = null;
+let _frAt = -Infinity;
+function frictionHighSet() {
+  const now = performance.now();
+  if (now - _frAt < 2000) return _frSet;
+  _frAt = now;
+  _frSet = null;
+  try {
+    const exp = buildSessionExport();
+    if (exp && exp.source) {
+      const d = refineExport(exp);
+      _frSet = new Set(
+        (d?.paragraphs || []).filter((p) => p.friction_high).map((p) => p.id),
+      );
+    }
+  } catch {
+    /* none */
+  }
+  return _frSet;
+}
+function frictionOk(pid) {
+  const set = frictionHighSet();
+  // friction 모르거나(아직 신호 적음) 상위 단락이 하나도 없으면 통과(폴백).
+  return !set || set.size === 0 || set.has(pid);
+}
+
 export function setCandleEnabled(v) {
   enabled = !!v;
   if (!enabled) dismissActive("disabled");
@@ -126,13 +157,15 @@ function onSignal(s) {
     recordTrace(s.paragraph_id, "highlight");
   } else if (s.type === "reread") {
     // isolation_seam — 반복 재진입(enter_count ≥ 3) + 역방향 우세(reverse_rate ≥ 0.5)
-    // + 무흔적. 막혔는데 산출물 없이 헤매는 상태에서만 진단형 개입.
-    // (friction 상위20% 조건은 단계3 마찰 계수 붙으면 결합 — 지금은 행동 조건만.)
+    // + 무흔적 + **friction 상위20%**. 막혔는데 산출물 없이 헤매는 상태에서만 개입.
+    // friction 결합으로 "오래/치열하게 붙잡은 자리"까지 묶여 정밀해짐 (theory-base §4).
+    // friction 을 못 구하면(세션 없음 등) frictionOk 가 통과시켜 행동 조건만으로 폴백.
     const enters = s.enter_count || s.visit_count || 0;
     if (
       enters >= ISOLATION_REVISITS &&
       (s.reverse_rate || 0) >= ISOLATION_REVERSE_RATE &&
-      !hasTrace(s.paragraph_id)
+      !hasTrace(s.paragraph_id) &&
+      frictionOk(s.paragraph_id)
     ) {
       tryFire(s.paragraph_id, "isolation");
     }
@@ -404,12 +437,15 @@ window.__layer2Candle = {
   },
   enable(v) { setCandleEnabled(v); },
   dismiss() { dismissActive("manual"); },
+  // friction 상위20% 단락(isolation 발동 조건). 빈 배열/[] = 아직 friction 미산출 → 폴백.
+  frictionHigh() { return Array.from(frictionHighSet() || []); },
   state() {
     return {
       enabled,
       lastTriggerT,
       dwellEntered: Array.from(dwellEntered.entries()),
       paraTraces: Array.from(paraTraces.entries()),
+      frictionHigh: Array.from(frictionHighSet() || []),
       activeReason: activeMount?.dataset.reason || null,
     };
   },

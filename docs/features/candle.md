@@ -121,7 +121,7 @@ quality = 0.4·선택범위비율 + 0.3·전이시간 + 0.3·산출물밀도
 **됐다 (v0.3):** 트리거 4종(annotation·isolation·transition·stuck), 주석 품질 3종 휴리스틱, isolation 의 역방향·무흔적 판정, transition 의 탭복귀·180초, 쿨다운, 후~ 소멸 애니메이션, 확장 빌드 반영.
 
 **한계 / 다음:**
-- **isolation_seam 의 friction 조건이 아직 빠짐** — v0.3 은 행동 조건(enter_count≥3, reverse_rate≥0.5, 무흔적)만. "friction 상위 20%" 는 단계3(마찰 계수)이 서면 결합 예정. 그래야 "오래 머물렀다"까지 묶여 정밀해진다.
+- ~~isolation_seam 의 friction 조건이 아직 빠짐~~ → ✅ **결합됨** (2026-06-08): isolation = 행동 조건(enter_count≥3·reverse_rate≥0.5·무흔적) **AND friction 상위20%**. candle.js 가 `refineExport(buildSessionExport())` 로 friction_high 단락을 2초 캐시(`frictionHighSet`)해 판정. friction 을 못 구하면(세션 초기 등) `frictionOk` 가 통과시켜 행동 조건만으로 폴백 — 데모 안 깨짐. 디버그: `__layer2Candle.frictionHigh()`.
 - **숫자는 전부 추정값** — `stuck` 45초, isolation 임계(3·0.5), transition(180s·3s 탭), 품질 가중치 0.4/0.3/0.3·임계 0.55. 실사용 로그로 튜닝 필요.
 - **`stuck` 은 friction 으로 대체 예정** — 절대 45초가 아니라 문서 내 percentile 로 (2.5.5 마찰 계수).
 - **paraTraces 는 세션 한정** — 새 소스 로드 시 초기화. 다중 세션 흔적은 영속화 안 됨 (Phase 3).
