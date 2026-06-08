@@ -1348,11 +1348,70 @@ ol.para-list .para-item {
   font-size: 12px;
 }
 
+/* C — board "내 말 요약" panel (summary.js) */
+.board-summary {
+  max-width: 640px;
+  margin: 0 0 24px 0;
+  padding: 14px 16px;
+  background: #fff;
+  border: 1px solid var(--line, #e6e1d4);
+  border-radius: 12px;
+  box-shadow: var(--shadow-soft);
+}
+.board-summary-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.board-summary-title {
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text, #1a1a1a);
+}
+.board-summary-gen {
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  border: 1px solid var(--accent, #2d5e4c);
+  background: #fff;
+  color: var(--accent, #2d5e4c);
+}
+.board-summary-gen:hover { background: #eef3ef; }
+.board-summary-text {
+  width: 100%;
+  min-height: 92px;
+  resize: vertical;
+  border: 1px solid var(--line, #e6e1d4);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-family: "Noto Serif KR", serif;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text, #1a1a1a);
+  background: var(--paper-edge, #faf8f3);
+  outline: none;
+  box-sizing: border-box;
+}
+.board-summary-text:focus { border-color: var(--accent, #2d5e4c); }
+.board-summary-status {
+  font-size: 11px;
+  color: var(--muted, #6b6b6b);
+  margin-top: 4px;
+  min-height: 14px;
+}
+
 @media (prefers-color-scheme: dark) {
   .board-trace { background: #2a2622; color: #ece7df; border-color: #3a352e; }
   .board-trace--annotation { background: #3a2c1e; }
   .board-cloze { background: #2a2622; color: #ece7df; border-color: #3a352e; }
   .board-recall-btn { background: #2e2640; color: #d9c8f0; border-color: #4a3d6a; }
+  .board-summary { background: #232019; border-color: #3a352e; }
+  .board-summary-text { background: #2a2622; color: #ece7df; border-color: #3a352e; }
 }
 
 /* ===== AI 티키타카 — 촛불 대화 버튼 + 채팅 패널 (chat.js) ===== */

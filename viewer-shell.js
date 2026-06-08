@@ -9,6 +9,7 @@ import { renderIcons } from "./icons.js";
 import { refineExport } from "./interpret.js";
 import { buildSessionExport } from "./sidebar.js";
 import { sentenceContaining } from "./recall.js";
+import { mountSummary, unmountSummary } from "./summary.js";
 
 const GUTTER = 64; // px gap between book columns
 
@@ -94,8 +95,10 @@ function setMode(m) {
   if (mode === "board") {
     document.body.classList.remove("drawer-open");
     renderBoardCards();
+    mountSummary(readerEl.querySelector(".article"));
   } else {
     clearBoardCards();
+    unmountSummary();
   }
   spread = 0;
   relayoutViewer();

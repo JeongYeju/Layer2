@@ -21,7 +21,10 @@
   - `viewer-shell.js` `renderBoardCards()`: 밑줄 있는 단락 board-card 에 "🧠 회상 N" 버튼 → 클릭 시 그 단락 밑줄을 인플레이스 cloze(문장 빈칸 + 정답 보기 + 자가평가)로 펼침. `recall.js` `sentenceContaining` export 해서 재사용. `recall_attempt` 신호(mode: `board_cloze`)로 B v1 과 같은 계약.
   - 부수 수정: 보드 live refresh 에서 dwell/reread 제외(열린 cloze 가 재렌더로 사라지던 것 + R-2 과다렌더). 펼친 카드 z-index 상향(다음 카드와 겹쳐 클릭 가로채던 것).
   - 검증: `tests/board-recall.spec.js` (헤드풀 2 pass) — 버튼·cloze·정답·자가평가·토글.
-- [ ] **C — 보드 편집형 "내 말 요약"** — 티키타카+주석 모아 LLM 초안(`interpret.js chatLLM`) → 보드에서 편집·`localStorage` 저장(소스별). 기획서의 "티키타카 결과가 시맨틱뷰에" 충족.
+- [x] **C — 보드 편집형 "내 말 요약"** ✅ (2026-06-08, 로컬 세션)
+  - `summary.js`: 보드 모드 상단에 "📝 내 말 요약" 패널. "초안 만들기" → 세션의 주석·밑줄·티키타카(refineExport)를 모아 `chatLLM` 로 1인칭 요약 초안. 키 없으면 흔적 나열 폴백(데모 안 깨짐). textarea 편집은 `localStorage.layer2.summary.<source_id>` 에 소스별 자동저장 → 다음에 보드 열면 이어서 고침. `summary_draft` 신호.
+  - viewer-shell `setMode("board")` 가 mount, 나갈 때 unmount.
+  - 검증: `tests/board-summary.spec.js` (헤드풀 pass) — 폴백 초안·편집·소스별 영속.
 - [ ] (보류 합의) 재독 디프(소스별 지난 세션 비교) · 간격 회상 · DB(Vercel/Neon)
 - [ ] (선택) 마찰→촛불 트리거 연결 (지금 촛불은 행동 임계만, friction 미연결)
 
