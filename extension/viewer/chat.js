@@ -102,9 +102,36 @@ function openFor(req) {
     reason: req.reason,
   });
   // 촛불이 먼저 건넨 한 마디로 대화를 연다 (화면에만, 대화 히스토리엔 미포함 —
-  // 첫 LLM 메시지는 user 여야 하므로).
-  addBubble("assistant", req.line || "이 부분, 같이 볼까?");
+  // 첫 LLM 메시지는 user 여야 하므로). 키가 있으면 단락에 맞춘 첫 질문으로 교체.
+  const opener = addBubble("assistant", req.line || "이 부분, 같이 볼까?");
+  maybeUpgradeOpener(opener, req);
   inputEl.focus();
+}
+
+// API 키가 있으면 정적 멘트를 단락·Seam 에 맞춘 LLM 첫 질문으로 슬쩍 교체한다.
+// 키가 없거나 실패하면 정적 멘트 그대로 (데모에서도 항상 무언가 떠 있게).
+async function maybeUpgradeOpener(bubble, req) {
+  const { provider, apiKey } = creds();
+  if (!apiKey || !req.para_text) return;
+  try {
+    const system =
+      SYSTEM +
+      "\n\n[상황] " +
+      (REASON_TONE[req.reason] || REASON_TONE.manual) +
+      "\n[독자가 보던 단락]\n" +
+      req.para_text +
+      "\n\n위 단락과 상황에 딱 맞는, 독자에게 건넬 짧은 첫 마디(질문형 1문장)만 출력하세요.";
+    const reply = await chatLLM({
+      provider,
+      apiKey,
+      system,
+      messages: [{ role: "user", content: "첫 마디만 건네줘." }],
+    });
+    const clean = (reply || "").trim();
+    if (clean && bubble.isConnected) bubble.textContent = clean;
+  } catch {
+    /* keep the static opener */
+  }
 }
 
 function close() {
