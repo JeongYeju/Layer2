@@ -21,6 +21,14 @@
 - 대화를 `chat_opened`/`chat_turn` 신호로 기록 → interpret 이 단락별 집계 → **ICAP 의 I(Interactive) 단계 완성** (촛불 대화 > 주석 > 표시 > 체류).
 - 이로써 내러티브 아교 3종(뷰어 전환 · 촛불 · 티키타카) 모두 1차 구현. 새 기능 문서 `docs/features/tikitaka.md`.
 
+### 다중 세션 + UI 폴리시 (후반)
+- **다중 세션 거시 리포트** (`sessions.js`) — session_end 마다 friction/ICAP 요약을 `localStorage` 누적 → 대시보드 "다중 세션": 시간대별 인지 리듬 막대 · 마찰 추이 스파크라인 · 관심사 칩 · 세션 목록. DB 없이 단일 브라우저로. (`docs/features/multi-session.md`)
+- **보드 화이트보드** — 점 그리드 배경 + 카드로 떠 있는 블록(FigJam/AFFiNE 느낌). 좌측 컬러 보더는 "AI 카드" 클리셰라 제거 — friction 은 은은한 배경 워시, ICAP 은 우측 상태 칩으로만.
+- **레이어드 그림자** — `--shadow-soft`/`--shadow-lift` (Josh-Comeau-style 멀티 box-shadow, 따뜻한 톤). 보드 카드·트레이스·촛불 풍선에 적용.
+- **챗봇 폴리시** — 헤더 불꽃 아이콘 + 따뜻한 그라데이션, 타이핑 인디케이터(점 바운스), 첫 질문 맥락화(키 있으면 단락·Seam 으로 LLM 생성, 없으면 정적).
+- **촛불 폴리시** — Seam 별 멘트 확대 + 등장 오버슈트.
+- **엔드투엔드 검증** — headed Playwright 로 더미 시드(`__layer2Demo.seed/play/seedSessions`) → 보드 시맨틱·촛불·티키타카·다중세션 전 과정 스크린샷, pageerror 0. (QA 중 발견·수정: pagenav 안 숨겨짐 / 보드 사이드바 겹침 / 촛불이 reader overflow 에 가려 안 보이던 것 → fixed.)
+
 ### 빌드 스크립트 portable
 - `scripts/build-extension.sh` 의 CDN import 치환을 `sed -i` → `perl -i` 로 (BSD/macOS·GNU/Linux 양쪽 동작).
 
