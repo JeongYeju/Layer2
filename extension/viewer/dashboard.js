@@ -4,7 +4,7 @@
 import { signalBus, SignalLog } from "./signals.js";
 import { buildSessionExport } from "./sidebar.js";
 import { interpretSession } from "./interpret.js";
-import { loadSessions, summarizeMacro } from "./sessions.js";
+import { loadSessions, summarizeMacro, effortOf } from "./sessions.js";
 
 const stats = {
   dwellCount: 0,
@@ -86,6 +86,10 @@ export function renderDashboard(rootEl) {
 }
 
 function onSignal(sig) {
+  // Only the cases below change the metric panels. High-frequency signals
+  // (mouse_trail ~8/s, scroll) must NOT trigger a full innerHTML rebuild, or
+  // the panel churns/flickers continuously while the mouse moves.
+  let statsChanged = true;
   switch (sig.type) {
     case "dwell":
       stats.dwellCount++;
@@ -121,11 +125,14 @@ function onSignal(sig) {
     case "session_end":
       // sessions.js saves the summary on the same event; re-render shortly after.
       setTimeout(renderSessions, 30);
+      statsChanged = false; // metrics unchanged — only the sessions panel.
       break;
+    default:
+      statsChanged = false; // mouse_trail, scroll, candle_*, chat_*, etc.
   }
 
   if (TIMELINE_TYPES.has(sig.type)) appendChip(sig);
-  paint();
+  if (statsChanged) paint();
 }
 
 // ===== Multi-session macro report =====
@@ -143,7 +150,7 @@ function renderSessions() {
   );
   parts.push(`<div class="interp-subhead">시간대별 인지 리듬</div>`);
   parts.push(hourBuckets(m.byHour));
-  parts.push(`<div class="interp-subhead">마찰 추이 (세션 순)</div>`);
+  parts.push(`<div class="interp-subhead">마찰량 추이 (세션 순)</div>`);
   parts.push(sparkline(m.trend.map((x) => x.mean)));
   parts.push(`<div class="interp-subhead">관심사</div>`);
   parts.push(
@@ -161,7 +168,7 @@ function renderSessions() {
       .map(
         (s) => `<li>
         <div class="interp-finding-text">${escapeHtml(s.source_title)}</div>
-        <div class="interp-finding-why">${s.hour}시 · ${Math.round((s.duration_ms || 0) / 60000)}분 · 마찰 ${s.friction?.mean ?? 0} · I${s.icap?.I || 0}·C${s.icap?.C || 0}·A${s.icap?.A || 0}·P${s.icap?.P || 0}</div>
+        <div class="interp-finding-why">${s.hour}시 · ${Math.round((s.duration_ms || 0) / 60000)}분 · 마찰량 ${Math.round(effortOf(s) * 100)}% · I${s.icap?.I || 0}·C${s.icap?.C || 0}·A${s.icap?.A || 0}·P${s.icap?.P || 0}</div>
       </li>`,
       )
       .join("")}</ul>`,
@@ -194,7 +201,7 @@ function hourBuckets(byHour) {
     .map(
       (r) => `<div class="sess-bar-row">
       <span class="sess-bar-label">${r.label}</span>
-      <span class="sess-bar-track"><span class="sess-bar-fill" style="width:${Math.round((r.count / maxCount) * 100)}%;opacity:${(0.35 + Math.min(1, r.avg / 2) * 0.65).toFixed(2)}"></span></span>
+      <span class="sess-bar-track"><span class="sess-bar-fill" style="width:${Math.round((r.count / maxCount) * 100)}%;opacity:${(0.35 + Math.min(1, r.avg) * 0.65).toFixed(2)}"></span></span>
       <span class="sess-bar-val">${r.count}</span>
     </div>`,
     )
@@ -462,7 +469,12 @@ function frictionSection(refined) {
     .map((p) => {
       const icap = p.icap_mode || "P";
       const load = p.load_tag || "";
-      const pctTxt = p.friction_pct != null ? `${Math.round(p.friction_pct * 100)}%ile` : "";
+      // friction 값은 문서 내 z-score(상대값) — 절대 난이도가 아니라 "이 글
+      // 안에서 어디를 더 붙잡았나". 그래서 원시 점수 대신 글 내 순위(상위 N%)로 표기.
+      const rankTxt =
+        p.friction_pct != null
+          ? `이 글 상위 ${Math.max(1, Math.round((1 - p.friction_pct) * 100))}%`
+          : "";
       const badges = [
         `<span class="friction-badge icap-${icap.toLowerCase()}" title="ICAP engagement">${icap}</span>`,
         load ? `<span class="friction-badge load-${escapeHtml(load)}" title="cognitive load">${escapeHtml(load)}</span>` : "",
@@ -470,12 +482,12 @@ function frictionSection(refined) {
       ].join("");
       return `<li data-pid="${escapeHtml(p.id)}">
         <div class="interp-finding-text">${escapeHtml(p.text_preview || "")}</div>
-        <div class="interp-finding-why">마찰 ${p.friction.toFixed(1)} · ${pctTxt} ${badges}</div>
+        <div class="interp-finding-why">${rankTxt} ${badges}</div>
         <span class="interp-pid">${escapeHtml(p.id)} ↗</span>
       </li>`;
     })
     .join("");
-  return `<div class="interp-subhead">단락별 인지 상태 (마찰 계수)</div><ul class="interp-findings">${lis}</ul>`;
+  return `<div class="interp-subhead">단락별 마찰 — 이 글에서 상대적으로 더 붙잡은 곳</div><ul class="interp-findings">${lis}</ul>`;
 }
 
 function metaLine(result) {

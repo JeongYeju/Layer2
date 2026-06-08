@@ -12,6 +12,7 @@
 // reader.js, and signal-collector wiring lives in app.js.
 
 import { sampleSource } from "./sources/sample.js";
+import { surfaceTensionSource } from "./sources/surface-tension.js";
 import {
   markdownSourceFromFile,
   markdownSource,
@@ -128,6 +129,7 @@ function build() {
       <input type="url" id="src-url" placeholder="기사 URL (https://…)" />
       <button class="src-button" id="src-url-go" type="button">URL에서 불러오기</button>
       <button class="src-button" id="src-sample" type="button">샘플 글 다시 열기</button>
+      <button class="src-button" id="src-demo-doc" type="button">데모 글 — 표면장력</button>
       <div class="src-status" id="src-status"></div>
     </div>
 
@@ -182,6 +184,10 @@ function build() {
 
   rootEl.querySelector("#src-sample").addEventListener("click", () => {
     pushAndSelect(sampleSource(), "샘플 글");
+  });
+
+  rootEl.querySelector("#src-demo-doc").addEventListener("click", () => {
+    pushAndSelect(surfaceTensionSource(), "데모 글");
   });
 
   renderList();
