@@ -46,7 +46,7 @@
   - 발표 슬라이드: `~/Desktop/wrks/한예종/26-1/인터랙션디자인융합/Layer 2 class/Layer 2 0602.pdf`
 
 ### 핵심 프레임워크 (제미나이 디벨롭 + 2026-06-02 문헌 리뷰에서 확정)
-문헌 근거: Grusky 2017(viewport attention) · Luo 2017(height-effort) · Chi&Wylie 2014(ICAP) · Mason 2024·Zhang 2025(주석 품질) · D'Mello 2017·Qlarify 2024·Hefter 2023(개입 타이밍). 상세는 `Private/Layer2_제미나이_디벨롭_2026-06-02.md` §9~§14.
+문헌 근거(검증·가공 내역: `docs/theory-base.md`): Grusky 2017(viewport attention) · Brady et al. 2018(스크롤↔이해; 구 "Luo 2017" 오귀속 정정) · Chi&Wylie 2014(ICAP) · Mason 2024·Zhang 2025(주석 품질) · D'Mello et al. 2014·Qlarify(Fok 2024)·Hefter 2023(개입 타이밍). ※ 원 출처 `Private/Layer2_제미나이_디벨롭_2026-06-02.md` §9~§14 는 레포 밖(gitignore) — 검증본은 `docs/theory-base.md`.
 - **해석 레이어 — 마찰 계수** — `interpret.js` 가 LLM 호출 *전* 에 단락별 behavioral state object 산출. raw dwell 아니라 **visibility-weighted attention** + 회귀 프록시(return_effort/reverseRate). `friction_i = z-score 합`, 임계는 **문서 내 percentile(상위 20%)** — 절대 초 단위 아님. ICAP 태깅(P<A<C<I) 으로 germane vs extraneous 분리.
 - **촛불 Seam 타겟팅** — 비선형 개입 3 지점: ① annotation_seam(주석 직후, Active→Constructive 승격) / ② isolation_seam(friction 상위20% + 산출물 없음) / ③ transition_seam(섹션 종료·세션 복귀). Hefter — 지각된 interruption 수가 학습 저하 → 빈도 보수적.
 - **주석 품질 = 행동 휴리스틱** (실시간 AI X / UI 라벨 X). 선택 범위 비율 + 전이 시간 + 산출물 밀도 3종으로 Constructive 판별. 데이터는 `highlight_annotation` 페이로드(char_range/transition_t/annotation_text/total_duration_ms)에 *이미 있음*. 고품질만 세션 끝 batch AI (Lazy Evaluation).
