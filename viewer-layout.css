@@ -280,6 +280,23 @@ body {
 .menu-item:hover {
   background: var(--paper-edge);
 }
+/* Presenter demo button — accent so it's easy to find mid-talk. */
+.demo-btn {
+  color: var(--ink);
+  font-weight: 600;
+}
+.demo-btn:hover {
+  background: var(--ink);
+  color: #fff;
+}
+.demo-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.demo-btn:disabled:hover {
+  background: none;
+  color: var(--ink);
+}
 .nav-arrows {
   display: flex;
   gap: 2px;

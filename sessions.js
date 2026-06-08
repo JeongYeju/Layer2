@@ -112,7 +112,7 @@ function nowMs() {
 
 // 세션의 절대 마찰 지표(0~1). effort_frac 가 있으면 그걸, 없으면(구버전/시드)
 // high/paragraphs 로 보정. friction.mean 은 ~0 이라 절대 쓰지 않는다.
-function effortOf(s) {
+export function effortOf(s) {
   if (typeof s.friction?.effort_frac === "number") return s.friction.effort_frac;
   const n = s.paragraphs || 0;
   return n ? (s.friction?.high || 0) / n : 0;
