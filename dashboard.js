@@ -86,6 +86,10 @@ export function renderDashboard(rootEl) {
 }
 
 function onSignal(sig) {
+  // Only the cases below change the metric panels. High-frequency signals
+  // (mouse_trail ~8/s, scroll) must NOT trigger a full innerHTML rebuild, or
+  // the panel churns/flickers continuously while the mouse moves.
+  let statsChanged = true;
   switch (sig.type) {
     case "dwell":
       stats.dwellCount++;
@@ -121,11 +125,14 @@ function onSignal(sig) {
     case "session_end":
       // sessions.js saves the summary on the same event; re-render shortly after.
       setTimeout(renderSessions, 30);
+      statsChanged = false; // metrics unchanged — only the sessions panel.
       break;
+    default:
+      statsChanged = false; // mouse_trail, scroll, candle_*, chat_*, etc.
   }
 
   if (TIMELINE_TYPES.has(sig.type)) appendChip(sig);
-  paint();
+  if (statsChanged) paint();
 }
 
 // ===== Multi-session macro report =====
@@ -194,7 +201,7 @@ function hourBuckets(byHour) {
     .map(
       (r) => `<div class="sess-bar-row">
       <span class="sess-bar-label">${r.label}</span>
-      <span class="sess-bar-track"><span class="sess-bar-fill" style="width:${Math.round((r.count / maxCount) * 100)}%;opacity:${(0.35 + Math.min(1, r.avg / 2) * 0.65).toFixed(2)}"></span></span>
+      <span class="sess-bar-track"><span class="sess-bar-fill" style="width:${Math.round((r.count / maxCount) * 100)}%;opacity:${(0.35 + Math.min(1, r.avg) * 0.65).toFixed(2)}"></span></span>
       <span class="sess-bar-val">${r.count}</span>
     </div>`,
     )

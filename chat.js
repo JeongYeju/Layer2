@@ -190,6 +190,7 @@ async function send() {
       reason: ctx?.reason,
     });
   } catch (err) {
+    typing.classList.remove("chat-typing"); // else the error text renders as bouncing dots
     typing.textContent = "대화 실패: " + (err?.message || err);
   } finally {
     sendBtn.disabled = false;
