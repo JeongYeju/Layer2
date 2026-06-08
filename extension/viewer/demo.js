@@ -14,7 +14,42 @@ let readerEl = null;
 
 export function initDemo(opts) {
   readerEl = opts.readerEl;
-  window.__layer2Demo = { seed, play, clear, roleFor, seedSessions };
+  window.__layer2Demo = { seed, play, runDemo, clear, roleFor, seedSessions };
+  wireDemoButtons();
+}
+
+// Presenter button (#demo-run): replay a reading session over the loaded
+// article so the annotation/isolation signals reach candle.js and a candle
+// lights up — no DevTools needed. Re-entrancy guarded; #demo-reset reloads.
+let _demoRunning = false;
+async function runDemo() {
+  if (_demoRunning) return 0;
+  if (!paras().length) {
+    console.warn("[demo] 로드된 글이 없습니다 — 먼저 글을 여세요.");
+    return 0;
+  }
+  _demoRunning = true;
+  const btn = document.getElementById("demo-run");
+  const orig = btn ? btn.innerHTML : null;
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = "재생 중…";
+  }
+  try {
+    await play();
+  } finally {
+    _demoRunning = false;
+    if (btn) {
+      btn.disabled = false;
+      if (orig != null) btn.innerHTML = orig;
+    }
+  }
+  return 1;
+}
+
+function wireDemoButtons() {
+  document.getElementById("demo-run")?.addEventListener("click", runDemo);
+  document.getElementById("demo-reset")?.addEventListener("click", clear);
 }
 
 // Seed several past sessions across different times of day / topics so the

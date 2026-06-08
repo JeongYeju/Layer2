@@ -19,6 +19,15 @@ export function setGesturesEnabled(v) {
   _gesturesEnabled = v;
 }
 
+// Clear persistent circle-gesture marks when the source changes. Without this
+// the detached <div>s leak, and—because paragraph ids are regenerated per
+// source (p0, p1, …)—a stale wordKey can spuriously dedup a legitimate new
+// circle on the next document.
+export function resetPersistentMarks() {
+  for (const m of _persistentMarks) m.element?.remove();
+  _persistentMarks.length = 0;
+}
+
 export function pushSignal(sig) {
   const enriched = { t: performance.now(), ...sig };
   SignalLog.push(enriched);

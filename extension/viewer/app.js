@@ -8,7 +8,7 @@
 import { renderReader } from "./reader.js";
 import { initHighlight } from "./highlight.js";
 import { initSidebar } from "./sidebar.js";
-import { initBaselineCollectors } from "./signals.js";
+import { initBaselineCollectors, resetPersistentMarks } from "./signals.js";
 import { initAttention, wakeReading } from "./attention.js";
 import { renderDashboard } from "./dashboard.js";
 import { initPortal } from "./portal.js";
@@ -43,6 +43,7 @@ function setSource(source) {
   currentSource = source;
   renderReader(reader, source);
   initBaselineCollectors({ readerEl: reader }); // rebinds dwell to new paragraphs
+  resetPersistentMarks(); // drop circle-gesture marks from the previous source
   resetCandle();
   wakeReading();
   // Spread pagination depends on the rendered DOM + final font metrics.
