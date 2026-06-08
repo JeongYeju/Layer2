@@ -57,7 +57,7 @@
 
 차별화 노선: Readwise = "유창한 deep flow 진입". Layer 2 = **다회독 시 인지적 마찰 감소 + 메타인지 리포트**.
 
-문헌 근거 확보(2026-06-02 W1 완료): Grusky(viewport attention) / Luo(height-effort) / Chi&Wylie(ICAP) / Mason·Zhang(주석 품질) / D'Mello·Qlarify·Hefter(개입 타이밍) 등 16+편. 절대 초 단위 임계 대신 **문서 내 percentile + z-score 상대량 + explicit signal 결합** 이 설계 원칙.
+문헌 근거 확보(2026-06-02 W1 완료; 검증본 `docs/theory-base.md`): Grusky 2017(viewport attention) / Brady et al. 2018(스크롤↔이해; 구 "Luo 2017" 정정) / Chi&Wylie 2014(ICAP) / Mason·Zhang(주석 품질) / D'Mello et al. 2014·Qlarify·Hefter(개입 타이밍) 등 16+편. 절대 초 단위 임계 대신 **문서 내 percentile + z-score 상대량 + explicit signal 결합** 이 설계 원칙.
 
 ### 빌드 진행 상태 (2026-06-03 PDF 명세 대조)
 2026-06-03 발표 PDF 2종이 빌드 가능한 기술 명세를 확정. 현재 코드 vs 명세 갭:

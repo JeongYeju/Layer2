@@ -2,8 +2,10 @@
 //
 // 내러티브 아교의 마지막 조각: 촛불이 "질문 던지고 끝"이 아니라, 클릭하면
 // 옆에서 *왕복 대화*가 시작된다. 촛불이 뜬 단락과 그 Seam(annotation/isolation/
-// transition)을 컨텍스트(Anchor)로 받아, 독자 스스로 생각하게 돕는 소크라테스식
-// 대화. LLM 호출은 interpret.js 의 chatLLM 재사용, API 키는 대시보드와 같은
+// transition)을 컨텍스트(Anchor)로 받아, 직접 답을 주기보다 질문으로 독자가
+// 스스로 답을 떠올리게 돕는(자기설명 유도) 대화. ("소크라테스식"이라는 표현은
+// 특정 논문 근거가 아닌 일반 용어였음 — docs/theory-base.md 참조.)
+// LLM 호출은 interpret.js 의 chatLLM 재사용, API 키는 대시보드와 같은
 // localStorage(layer2.llm.*)를 공유.
 //
 // 트리거: candle.js 가 촛불 풍선의 "대화" 버튼에서 `candle_chat_request` 발화
@@ -26,7 +28,7 @@ const CANDLE_ICO = `
 
 const SYSTEM =
   "당신은 '촛불' — 독서 중 곁에서 돕는 따뜻한 AI 동반자입니다. " +
-  "짧고 담백하게(2~4문장), 소크라테스식으로 독자가 스스로 생각하도록 돕습니다. " +
+  "짧고 담백하게(2~4문장), 직접 답을 주기보다 질문으로 독자가 스스로 답을 떠올리도록 돕습니다. " +
   "장황한 설명이나 과장은 피하고, 한국어로 대화하세요.";
 
 const REASON_TONE = {

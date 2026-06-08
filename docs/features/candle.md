@@ -109,8 +109,8 @@ quality = 0.4·선택범위비율 + 0.3·전이시간 + 0.3·산출물밀도
 
 - **캐릭터로 의인화** — 2026-05-27 회의. 추상 프로토콜을 "보이는 한 마디"로 번역. 촛불 = "지식에 등불, 사라질 때 후~".
 - **Seam(경계면)에서만 개입** — 디벨롭 §13 + 문헌. 읽기 관성을 꺾지 않는 세 지점:
-  - annotation_seam ← **Qlarify (Fok 2024)** — 하이라이트 직후 one-click 질문이 탐색을 깊게 함.
-  - isolation/transition ← **D'Mello 2017** (상태 관측 시점 개입), **Hefter 2023** (interruption 최소화).
+  - annotation_seam ← **Qlarify (Fok et al. 2024, UIST)** — "읽던 자리에서의 가벼운 in-context 질의" *정신만 차용* (원 논문은 확장형 초록이지 하이라이트 후 질문이 아님 → `docs/theory-base.md` 참조).
+  - isolation/transition ← **D'Mello et al. 2014** (혼란=인지 불균형, 적시 개입), **Hefter 2023** (interruption 최소화).
 - **주석 품질 = 행동 휴리스틱** (G-7). 두 대안을 *기각*하고 택한 것:
   - ❌ 실시간 Ollama 분류 — latency 로 개입 타이밍을 놓치고, "ㅋㅋ" 에도 추론이 돌아 낭비.
   - ❌ UI 중요도 라벨/펜 색 — 독자에게 "빨간펜? 1순위?" 고민을 전가 → extraneous load 증가, 독서를 데이터 라벨링으로 변질.
