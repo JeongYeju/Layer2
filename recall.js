@@ -105,8 +105,10 @@ function buildCards(exp) {
   return out;
 }
 
-function sentenceContaining(text, needle) {
-  const parts = text.split(/(?<=[.!?。])\s+/);
+// Exported so other views (e.g. board mode's inline recall) can reuse the same
+// sentence-extraction without re-deriving grapheme indices.
+export function sentenceContaining(text, needle) {
+  const parts = String(text || "").split(/(?<=[.!?。])\s+/);
   for (const s of parts) if (s.includes(needle)) return s.trim();
   return null;
 }

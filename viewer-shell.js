@@ -8,6 +8,7 @@ import { pushSignal, signalBus } from "./signals.js";
 import { renderIcons } from "./icons.js";
 import { refineExport } from "./interpret.js";
 import { buildSessionExport } from "./sidebar.js";
+import { sentenceContaining } from "./recall.js";
 
 const GUTTER = 64; // px gap between book columns
 
@@ -166,13 +167,91 @@ function collectTraces(para) {
   return out;
 }
 
+// Underline texts per paragraph (from the live digest) — feeds B v1.1 recall.
+function highlightsByPid() {
+  const map = new Map();
+  const digest = liveDigest() || window.__lastInterpretation?.refined;
+  for (const h of digest?.highlights || []) {
+    const t = (h.text || "").trim();
+    if (t.length < 2) continue;
+    if (!map.has(h.paragraph_id)) map.set(h.paragraph_id, []);
+    const arr = map.get(h.paragraph_id);
+    if (!arr.includes(t)) arr.push(t);
+  }
+  return map;
+}
+
+// Paragraph body text only (grapheme spans), excluding any appended board cards.
+function paraText(para) {
+  return [...para.querySelectorAll("[data-char-index]")]
+    .map((s) => s.textContent)
+    .join("");
+}
+
+// B v1.1 — turn this paragraph's underlines into inline cloze cards inside the
+// board card (active retrieval). Reuses recall.js sentenceContaining + the
+// recall_attempt signal contract, so it shares B v1's theory base.
+function toggleRecall(card, pid, underlines, bodyText, btn) {
+  const existing = card.querySelector(".board-recall-zone");
+  if (existing) {
+    existing.remove();
+    btn.classList.remove("is-on");
+    card.style.removeProperty("z-index");
+    return;
+  }
+  btn.classList.add("is-on");
+  // The card grows downward and is position:absolute, so lift it above the
+  // following paragraphs' cards (otherwise their chips intercept clicks).
+  card.style.zIndex = "12";
+  const zone = document.createElement("div");
+  zone.className = "board-recall-zone";
+  for (const ans of underlines) {
+    const sent = sentenceContaining(bodyText, ans) || bodyText;
+    const cl = document.createElement("div");
+    cl.className = "board-cloze";
+    cl.innerHTML = `
+      <div class="board-cloze-q">${escapeHtml(sent).replace(
+        escapeHtml(ans),
+        `<span class="recall-blank">____</span>`,
+      )}</div>
+      <button type="button" class="board-cloze-show">정답 보기</button>`;
+    const show = cl.querySelector(".board-cloze-show");
+    show.addEventListener("click", () => {
+      cl.querySelector(".board-cloze-q").innerHTML = escapeHtml(sent).replace(
+        escapeHtml(ans),
+        `<b class="board-cloze-ans">${escapeHtml(ans)}</b>`,
+      );
+      show.outerHTML = `<span class="board-cloze-rate">기억났나요?
+        <button type="button" class="board-cloze-rate-btn" data-r="1">✅</button>
+        <button type="button" class="board-cloze-rate-btn" data-r="0">❌</button></span>`;
+      cl.querySelectorAll("button[data-r]").forEach((b) =>
+        b.addEventListener("click", () => {
+          pushSignal({
+            type: "recall_attempt",
+            paragraph_id: pid,
+            mode: "board_cloze",
+            self_correct: b.dataset.r === "1",
+            answer_len: 0,
+          });
+          cl.querySelector(".board-cloze-rate").textContent =
+            b.dataset.r === "1" ? "인출 성공 ✨" : "다시 보면 또렷해져요";
+        }),
+      );
+    });
+    zone.appendChild(cl);
+  }
+  card.appendChild(zone);
+}
+
 function renderBoardCards() {
   if (mode !== "board") return;
   clearBoardCards();
   const fr = frictionByPid();
+  const hl = highlightsByPid();
   for (const para of readerEl.querySelectorAll(".para[data-paragraph-id]")) {
     const pid = para.dataset.paragraphId;
     const f = fr.get(pid);
+    const underlines = hl.get(pid) || [];
 
     // Semantic styling: every paragraph gets a friction tone (background) and
     // an ICAP mode (left-border color), so the board reads as a state map.
@@ -197,6 +276,12 @@ function renderBoardCards() {
         `<div class="board-trace board-trace--${t.kind}">${escapeHtml(t.text)}</div>`,
       );
     }
+    // B v1.1 — underlined paragraphs get a recall button (active retrieval).
+    if (underlines.length) {
+      cards.push(
+        `<button type="button" class="board-recall-btn">🧠 회상 ${underlines.length}</button>`,
+      );
+    }
     if (!cards.length) {
       const dot = document.createElement("span");
       dot.className = "board-dot";
@@ -208,6 +293,14 @@ function renderBoardCards() {
     card.className = "board-card";
     card.innerHTML = cards.join("");
     para.appendChild(card);
+
+    const rb = card.querySelector(".board-recall-btn");
+    if (rb) {
+      const body = paraText(para);
+      rb.addEventListener("click", () =>
+        toggleRecall(card, pid, underlines, body, rb),
+      );
+    }
   }
 
   // Live refresh: re-render when a new trace or chat turn lands while in board.
@@ -216,13 +309,15 @@ function renderBoardCards() {
     signalBus.addEventListener("signal", (e) => {
       if (mode !== "board") return;
       const t = e.detail?.type;
+      // Only re-render on explicit-trace changes — NOT on dwell/reread, which
+      // fire several times a second (IntersectionObserver) and would wipe an
+      // open recall/cloze card mid-interaction. Friction tone updates on the
+      // next board entry. (Matches the R-2 over-render concern.)
       if (
         t === "highlight_annotation" ||
         t === "highlight_underline" ||
         t === "circle_gesture" ||
-        t === "chat_turn" ||
-        t === "dwell" ||
-        t === "reread"
+        t === "chat_turn"
       ) {
         clearTimeout(boardRenderTimer);
         boardRenderTimer = setTimeout(renderBoardCards, 250);

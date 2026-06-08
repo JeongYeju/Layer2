@@ -59,6 +59,8 @@
 
 **됐다 (v0.1):** 3-way 토글, 흔적 카드(밑줄·동그라미·주석), 실시간 갱신, 의미론적 접기(점), 마찰 색상 위계, localStorage 모드 영속, 확장 빌드 반영.
 
+**B v1.1 — 보드 회상(cloze):** 밑줄 있는 단락 카드에 "🧠 회상" 버튼 → 그 단락 밑줄을 인플레이스 cloze(문장 빈칸+정답+자가평가)로. `recall.js` `sentenceContaining` 재사용, `recall_attempt`(mode: board_cloze) 발화. 능동 인출=내재화(이론: docs/theory-base.md §B). 검증 `tests/board-recall.spec.js`. (live refresh 에서 dwell/reread 제외 — 열린 cloze 보존.)
+
 **한계 / 다음:**
 - **활성 단락 확대 미구현** — 디벨롭 §4의 "활성 블록만 펼치고 지나간 건 압축"은 아직 균일. 현재는 흔적 유무로만 접기.
 - ~~마찰 색상은 batch 후에만~~ → ✅ **실시간 시맨틱** (2026-06-03): 보드 진입 시 `refineExport(buildSessionExport())` 로 현재 SignalLog 에서 friction/ICAP 즉시 계산 → 문단마다 *마찰 배경 톤(은은) × ICAP 상태 칩*. (좌측 컬러 보더는 "AI가 만든 카드"처럼 보여서 제거 — 마킹은 배경/칩으로만.) 해석하기 없이도 시맨틱 뷰. (LLM 해석 결과가 있으면 폴백으로 사용.)

@@ -1288,9 +1288,71 @@ ol.para-list .para-item {
   font-size: 11px;
 }
 
+/* B v1.1 — inline recall (cloze) inside the board card */
+.board-recall-btn {
+  align-self: flex-start;
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 11px;
+  border-radius: 999px;
+  border: 1px solid #c9b8e0;
+  background: #f3edfa;
+  color: #5a3d86;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.board-recall-btn:hover { background: #e9ddf6; }
+.board-recall-btn.is-on { background: #7a4fb0; color: #fff; border-color: #7a4fb0; }
+
+.board-recall-zone { display: flex; flex-direction: column; gap: 8px; }
+.board-cloze {
+  background: var(--paper, #fff);
+  border: 1px solid var(--line, #e6e1d4);
+  border-radius: 8px;
+  padding: 9px 11px;
+  font-size: 12px;
+  line-height: 1.6;
+  box-shadow: var(--shadow-soft);
+}
+.board-cloze-q {
+  font-family: "Noto Serif KR", serif;
+  color: var(--text, #1a1a1a);
+  margin-bottom: 7px;
+}
+.recall-blank {
+  display: inline-block;
+  min-width: 40px;
+  border-bottom: 2px solid #7a4fb0;
+  color: transparent;
+  user-select: none;
+}
+.board-cloze-ans { color: #7a4fb0; font-weight: 700; border-bottom: 2px solid #7a4fb0; }
+.board-cloze-show {
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 11px;
+  padding: 3px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--line, #e6e1d4);
+  background: var(--paper-edge, #f0ebe0);
+  color: var(--text, #1a1a1a);
+  cursor: pointer;
+}
+.board-cloze-rate { font-size: 11px; color: var(--muted, #6b6b6b); display: inline-flex; gap: 5px; align-items: center; }
+.board-cloze-rate-btn {
+  border: 1px solid var(--line, #e6e1d4);
+  background: #fff;
+  border-radius: 6px;
+  padding: 2px 7px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
 @media (prefers-color-scheme: dark) {
   .board-trace { background: #2a2622; color: #ece7df; border-color: #3a352e; }
   .board-trace--annotation { background: #3a2c1e; }
+  .board-cloze { background: #2a2622; color: #ece7df; border-color: #3a352e; }
+  .board-recall-btn { background: #2e2640; color: #d9c8f0; border-color: #4a3d6a; }
 }
 
 /* ===== AI 티키타카 — 촛불 대화 버튼 + 채팅 패널 (chat.js) ===== */

@@ -17,9 +17,10 @@
 
 ## 2. 남은 일 (우선순위)
 
-- [ ] **B v1.1 — 보드(시맨틱뷰)에서 회상 카드 토글** *(다음 차례, 시작 안 함)*
-  - 보드 카드는 `viewer-shell.js` `renderBoardCards()` 가 `.board-card`/`.board-trace` 로 그림.
-  - 계획: 밑줄 있는 단락 카드에 "🧠 회상" 버튼 → 그 단락 밑줄을 인플레이스 cloze 로. `recall.js` 의 cloze 로직 재사용(셀렉터/문장추출 함수 export 하면 됨).
+- [x] **B v1.1 — 보드(시맨틱뷰)에서 회상 카드 토글** ✅ (2026-06-08, 로컬 세션)
+  - `viewer-shell.js` `renderBoardCards()`: 밑줄 있는 단락 board-card 에 "🧠 회상 N" 버튼 → 클릭 시 그 단락 밑줄을 인플레이스 cloze(문장 빈칸 + 정답 보기 + 자가평가)로 펼침. `recall.js` `sentenceContaining` export 해서 재사용. `recall_attempt` 신호(mode: `board_cloze`)로 B v1 과 같은 계약.
+  - 부수 수정: 보드 live refresh 에서 dwell/reread 제외(열린 cloze 가 재렌더로 사라지던 것 + R-2 과다렌더). 펼친 카드 z-index 상향(다음 카드와 겹쳐 클릭 가로채던 것).
+  - 검증: `tests/board-recall.spec.js` (헤드풀 2 pass) — 버튼·cloze·정답·자가평가·토글.
 - [ ] **C — 보드 편집형 "내 말 요약"** — 티키타카+주석 모아 LLM 초안(`interpret.js chatLLM`) → 보드에서 편집·`localStorage` 저장(소스별). 기획서의 "티키타카 결과가 시맨틱뷰에" 충족.
 - [ ] (보류 합의) 재독 디프(소스별 지난 세션 비교) · 간격 회상 · DB(Vercel/Neon)
 - [ ] (선택) 마찰→촛불 트리거 연결 (지금 촛불은 행동 임계만, friction 미연결)
