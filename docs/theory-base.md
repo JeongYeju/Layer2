@@ -97,3 +97,31 @@
 4. **파라미터 정직성**: annotationQuality 가중치/임계, friction z-score 결합은 **논문 수치가 아니라 추정값**임을 발표·문서에서 명확히("휴리스틱, 미보정").
 
 > 검증 방법: 2026-06-08 웹 검색으로 각 인용의 제목·저자·연도·게재처를 대조. 링크는 출판사/ERIC/arXiv 등 1차에 가까운 것을 우선 수록.
+
+---
+
+## §B. 내재화 피처 — 이론 근거 (2026-06-08 추가)
+
+### B-1. 회상 카드(`recall.js`)의 "부분만 빈칸" 결정
+- **결정** — 밑줄을 **부분만 빈칸(cloze)** 으로 만든다. "더 어렵게" 토글로 문맥을 가린 자유 회상 제공.
+- **근거**
+  - **연습 시험(practice testing) = 高유틸리티** (Dunlosky et al. 2013, PSPI). cloze는 인출을 강제하는 연습 시험의 한 형태.
+  - **생성 효과(generation effect)** — 직접 생성한 정보가 읽기만 한 것보다 더 잘 기억됨(Slamecka & Graf 1978, 효과크기 ~0.4). 빈칸 채우기 = 생성.
+  - **cued > free (단서가 부호화와 일치할 때)** — 우리 카드의 문장 문맥 = 읽을 때의 부호화 맥락이므로, 부분 빈칸(cued recall)이 문맥 없는 자유 회상보다 적합. 자유 회상은 더 어렵고(성공 시 더 오래가지만) 읽기-의미 내용에선 실패율이 높음 → 기본은 cued, 상향은 옵션.
+  - **바람직한 어려움(desirable difficulty, Bjork)** — "더 어렵게"(자유 회상)는 난이도 상향 선택지로 제공.
+- **출처**
+  - Dunlosky, J. et al. (2013). *Improving Students' Learning With Effective Learning Techniques.* PSPI 14(1). https://journals.sagepub.com/doi/abs/10.1177/1529100612453266
+  - Slamecka, N. J., & Graf, P. (1978). *The Generation Effect: Delineation of a Phenomenon.* JEP:HLM 4(6). https://www.semanticscholar.org/paper/The-Generation-Effect:-Delineation-of-a-Phenomenon-Slamecka-Graf/bfda02b547504f0ccac817f9076674a7c2c0c91b
+  - cued vs free recall (단서 일치 시 cued 우월): https://uwspace.uwaterloo.ca/bitstreams/77e652f3-97a2-4cb8-9fdc-7da7e0bd63a4/download
+
+### B-2. 핵심 프레이밍 — "저유틸리티 흔적 → 고유틸리티 행위"
+- Dunlosky 2013의 10기법 유틸리티: **高** = 연습 시험·분산 연습 / **中** = 정교화 질문·자기설명·인터리빙 / **低** = **하이라이트·밑줄·요약·재독**.
+- 즉 우리 앱이 수집하는 *밑줄·하이라이트·재독*은 그 자체론 **저유틸리티**. 제품의 이론적 가치 = 이 저유틸리티 흔적을 **연습 시험(회상 카드 B)·생성(내 말 요약 C)** 으로 **변환**하는 데 있음. (발표 논지로 사용 가능)
+
+### B-3. 내재화 피처 로드맵 (유틸리티 등급 기준)
+| 피처 | 기법 | 유틸리티 | 상태 |
+|---|---|---|---|
+| 회상 카드(cloze) | 연습 시험+생성 | 高 | ✅ B v1 |
+| 내 말 요약(보드 편집) | 생성+자기설명 | 高~中 | 예정(C) |
+| 정교화 질문("왜?") | 정교화 질문 | 中 | 촛불 일부 |
+| 간격 회상 | 분산 연습 | 高 | 보류(DB 필요) |

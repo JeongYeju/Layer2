@@ -575,3 +575,103 @@ body {
   background: var(--ink);
   color: #fff;
 }
+
+/* 회상 워크시트 (내재화 B) */
+.recall-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.recall-hard {
+  font-size: 12px;
+  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+.recall-card {
+  border: 1px solid var(--rule, #e6e1d6);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  background: #fff;
+}
+.recall-prompt {
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+.recall-prompt.recall-free {
+  color: var(--muted);
+  font-style: italic;
+}
+.recall-blank {
+  display: inline-block;
+  min-width: 56px;
+  border-bottom: 2px solid var(--ink);
+  color: transparent;
+  font-weight: 700;
+}
+.recall-row {
+  display: flex;
+  gap: 6px;
+}
+.recall-input {
+  flex: 1;
+  border: 1px solid var(--rule, #e6e1d6);
+  border-radius: 6px;
+  padding: 6px 8px;
+  font: inherit;
+  font-size: 13px;
+}
+.recall-input:disabled {
+  background: var(--paper, #fbf9f4);
+  color: var(--muted);
+}
+.recall-check {
+  border: 1px solid var(--ink);
+  background: var(--ink);
+  color: #fff;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font: inherit;
+  cursor: pointer;
+}
+.recall-check:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.recall-reveal {
+  margin-top: 8px;
+  font-size: 13px;
+}
+.recall-answer {
+  color: var(--text);
+}
+.recall-rate {
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.recall-rate button {
+  border: 1px solid var(--rule, #e6e1d6);
+  background: #fff;
+  border-radius: 999px;
+  padding: 3px 10px;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.recall-good {
+  color: #2e9e72;
+  font-weight: 600;
+}
+.recall-again {
+  color: var(--muted);
+}
