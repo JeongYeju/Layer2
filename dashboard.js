@@ -5,6 +5,7 @@ import { signalBus, SignalLog } from "./signals.js";
 import { buildSessionExport } from "./sidebar.js";
 import { interpretSession } from "./interpret.js";
 import { loadSessions, summarizeMacro, effortOf } from "./sessions.js";
+import { initRecall } from "./recall.js";
 
 const stats = {
   dwellCount: 0,
@@ -52,6 +53,9 @@ export function renderDashboard(rootEl) {
     </div>
     <input type="file" id="interp-file" accept="application/json,.json" hidden />
 
+    <h2>회상 워크시트</h2>
+    <div id="m-recall" class="recall"></div>
+
     <h2>Reading</h2>
     <div id="m-reading"></div>
 
@@ -75,6 +79,7 @@ export function renderDashboard(rootEl) {
   sessionsRoot = rootEl.querySelector("#m-sessions");
   wireInterpLoader(rootEl);
   wireInterpRunner(rootEl);
+  initRecall({ mountEl: rootEl.querySelector("#m-recall") });
 
   signalBus.addEventListener("signal", (e) => onSignal(e.detail));
 
