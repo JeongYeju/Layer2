@@ -148,6 +148,13 @@
   - 남은 일: 가중치·임계(0.4/0.3/0.3, 0.55) 실사용 튜닝 / 계산 로직을 interpret.js 로 이전(현재 candle.js 내) / batch AI 경로(④).
   - 데이터 준비도: `anchor_text` `transition_t` `textarea_appeared_t` `annotation_text` `total_duration_ms` 모두 `highlight_annotation` 페이로드에 이미 있음. 추가 수집 0.
 
+## 발표 / 핸드오프
+
+- [x] **브랜치 정리** (2026-06-09) — `claude/viewer-layout` = 단일 최신 통합 브랜치(기능 전체 + 코드리뷰 노트). `main` 도 동일 지점으로 fast-forward. 이후 작업은 viewer-layout 에서. (옛 병합 브랜치 삭제는 환경 권한상 보류 → github.com 에서 수동.)
+- [x] **Codex 브리프** (2026-06-09) — `docs/presentation/codex-brief.md`. 데모+발표 통합 스크립트용 재료(서비스·UX / 기술 11종 / 사고흐름·정직성 + 실제 화면 안무). 3축 균형 + 모듈식 길이 조절.
+- [ ] **통합 발표 스크립트 작성** — Codex 가 위 브리프로 비트 테이블(데모 동작↔멘트↔강조축) 산출. 길이(5/10/15분) 확정 후 리허설.
+- [ ] 데모 백업 플랜 검증 — 촛불 미점등 시 `데모 리셋` 재시도 / 보드·대시보드 정적 설명 경로.
+
 ## Phase 3 (인프라)
 
 - [ ] Vercel 배포 (Next.js 또는 static + serverless functions)
