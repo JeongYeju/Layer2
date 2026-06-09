@@ -482,6 +482,9 @@ function wireMenusAndDrawer() {
   const toggleDash = (e) => {
     e?.stopPropagation?.();
     dashboardEl?.classList.toggle("as-flyout");
+    // 패널을 열 때 멘탈맵을 새로 그린다 → 키 있으면 의미(임베딩) 엣지가 켜진다.
+    if (dashboardEl?.classList.contains("as-flyout"))
+      window.__layer2Report?.render?.();
   };
   recordsMenu?.addEventListener("click", toggleDash);
   document.addEventListener("click", (e) => {

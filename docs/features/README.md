@@ -30,7 +30,7 @@ Layer 2 의 자료는 세 층으로 나뉩니다. 가운데가 비어 있었습�
 | 보드 모드 (Board Mode) | [board-mode.md](board-mode.md) | v0.1 (1차 구현) | 텍스트 ↔ 보드. 흔적이 단락 우측으로 펼쳐지는 이원화 뷰어 |
 | AI 티키타카 (Dialogue) | [tikitaka.md](tikitaka.md) | v0.1 (1차 구현) | 촛불을 클릭하면 시작되는 소크라테스식 왕복 대화 |
 | 다중 세션 리포트 (Macro) | [multi-session.md](multi-session.md) | v0.1 (1차 구현) | 세션을 localStorage에 쌓아 만드는 시간대 리듬·마찰 추이·관심사 거시 리포트 |
-| 멘탈 모델 맵 (Micro) | [mental-model-map.md](mental-model-map.md) | v0.2 (엣지 추가) | 독서 1회의 메타인지 지형도 — 치열했던 곳·구성한 개념 + 개념이 겹치는 단락을 잇는 곡선 |
+| 멘탈 모델 맵 (Micro) | [mental-model-map.md](mental-model-map.md) | v0.3 (의미 엣지) | 독서 1회의 메타인지 지형도 — 구성한 개념 + 개념이 겹치는 단락을 잇는 곡선(어휘→의미 임베딩) |
 | _마찰 계수 (Friction)_ | _candle/board 안에서 사용_ | 산출 구현됨 | 단락별 인지 마찰을 행동 신호로 정량화 (interpret.js `computeFriction`) |
 
 (상태 표기: `설계 중` → `설계 완료` → `vN.x 1차 구현` → `안정화`)

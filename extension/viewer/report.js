@@ -21,8 +21,13 @@ const ICAP = {
 
 let hostEl = null;
 let timer = null;
-let _edges = []; // 마지막 build 의 개념 엣지 [{a,b,w,terms}]
+let _edges = []; // 마지막 build 의 개념 엣지 [{a,b,w,title}]
 let _ro = null; // ResizeObserver (숨김→보임 시 엣지 재측정)
+let _semantic = false; // 현재 _edges 가 의미(임베딩) 기반인가
+let _nodeTexts = []; // 노드별 원문(임베딩 입력)
+let _semTimer = null;
+let _semKey = ""; // 의미 엣지가 적용된 노드셋 시그니처(중복 호출 방지)
+const _embCache = new Map(); // text → embedding vector (재임베딩 방지)
 
 // ── 개념 엣지 (어휘 중첩) ──────────────────────────────────
 // LLM/임베딩 없이, 단락 흔적(주석·밑줄·본문)의 *내용 단어 중첩* 으로 개념이
@@ -92,6 +97,12 @@ function drawEdges() {
   const spine = hostEl.querySelector(".rp-spine");
   if (!spine) return;
   spine.querySelector(".rp-edges")?.remove();
+  const legend = hostEl.querySelector(".rp-edges-legend");
+  if (legend) {
+    legend.textContent = _edges.length
+      ? `곡선 = ${_semantic ? "의미가 가까운 단락 (임베딩)" : "개념이 겹치는 단락 (어휘 중첩)"} · ${_edges.length}`
+      : "";
+  }
   if (!_edges.length) return;
   const W = spine.clientWidth;
   const H = spine.scrollHeight;
@@ -119,7 +130,7 @@ function drawEdges() {
     path.setAttribute("stroke-width", (1 + s * 1.6).toFixed(2));
     path.style.opacity = (0.3 + s * 0.4).toFixed(2);
     const title = document.createElementNS(NS, "title");
-    title.textContent = `공유 개념: ${e.terms.join(", ")}`;
+    title.textContent = e.title || `공유 개념: ${(e.terms || []).join(", ")}`;
     path.appendChild(title);
     svg.appendChild(path);
   }
@@ -129,9 +140,130 @@ function drawEdges() {
 function scheduleEdges() {
   requestAnimationFrame(drawEdges);
   if (!_ro && typeof ResizeObserver !== "undefined" && hostEl) {
-    _ro = new ResizeObserver(() => requestAnimationFrame(drawEdges));
+    _ro = new ResizeObserver(() => {
+      requestAnimationFrame(drawEdges);
+      maybeSemantic();
+    });
     _ro.observe(hostEl);
   }
+}
+
+// ── 의미(임베딩) 엣지 — 키가 있으면 어휘 엣지를 *의미 유사*로 업그레이드 ──
+// 동의어·의역으로 이어진 개념(공유 단어 0)도 잡는다. gemini-embedding-001 코사인.
+// 비용 보호: 패널이 보일 때만 / 캐시(재임베딩 X) / 디바운스 / 노드셋 동일하면 skip.
+function llmCreds() {
+  return {
+    provider: localStorage.getItem("layer2.llm.provider") || "anthropic",
+    key: (localStorage.getItem("layer2.llm.key") || "").trim(),
+  };
+}
+
+function reportVisible() {
+  if (!hostEl) return false;
+  const r = hostEl.getBoundingClientRect();
+  return (
+    r.width > 4 && r.height > 4 && r.left < window.innerWidth - 8 && r.right > 8
+  );
+}
+
+function cosine(a, b) {
+  let d = 0,
+    na = 0,
+    nb = 0;
+  for (let i = 0; i < a.length; i++) {
+    d += a[i] * b[i];
+    na += a[i] * a[i];
+    nb += b[i] * b[i];
+  }
+  return na && nb ? d / Math.sqrt(na * nb) : 0;
+}
+
+async function embedTexts(texts, key) {
+  const need = [...new Set(texts.filter((t) => t && !_embCache.has(t)))];
+  if (need.length) {
+    const m = "gemini-embedding-001";
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${m}:batchEmbedContents`,
+      {
+        method: "POST",
+        headers: { "x-goog-api-key": key, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          requests: need.map((t) => ({
+            model: `models/${m}`,
+            content: { parts: [{ text: t.slice(0, 1000) }] },
+          })),
+        }),
+      },
+    );
+    if (!res.ok) throw new Error("embed HTTP " + res.status);
+    const j = await res.json();
+    (j.embeddings || []).forEach((e, i) => {
+      if (e && e.values) _embCache.set(need[i], e.values);
+    });
+  }
+  return texts.map((t) => _embCache.get(t) || null);
+}
+
+function computeEdgesSemantic(vecs) {
+  const n = vecs.length;
+  const pairs = [];
+  const sims = [];
+  for (let i = 0; i < n; i++)
+    for (let j = i + 1; j < n; j++) {
+      if (!vecs[i] || !vecs[j]) continue;
+      const s = cosine(vecs[i], vecs[j]);
+      pairs.push({ a: i, b: j, s });
+      sims.push(s);
+    }
+  if (!pairs.length) return [];
+  const mean = sims.reduce((x, y) => x + y, 0) / sims.length;
+  const sd =
+    Math.sqrt(sims.reduce((x, y) => x + (y - mean) ** 2, 0) / sims.length) || 0;
+  // 이 임베딩 모델은 baseline 코사인이 높음 → 절대 바닥 + 문서 내 상대(평균+0.3σ).
+  const thresh = Math.max(0.68, mean + 0.3 * sd);
+  const cand = pairs.filter((p) => p.s >= thresh).sort((x, y) => y.s - x.s);
+  const deg = new Array(n).fill(0);
+  const edges = [];
+  const cap = Math.min(cand.length, n + 4);
+  for (const p of cand) {
+    if (edges.length >= cap) break;
+    if (deg[p.a] >= 2 || deg[p.b] >= 2) continue;
+    edges.push({
+      a: p.a,
+      b: p.b,
+      w: p.s,
+      title: `의미 유사 ${Math.round(p.s * 100)}%`,
+    });
+    deg[p.a]++;
+    deg[p.b]++;
+  }
+  return edges;
+}
+
+function maybeSemantic() {
+  const { provider, key } = llmCreds();
+  if (provider !== "gemini" || !key) return; // 키 없으면 어휘 엣지 그대로
+  if (_nodeTexts.length < 2 || !reportVisible()) return;
+  const sig = _nodeTexts.join("¶");
+  if (sig === _semKey && _semantic) return; // 이미 이 노드셋으로 의미 엣지 적용됨
+  clearTimeout(_semTimer);
+  _semTimer = setTimeout(async () => {
+    if (!reportVisible()) return;
+    const texts = _nodeTexts.slice();
+    const sig2 = texts.join("¶");
+    try {
+      const vecs = await embedTexts(texts, key);
+      if (_nodeTexts.join("¶") !== sig2) return; // 그새 노드셋이 바뀌면 폐기
+      const sem = computeEdgesSemantic(vecs);
+      if (!sem.length) return; // 의미 엣지가 없으면 어휘 엣지 유지
+      _edges = sem;
+      _semantic = true;
+      _semKey = sig2;
+      drawEdges();
+    } catch {
+      /* 실패 시 어휘 엣지 유지 */
+    }
+  }, 1000);
 }
 
 export function initReport({ mountEl }) {
@@ -213,7 +345,8 @@ function render() {
   hostEl.querySelectorAll("[data-pid]").forEach((el) => {
     el.addEventListener("click", () => scrollToPara(el.dataset.pid));
   });
-  scheduleEdges(); // 노드 dot 실측 후 개념 엣지(호) 그리기
+  scheduleEdges(); // 어휘 엣지(즉시) 그리기
+  maybeSemantic(); // 키 있고 패널 보이면 의미(임베딩) 엣지로 업그레이드
 }
 
 function build(refined) {
@@ -262,7 +395,8 @@ function build(refined) {
 
   // ── 척추(spine) — 노드 + 훑은 구간 접기 ──
   const items = [];
-  const nodeTokens = []; // 노드별 내용 단어 집합 → 엣지 계산
+  const nodeTokens = []; // 노드별 내용 단어 집합 → 어휘 엣지
+  const nodeTexts = []; // 노드별 원문 → 의미(임베딩) 엣지
   let skim = 0;
   const flushSkim = () => {
     if (skim > 0) {
@@ -285,10 +419,13 @@ function build(refined) {
     for (const h of p.highlights || []) src += " " + h;
     if (!src.trim()) src = paraDomText(p.id).slice(0, 160);
     nodeTokens.push(contentTokens(src));
+    nodeTexts.push(src.trim());
     items.push(nodeHTML(p, ni));
   }
   flushSkim();
-  _edges = computeEdges(nodeTokens);
+  _edges = computeEdges(nodeTokens); // 즉시(무료) 어휘 엣지 — 키 있으면 곧 의미로 업그레이드
+  _nodeTexts = nodeTexts;
+  _semantic = false;
 
   return `
     <div class="rp-verdict">${esc(verdict)}</div>
@@ -297,7 +434,7 @@ function build(refined) {
       <div class="rp-stats">${chips || '<span class="rp-stat">아직 흔적 없음</span>'}</div>
     </div>
     <ol class="rp-spine">${items.join("")}</ol>
-    ${_edges.length ? `<div class="rp-edges-legend">곡선 = 개념이 겹치는 단락 (어휘 중첩, ${_edges.length})</div>` : ""}
+    ${nodeTexts.length >= 2 ? `<div class="rp-edges-legend"></div>` : ""}
     ${
       concepts.length
         ? `<div class="rp-concepts">
