@@ -1273,17 +1273,16 @@ ol.para-list .para-item {
   color: var(--text, #1a1a1a);
   box-shadow: var(--shadow-soft);
 }
+/* 흔적 카드 — 좌측 컬러 라인은 "AI가 만든 카드"처럼 보여 제거.
+   유형 구분은 카드 안의 라벨(✎/밑줄/◯)로만. */
 .board-trace--annotation {
-  border-left: 3px solid #e8833a;
-  background: #fdf3ea;
+  background: var(--paper, #fff);
 }
 .board-trace--underline {
-  border-left: 3px solid #d9362b;
   color: var(--muted, #6b6b6b);
   font-size: 11px;
 }
 .board-trace--circle {
-  border-left: 3px solid #5aa469;
   color: var(--muted, #6b6b6b);
   font-size: 11px;
 }

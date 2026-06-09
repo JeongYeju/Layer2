@@ -397,7 +397,12 @@ function wireInterpRunner(rootEl) {
     runBtn.textContent = "해석 중…";
     interpRoot.innerHTML = `<div class="interp-note">${apiKey ? "LLM 해석 중…" : "정제(digest) 생성 중…"}</div>`;
     try {
-      const result = await interpretSession({ exportData, provider: provider.value, apiKey });
+      const result = await interpretSession({
+        exportData,
+        provider: provider.value,
+        apiKey,
+        model: (localStorage.getItem("layer2.llm.model") || "").trim() || undefined,
+      });
       renderInterpretation(result);
     } catch (err) {
       interpRoot.innerHTML = `<div class="interp-note">해석 실패: ${escapeHtml(String(err.message || err))}</div>`;

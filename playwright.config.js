@@ -1,4 +1,29 @@
 import { defineConfig } from "@playwright/test";
+import fs from "node:fs";
+import path from "node:path";
+
+// 로컬 비밀(.env.local / .env)을 의존성 없이 직접 읽어 process.env 에 주입한다.
+// dotenv 패키지 안 씀 — KEY=VALUE 한 줄 파서면 충분. 키는 절대 커밋되지 않는다
+// (.gitignore 의 .env.*). spec 이 process.env.GEMINI_API_KEY 로 읽어 쓴다.
+for (const f of [".env.local", ".env"]) {
+  const p = path.resolve(process.cwd(), f);
+  if (!fs.existsSync(p)) continue;
+  for (const raw of fs.readFileSync(p, "utf8").split("\n")) {
+    const line = raw.trim();
+    if (!line || line.startsWith("#")) continue;
+    const eq = line.indexOf("=");
+    if (eq === -1) continue;
+    const k = line.slice(0, eq).trim();
+    let v = line.slice(eq + 1).trim();
+    if (
+      (v.startsWith('"') && v.endsWith('"')) ||
+      (v.startsWith("'") && v.endsWith("'"))
+    ) {
+      v = v.slice(1, -1);
+    }
+    if (k && process.env[k] === undefined) process.env[k] = v;
+  }
+}
 
 // 헤드풀(실제 창) 검증이 기본. 로컬: `npm run test:headed` 로 창 보며 확인.
 // CI 환경(CI=1)에선 화면이 없으니 자동으로 headless 로 떨어진다.

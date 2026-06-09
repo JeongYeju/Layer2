@@ -88,6 +88,7 @@ function creds() {
   return {
     provider: localStorage.getItem("layer2.llm.provider") || "anthropic",
     apiKey: (localStorage.getItem("layer2.llm.key") || "").trim(),
+    model: (localStorage.getItem("layer2.llm.model") || "").trim() || undefined,
   };
 }
 
@@ -135,7 +136,7 @@ function collectMaterial(digest) {
 
 async function draftSummary(exp, m, status) {
   const fallback = buildFallback(m);
-  const { provider, apiKey } = creds();
+  const { provider, apiKey, model } = creds();
   if (!apiKey) return fallback; // 키 없으면 흔적 기반 초안(데모 안 깨짐)
 
   status.textContent = "초안 생성 중…";
@@ -157,6 +158,7 @@ async function draftSummary(exp, m, status) {
     const reply = await chatLLM({
       provider,
       apiKey,
+      model,
       system,
       messages: [{ role: "user", content: user }],
     });

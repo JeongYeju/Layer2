@@ -8,3 +8,8 @@ node_modules/
 test-results/
 playwright-report/
 .playwright/
+
+# 비밀 키 — 절대 커밋 금지 (.env.example 만 추적)
+.env
+.env.*
+!.env.example

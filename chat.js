@@ -132,7 +132,7 @@ function openFor(req) {
 // API 키가 있으면 정적 멘트를 단락·Seam 에 맞춘 LLM 첫 질문으로 슬쩍 교체한다.
 // 키가 없거나 실패하면 정적 멘트 그대로 (데모에서도 항상 무언가 떠 있게).
 async function maybeUpgradeOpener(bubble, req) {
-  const { provider, apiKey } = creds();
+  const { provider, apiKey, model } = creds();
   if (!apiKey || !req.para_text) return;
   try {
     const system =
@@ -145,6 +145,7 @@ async function maybeUpgradeOpener(bubble, req) {
     const reply = await chatLLM({
       provider,
       apiKey,
+      model,
       system,
       messages: [{ role: "user", content: "첫 마디만 건네줘." }],
     });
@@ -240,6 +241,8 @@ function creds() {
   return {
     provider: localStorage.getItem("layer2.llm.provider") || "anthropic",
     apiKey: (localStorage.getItem("layer2.llm.key") || "").trim(),
+    // 선택: 모델 오버라이드(없으면 interpret.js DEFAULT_MODELS 사용).
+    model: (localStorage.getItem("layer2.llm.model") || "").trim() || undefined,
   };
 }
 
@@ -257,7 +260,7 @@ async function send() {
     reason: ctx.reason,
   });
 
-  const { provider, apiKey } = creds();
+  const { provider, apiKey, model } = creds();
   if (!apiKey) {
     addBubble(
       "assistant",
@@ -274,7 +277,7 @@ async function send() {
       "\n\n[상황] " +
       (REASON_TONE[ctx.reason] || REASON_TONE.manual) +
       (ctx.para_text ? "\n[독자가 보던 단락]\n" + ctx.para_text : "");
-    const reply = await chatLLM({ provider, apiKey, system, messages: conversation });
+    const reply = await chatLLM({ provider, apiKey, model, system, messages: conversation });
     const clean = (reply || "").trim() || "(응답이 비었어요)";
     typing.classList.remove("chat-typing");
     typing.textContent = clean;
