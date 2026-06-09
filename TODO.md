@@ -127,7 +127,7 @@
   - 산출: 단락별 friction + icapMode + loadTag → 보드 모드 색상 위계(2.5.3) + Seam 판정(2.5.2) + 리포트(2.5.6) 입력.
   - 한계: germane vs extraneous 가 행동만으로 완전 분리 X → "정답 분류기" 아니라 *행동 증거 압축기* 로 설계.
 - [~] **2.5.6** 다회독 리포트 (제미나이 디벨롭 §6). ✅ Macro 1차 구현 (sessions.js, 2026-06-03)
-  - **Micro (Single Source)** — *Mental Model Map*. 가장 치열하게 읽은 구간(짙은 블록) + 티키타카 + 주석이 얽힌 지형도. (보드 모드가 단일 세션 Micro 의 1차 형태)
+  - **Micro (Single Source)** ✅ — *Mental Model Map* (`report.js`, 2026-06-09). 대시보드 최상단 "이번 글 — 멘탈 모델 맵": 한 줄 진단 + ICAP 막대·흔적 칩 + 읽은 척추(노드=마찰/ICAP/주석, 훑은 구간 접기) + "내가 내 말로 구성한 개념"(주석). LLM 불필요(refineExport). 노드 클릭 → 본문 스크롤. 검증 `tests/report.spec.js`. 문서 `docs/features/mental-model-map.md`. ⏳ 개념 간 연결선(주석↔하이라이트 의미론적 교집합)·재독 디프는 추후.
   - **Macro (Multi-Session)** ✅ — `sessions.js`: session_end 시 요약(`{t, hour, source, friction{mean·max·high}, icap{P/A/C/I}}`)을 `localStorage.layer2.sessions.v1` 에 누적(최근 80). 대시보드 "다중 세션" 섹션:
     1. ✅ *시간대별 인지 리듬* — 밤/오전/오후/저녁 막대(길이=세션 수, 색=평균 마찰).
     2. ✅ *마찰 추이* — 세션 순 friction.mean 스파크라인.

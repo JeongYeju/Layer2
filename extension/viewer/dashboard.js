@@ -6,6 +6,7 @@ import { buildSessionExport } from "./sidebar.js";
 import { interpretSession } from "./interpret.js";
 import { loadSessions, summarizeMacro, effortOf } from "./sessions.js";
 import { initRecall } from "./recall.js";
+import { initReport } from "./report.js";
 
 const stats = {
   dwellCount: 0,
@@ -32,6 +33,9 @@ let metricsRoot, recentRoot, timelineRoot, interpRoot, sessionsRoot;
 
 export function renderDashboard(rootEl) {
   rootEl.innerHTML = `
+    <h2>이번 글 — 멘탈 모델 맵</h2>
+    <div id="m-microreport" class="microreport"></div>
+
     <h2>다중 세션</h2>
     <div id="m-sessions" class="sessions"></div>
 
@@ -80,6 +84,7 @@ export function renderDashboard(rootEl) {
   wireInterpLoader(rootEl);
   wireInterpRunner(rootEl);
   initRecall({ mountEl: rootEl.querySelector("#m-recall") });
+  initReport({ mountEl: rootEl.querySelector("#m-microreport") });
 
   signalBus.addEventListener("signal", (e) => onSignal(e.detail));
 

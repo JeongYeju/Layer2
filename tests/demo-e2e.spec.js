@@ -22,6 +22,10 @@ const LIVE = !!GEMINI_KEY;
 
 test.use({ video: "on", viewport: { width: 1440, height: 900 } });
 
+// 이건 "구경용" 헤드풀 비디오 데모(LLM 라이브 포함, ~5분)라 CI(헤드리스)에서는
+// 제외한다. 로컬에서 `npm run test:live` 로 창 보며 돌릴 것.
+test.skip(!!process.env.CI, "헤드풀 비디오 데모 — 로컬 전용(npm run test:live)");
+
 const pause = (page, ms) => page.waitForTimeout(ms);
 
 // ── 흔적 제스처 헬퍼 ─────────────────────────────────────────

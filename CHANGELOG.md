@@ -11,6 +11,12 @@
 - **API 키 env 주입** — `.env.local`(gitignore) → `playwright.config.js` 무의존 파서 → spec `addInitScript` 가 `localStorage(layer2.llm.*)` 에 주입. 키는 채팅/코드/git 어디에도 안 남음(`.env.example` 템플릿). 모델 오버라이드(`layer2.llm.model`)를 `chat.js`/`summary.js`/`dashboard.js` 에 추가 — env `GEMINI_MODEL` 로 선택, 없으면 기존 기본값.
 - **실제 Gemini 라이브 검증** — `gemini-3-flash-preview` 로 티키타카 실제 왕복 + 내 말 요약 초안 생성 확인. (Gemini 모델 리스트 2026-06 기준 재확인: 2.5-flash/pro 안정, 3.x preview, 2.0 종료.)
 
+### Micro 리포트 — Mental Model Map (2.5.6 Micro 완성)
+- **`report.js`** — 대시보드 최상단 "이번 글 — 멘탈 모델 맵". `refineExport(SignalLog)` 로 **LLM 없이** 즉시: 한 줄 진단 + ICAP 분포 막대·흔적 통계 칩 + 읽어내려간 척추(노드=마찰%/ICAP/앵커/내 주석/흔적 수, 훑은 단락은 `⋯ N단락 훑어봄` 접기) + **"내가 내 말로 구성한 개념"**(주석 모음 = 내가 만든 멘탈 모델). 노드 클릭 → 본문 스크롤. 의미 신호마다 600ms 디바운스 갱신. 검증 `tests/report.spec.js`(헤드풀 2 pass). 문서 `docs/features/mental-model-map.md`. (Macro=sessions.js 와 짝 — 디벨롭 §6 리포트 2 레벨 완성.)
+
+### 문서 동기화
+- TODO.md 빌드 갭표를 결과(✅)로 갱신 + 2.5.2/2.5.5/2.5.6 상태 정정. CLAUDE.md 모듈 맵에 report.js 추가.
+
 ### 보드(시맨틱 뷰) 흔적 → 블록 카드
 - 우측 흔적을 "한 줄 텍스트 쭈루룩"에서 **"라벨+내용" 블록 카드**(`.board-block`)로 재설계 — ✎ 주석(내용)·﹏ 밑줄(실제 밑줄 문구를 인용처럼)·◯ 표시. 상태(ICAP·마찰↑)·🧠 회상은 칩으로 분리. 남아있던 흔적 카드 좌측 컬러 라인(`.board-trace--*`) 제거.
 

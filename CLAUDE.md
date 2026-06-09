@@ -28,7 +28,8 @@
 - `dashboard.js` — 우측 패널. `signalBus` 구독 + interpret 결과 JSON 불러오기 + 단락별 마찰 섹션 + 다중 세션 거시 리포트.
 - `candle.js` `chat.js` — 촛불(개입) + AI 티키타카(왕복 대화). 내러티브 아교.
 - `demo.js` — 더미 신호 생성기 (`window.__layer2Demo.seed/play/seedSessions`). 데모·검증용.
-- `sessions.js` — 다중 세션 누적(`localStorage.layer2.sessions.v1`) + 거시 리포트 요약. session_end 시 friction/ICAP 요약 저장.
+- `sessions.js` — 다중 세션 누적(`localStorage.layer2.sessions.v1`) + 거시(Macro) 리포트 요약. session_end 시 friction/ICAP 요약 저장.
+- `report.js` — Micro 리포트(Mental Model Map). 대시보드 최상단 마운트. `refineExport` 로 단락별 friction/ICAP/흔적 → 한 줄 진단 + 척추 노드 + "내가 구성한 개념". LLM 불필요. `window.__layer2Report`. **기능 문서: `docs/features/mental-model-map.md`.**
 - `sidebar.js` — 소스 패널 + 저장된 글 + localStorage 영속화.
 - `toolbar.js` — 레거시(현재 hidden). `cursor-hud.js` — 튜닝용.
 - `interpret.js` `scripts/interpret.py` — 신호 → digest → LLM 해석 (OpenAI / Anthropic / Gemini).

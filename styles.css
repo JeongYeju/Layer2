@@ -710,6 +710,162 @@ ol.para-list .para-item {
   color: #b8442b;
   border: 1px solid #b8442b;
 }
+
+/* ===== Micro 리포트 — Mental Model Map (report.js) ===== */
+.microreport { font-size: 12px; margin-bottom: 6px; }
+.report-empty { color: var(--muted); font-size: 12px; line-height: 1.6; }
+.report-empty code { font-size: 11px; background: var(--paper-edge, #f0ebe0); padding: 1px 5px; border-radius: 4px; }
+.rp-verdict {
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--text, #1a1a1a);
+  padding: 9px 11px;
+  border-radius: 9px;
+  background: var(--paper-edge, #f6f1e6);
+  border: 1px solid var(--line, #e6e1d4);
+  margin-bottom: 10px;
+}
+.rp-summary { margin-bottom: 12px; }
+.rp-icap-bar {
+  display: flex;
+  height: 7px;
+  border-radius: 999px;
+  overflow: hidden;
+  margin-bottom: 7px;
+  background: var(--line, #e6e1d4);
+}
+.rp-bar-seg { display: block; min-width: 3px; }
+.rp-icap--p { background: #9a958c; }
+.rp-icap--a { background: #4d6ea3; }
+.rp-icap--c { background: #2f6b2f; }
+.rp-icap--i { background: #7a4fb0; }
+.rp-stats { display: flex; flex-wrap: wrap; gap: 5px; }
+.rp-stat {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--muted, #6b6b6b);
+  background: var(--paper, #fff);
+  border: 1px solid var(--line, #e6e1d4);
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+.rp-stat--hot { color: #b8442b; border-color: #e2b6a6; }
+
+/* 척추 — 노드 + 접힌 구간 */
+.rp-spine { list-style: none; margin: 0 0 12px 0; padding: 0; position: relative; }
+.rp-spine::before {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 4px;
+  bottom: 4px;
+  width: 2px;
+  background: var(--line, #e6e1d4);
+}
+.rp-node, .rp-skim {
+  position: relative;
+  padding: 0 0 9px 20px;
+}
+.rp-dot {
+  position: absolute;
+  left: 0;
+  top: 4px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #b9b2a3;
+  border: 2px solid var(--paper, #fff);
+  box-sizing: border-box;
+}
+.rp-node.is-hot .rp-dot { background: #d9362b; }
+.rp-dot--faint { width: 6px; height: 6px; top: 6px; left: 2px; background: var(--line, #ddd6c6); }
+.rp-skim-label { font-size: 10.5px; color: var(--muted, #9a958c); }
+.rp-card {
+  border: 1px solid var(--line, #e6e1d4);
+  border-radius: 10px;
+  background: var(--paper, #fff);
+  padding: 8px 10px;
+  cursor: pointer;
+  box-shadow: var(--shadow-soft);
+  transition: border-color 0.15s ease;
+}
+.rp-card:hover { border-color: var(--ink, #d9362b); }
+.rp-node.is-hot .rp-card { background: #fdf4f2; }
+.rp-card-head { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+.rp-icap {
+  font-size: 9.5px;
+  font-weight: 700;
+  color: #fff;
+  border-radius: 999px;
+  padding: 1px 7px;
+}
+.rp-icap.rp-icap--p { background: #9a958c; }
+.rp-icap.rp-icap--a { background: #4d6ea3; }
+.rp-icap.rp-icap--c { background: #2f6b2f; }
+.rp-icap.rp-icap--i { background: #7a4fb0; }
+.rp-hot { font-size: 9.5px; font-weight: 700; color: #b8442b; }
+.rp-anchor {
+  font-family: "Noto Serif KR", serif;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text, #2a2a2a);
+}
+.rp-note {
+  font-family: "Noto Serif KR", serif;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #5a4a2e;
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px dashed var(--line, #e6e1d4);
+}
+.rp-traces { display: flex; gap: 7px; margin-top: 5px; }
+.rp-trace { font-size: 10px; color: var(--muted, #8a8378); font-weight: 600; }
+
+/* 내가 내 말로 구성한 개념 */
+.rp-concepts {
+  border-top: 1px solid var(--line, #e6e1d4);
+  padding-top: 10px;
+}
+.rp-concepts-head {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted, #6b6b6b);
+  font-weight: 700;
+  margin-bottom: 7px;
+}
+.rp-concepts-n {
+  background: #2f6b2f;
+  color: #fff;
+  border-radius: 999px;
+  padding: 0 6px;
+  font-size: 10px;
+  margin-left: 4px;
+}
+.rp-concept {
+  font-family: "Noto Serif KR", serif;
+  font-size: 12px;
+  line-height: 1.5;
+  padding: 6px 9px;
+  border-radius: 8px;
+  background: var(--paper-edge, #f6f1e6);
+  margin-bottom: 5px;
+  cursor: pointer;
+}
+.rp-concept:hover { background: #efe7d6; }
+.rp-concept-on { color: var(--muted, #8a8378); margin-right: 6px; }
+.rp-concept-note { color: var(--text, #2a2a2a); }
+
+@media (prefers-color-scheme: dark) {
+  .rp-verdict { background: #232019; border-color: #3a352e; color: #ece7df; }
+  .rp-card { background: #2a2622; border-color: #3a352e; }
+  .rp-node.is-hot .rp-card { background: #3a2422; }
+  .rp-anchor { color: #ece7df; }
+  .rp-note { color: #d8c9a8; }
+  .rp-concept { background: #232019; }
+  .rp-stat { background: #2a2622; border-color: #3a352e; }
+}
 .interp-subhead {
   font-size: 10px;
   text-transform: uppercase;

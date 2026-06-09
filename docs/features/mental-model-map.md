@@ -1,0 +1,74 @@
+# 멘탈 모델 맵 (Mental Model Map / Micro 리포트)
+
+> **한 줄** — 글 하나를 다 읽고 나면, 내가 *어디서 치열했고 무엇을 내 말로 남겼는지*를 한 화면 지형도로 비춰준다. 읽어내려간 "척추(spine)" 위에 마찰이 높았던 구간과 내가 구성한 개념(주석)을 노드로 세우고, 훑고 지나간 단락은 접는다.
+
+| | |
+|---|---|
+| **상태** | v0.1 (1차 구현 — 진단·요약·척추·구성한 개념) |
+| **핵심 파일** | `report.js`, `styles.css`(`.microreport`/`.rp-*`), `dashboard.js`(마운트) |
+| **발화 신호** | (없음 — 읽기 전용 리포트) |
+| **구독 신호** | `highlight_underline`/`highlight_annotation`/`circle_gesture`/`chat_turn`/`recall_attempt`/`session_end` (갱신 트리거) |
+| **데이터원** | `refineExport(buildSessionExport())` — interpret.js 단락별 friction·ICAP·흔적 |
+| **TODO** | `TODO.md` 2.5.6 (Micro) |
+
+---
+
+## 1. 한 줄 요약
+
+기록 패널(대시보드) 맨 위에 **"이번 글 — 멘탈 모델 맵"** 섹션이 있다. 지금 읽고 있는(또는 방금 읽은) 글 하나에 대해 **LLM 없이** 즉시 그려진다: 한 줄 진단 → ICAP 분포 막대 + 흔적 통계 칩 → 글을 읽어내려간 척추 위의 노드(치열했던 곳·표시·주석·대화) → "내가 내 말로 구성한 개념" 목록. 노드를 누르면 본문 그 단락으로 스크롤한다.
+
+## 2. 왜 생겼나 (배경 · 문제)
+
+내러티브의 한 축은 **"나(메타인지)"** 다 — 다 읽고 났을 때 *나는 이 글을 어떻게 읽었나*를 돌려주는 게 "나를 아는 독서"의 핵심. 디벨롭(§6)에서 리포트를 2 레벨로 잠갔다: **Macro = 다회독 거시(시간대 리듬·마찰 추이)**, **Micro = 단일 소스의 Mental Model Map**. Macro 는 `sessions.js` 로 먼저 구현됐고(다중 세션), **Micro 는 보드 모드가 "흔적의 어디"를 보여줄 뿐 한 화면 요약(무엇을 남겼나)이 비어 있었다.** 이 문서의 기능이 그 빈칸을 채운다.
+
+## 3. 사용자가 보는 것 (UX)
+
+1. 글을 읽으며 밑줄·주석·동그라미·촛불 대화를 남긴다.
+2. 좌측 메뉴 **기록**(`#menu-records`)을 열면 우측 패널 맨 위에 멘탈 모델 맵이 떠 있다.
+3. **한 줄 진단** — "표시 위주로 읽었어요. 한 곳을 골라 *내 말로* 적어보면 내재화가 깊어집니다." 같은 경향 요약.
+4. **요약 줄** — ICAP(훑어봄/표시/구성/대화) 비율 막대 + `﹏ 밑줄 N`·`✎ 주석 N`·`◯ 표시 N`·`💬 대화 N`·`🧠 회상 N`·`마찰 상위 N곳` 칩.
+5. **척추** — 위에서 아래로 읽은 순서. 흔적·마찰이 있는 단락은 카드 노드(ICAP 칩 + 마찰 상위 N% + 앵커 문구 + 내 주석 + 흔적 수), 훑고 지나간 단락은 `⋯ N단락 훑어봄`으로 접힘.
+6. **내가 내 말로 구성한 개념** — 주석(Constructive 산출)만 모은 목록. *이게 내가 이 글에서 실제로 만든 멘탈 모델*.
+7. 어떤 노드·개념이든 누르면 본문 해당 단락으로 스크롤 + 깜빡임.
+
+## 4. 작동 원리 (기술)
+
+`report.js` `initReport({mountEl})` 가 대시보드의 `#m-microreport` 에 마운트된다(`dashboard.js`). 렌더는 `signalBus` 의 의미 있는 신호(밑줄·주석·동그라미·대화·회상·세션종료)마다 600ms 디바운스로 갱신.
+
+- `safeData()` — `refineExport(buildSessionExport())` 로 현재 SignalLog 에서 단락별 behavioral state 를 즉시 산출(보드 모드와 같은 경로, **LLM 호출 없음**). friction·friction_pct·friction_high·icap_mode·load_tag + 단락별 `highlights[]`·`annotations[{on,note}]`·`chat_turns`.
+- `isNode(p)` — friction_high 이거나 흔적(주석·밑줄·동그라미·대화)이 있거나 ICAP ≥ C 인 단락만 노드. 나머지는 연속 카운트해 `⋯ N단락 훑어봄` 으로 접는다(의미론적 접기).
+- `nodeHTML(p)` — 앵커는 **주석 > 밑줄 텍스트 > 본문 앞 46자** 순. 본문은 DOM(`[data-char-index]`)에서 직접 읽어 안전. `topPct = (1−friction_pct)·100` 로 "마찰 상위 N%".
+- `diagnose()` — 행동 증거를 한 줄로 압축(절대 분류기 아님): constructive(C+I)+마찰 동반 → germane, 마찰만 높고 산출 없음 → 막힘, 표시 우세 → 내재화 권유.
+- "구성한 개념" = 전 단락의 주석을 모은 것. 클릭 시 `scrollToPara`.
+
+## 5. 데이터 (신호 in / out)
+
+- **발화** — 없음(읽기 전용).
+- **구독** — `highlight_underline`/`highlight_annotation`/`circle_gesture`/`chat_turn`/`recall_attempt`/`session_end` → 디바운스 재렌더.
+- **외부 읽기** — `buildSessionExport()`(sidebar.js) → `refineExport()`(interpret.js). DOM: `[data-paragraph-id]`/`[data-char-index]`(앵커 텍스트·스크롤).
+- 전역 훅: `window.__layer2Report.render()`.
+
+## 6. 설계 근거 (왜 이렇게)
+
+- **LLM 불필요** — 마찰·ICAP 은 이미 행동 신호의 결정적 산출(percentile·z-score). 리포트는 *해석이 아니라 거울*이라 즉시·무료·오프라인. (LLM 해석은 대시보드 'AI 해석' 별도.)
+- **척추 + 접기** — 글의 선형 순서를 보존하되, 인지적으로 의미 있는 곳만 노드로(보드의 의미론적 접기와 같은 원리). 한 화면에 "내가 읽은 모양"이 들어온다.
+- **주석 = 멘탈 모델** — ICAP 의 Constructive 산출(내 말로 다시 쓰기)이 곧 내가 만든 개념. 이걸 따로 모아 보여주는 게 "나를 아는" 핵심(Chi&Wylie).
+- **진단은 경향, 분류 아님** — germane/extraneous 를 행동만으로 단정하지 않고 권유형 한 줄로(2.5.5 의 "행동 증거 압축기" 원칙).
+
+## 7. 현재 상태 & 한계
+
+**됐다 (v0.1):** 한 줄 진단, ICAP 막대 + 통계 칩, 척추 노드(ICAP·마찰%·앵커·주석·흔적 수), 훑은 구간 접기, "내가 구성한 개념", 노드 클릭 스크롤, 흔적 없을 때 폴백, 실시간 갱신. 검증 `tests/report.spec.js`(헤드풀 2 pass).
+
+**한계 / 다음:**
+- **개념 간 연결(엣지) 없음** — 현재는 척추(순서)만. 디벨롭의 "개념이 얽힌 지형도"(주석↔하이라이트 의미론적 교집합)는 미구현 — 연결선/크로스오버는 추후(LLM 또는 임베딩 필요).
+- **회상 성공률 미반영** — `recall_attempt` 횟수만 칩으로, 성공/실패 분포는 아직.
+- **Macro 와의 연계** — 같은 소스의 지난 세션 대비(재독 디프)는 보류 합의(HANDOFF).
+- 좁은 패널 폭 기준 — 긴 주석은 줄바꿈으로 처리.
+
+## 8. 관련 파일 / 더 읽기
+
+- **코드** — `report.js`(`initReport`/`render`/`build`/`nodeHTML`/`diagnose`), `dashboard.js`(`#m-microreport` 마운트), `styles.css`(`.microreport`/`.rp-*`)
+- **데이터원** — `interpret.js`(`refineExport`/`computeFriction`), `sidebar.js`(`buildSessionExport`)
+- **자매 리포트** — [multi-session.md](multi-session.md)(Macro), [board-mode.md](board-mode.md)(흔적의 "어디")
+- **이론** — `docs/theory-base.md`(friction percentile, ICAP), `Private/Layer2_제미나이_디벨롭_2026-06-02.md` §6
+- **진행** — `TODO.md` 2.5.6
