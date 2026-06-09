@@ -35,6 +35,21 @@ test("멘탈 모델 맵: 진단 + 요약 + 척추 노드 + 구성한 개념", as
   await expect(page.locator(".para-flash").first()).toBeVisible({ timeout: 2000 });
 });
 
+test("멘탈 모델 맵: 개념 엣지(어휘 중첩) — 곡선 + 범례", async ({ page }) => {
+  await page.goto("/");
+  await page.waitForSelector(".para[data-paragraph-id]");
+  await page.evaluate(() => window.__layer2Demo.seed());
+  await page.click("#menu-records");
+
+  // 범례 + 곡선(SVG path)이 떠야 한다. 곡선은 패널이 보일 때 rAF/ResizeObserver
+  // 로 실측 후 그려지므로 약간의 대기.
+  await expect(page.locator("#m-microreport .rp-edges-legend")).toBeVisible();
+  await expect
+    .poll(() => page.locator("#m-microreport .rp-edge").count(), { timeout: 3000 })
+    .toBeGreaterThan(0);
+  await page.screenshot({ path: "test-results/report-edges.png", fullPage: true });
+});
+
 test("멘탈 모델 맵: 흔적 없으면 안내 폴백", async ({ page }) => {
   await page.goto("/");
   await page.waitForSelector(".para[data-paragraph-id]");

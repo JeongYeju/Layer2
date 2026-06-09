@@ -756,19 +756,39 @@ ol.para-list .para-item {
 .rp-spine::before {
   content: "";
   position: absolute;
-  left: 4px;
+  left: 15px;
   top: 4px;
   bottom: 4px;
   width: 2px;
   background: var(--line, #e6e1d4);
 }
+/* 개념 엣지(어휘 중첩) — 좌측 거터(0~16px)에 호로 잇는다. */
+.rp-edges {
+  position: absolute;
+  left: 0;
+  top: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: visible;
+}
+.rp-edge {
+  fill: none;
+  stroke: #c0863a;
+  stroke-linecap: round;
+  pointer-events: stroke;
+}
+.rp-edges-legend {
+  font-size: 10px;
+  color: var(--muted, #8a8378);
+  margin: -4px 0 12px 34px;
+}
 .rp-node, .rp-skim {
   position: relative;
-  padding: 0 0 9px 20px;
+  padding: 0 0 9px 34px;
 }
 .rp-dot {
   position: absolute;
-  left: 0;
+  left: 11px;
   top: 4px;
   width: 10px;
   height: 10px;
@@ -776,11 +796,14 @@ ol.para-list .para-item {
   background: #b9b2a3;
   border: 2px solid var(--paper, #fff);
   box-sizing: border-box;
+  z-index: 2;
 }
 .rp-node.is-hot .rp-dot { background: #d9362b; }
-.rp-dot--faint { width: 6px; height: 6px; top: 6px; left: 2px; background: var(--line, #ddd6c6); }
+.rp-dot--faint { width: 6px; height: 6px; top: 6px; left: 13px; background: var(--line, #ddd6c6); }
 .rp-skim-label { font-size: 10.5px; color: var(--muted, #9a958c); }
 .rp-card {
+  position: relative;
+  z-index: 1;
   border: 1px solid var(--line, #e6e1d4);
   border-radius: 10px;
   background: var(--paper, #fff);
