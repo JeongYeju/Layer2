@@ -150,7 +150,12 @@ function renderCard(card) {
     input.disabled = true;
     checkBtn.disabled = true;
     reveal.querySelectorAll("button[data-r]").forEach((b) =>
-      b.addEventListener("click", () => {
+      b.addEventListener("click", (e) => {
+        // 이 클릭이 .recall-rate innerHTML 을 교체하면서 버튼(=e.target)이 DOM
+        // 에서 떨어져 나간다. 그대로 document 까지 버블하면 대시보드 플라이아웃의
+        // "바깥 클릭 시 닫기" 핸들러가 detach 된 target 을 "바깥"으로 오판해
+        // 패널을 닫아버린다(= .recall-good 이 숨겨짐). 버블을 끊어 막는다.
+        e.stopPropagation();
         const correct = b.dataset.r === "1";
         pushSignal({
           type: "recall_attempt",
