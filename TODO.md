@@ -60,23 +60,24 @@
 문헌 근거 확보(2026-06-02 W1 완료; 검증본 `docs/theory-base.md`): Grusky 2017(viewport attention) / Brady et al. 2018(스크롤↔이해; 구 "Luo 2017" 정정) / Chi&Wylie 2014(ICAP) / Mason·Zhang(주석 품질) / D'Mello et al. 2014·Qlarify·Hefter(개입 타이밍) 등 16+편. 절대 초 단위 임계 대신 **문서 내 percentile + z-score 상대량 + explicit signal 결합** 이 설계 원칙.
 
 ### 빌드 진행 상태 (2026-06-03 PDF 명세 대조)
-2026-06-03 발표 PDF 2종이 빌드 가능한 기술 명세를 확정. 현재 코드 vs 명세 갭:
+2026-06-03 발표 PDF 2종이 빌드 가능한 기술 명세를 확정. 단계1~5 **전부 구현 완료**
+(2026-06-03~08). 아래는 그 갭표를 결과로 갱신한 것(과거 스냅샷 아님):
 
-| 영역 | 명세 | 현재 | 상태 |
-|---|---|---|---|
-| 신호: 역방향 진입 | reverseRate = backwardEntry/enterCount | visitedCount/totalDwell만 | ❌ 미구현 → 단계1 |
-| 신호: 가시성 가중 | visibleFrac (intersectionRatio) 누적 | threshold 0.5만 | ❌ 미구현 → 단계1 |
-| 신호: 회귀 거리 | return_effort | scroll 전역 delta만 | ❌ 미구현 → 단계1 |
-| 촛불 Seam1 능동정지 | 주석 직후 + 품질 | annotation_seam v0.2 | ✅ 구현 |
-| 촛불 Seam2 인지고립 | revisit≥3 AND reverseRate≥0.5 AND friction상위20% AND 무흔적 | reread(visit≥2) 단순 | ⚠️ 단순버전 → 단계2 |
-| 촛불 Seam3 세션전환 | 완전비활성 180s OR 탭 hidden→복귀 | welcome(idle 30s) | ⚠️ 기준다름 → 단계2 |
-| 마찰 계수 | attention_i·return_effort·revisit·reverseRate → z합 → 상위20% | 없음 | ❌ 미구현 → 단계3 |
-| 대시보드 마찰표시 | 단락별 인지 상태 | dwell/highlight 카운트만 | ❌ 미구현 → 단계4 |
-| 보드 모드 | 텍스트↔보드, 우측 흔적전개, 마찰 색상위계 | scroll/spread만 | ❌ 미구현 → 단계5 |
-| 티키타카 챗봇 | 촛불 클릭 → 대화 | 클릭=dismiss | ❌ 범위밖(2.5.4) |
-| 패턴분류 + DB | 유형분류 + vercel/neon | 없음 | ❌ 범위밖(Phase 3) |
+| 영역 | 명세 | 상태 |
+|---|---|---|
+| 신호: 역방향 진입 | reverseRate = backwardEntry/enterCount | ✅ signals.js (단계1) |
+| 신호: 가시성 가중 | visibleFrac (intersectionRatio) 누적 | ✅ signals.js (단계1) |
+| 신호: 회귀 거리 | return_effort | ✅ signals.js (단계1) |
+| 촛불 Seam1 능동정지 | 주석 직후 + 품질 | ✅ annotation_seam |
+| 촛불 Seam2 인지고립 | revisit≥3 AND reverseRate≥0.5 AND friction상위20% AND 무흔적 | ✅ isolation_seam — 행동조건(단계2) + friction_high 실시간 결합(2026-06-08) |
+| 촛불 Seam3 세션전환 | 완전비활성 180s OR 탭 hidden→복귀 | ✅ transition_seam (단계2) |
+| 마찰 계수 | attention_i·return_effort·revisit·reverseRate → z합 → 상위20% | ✅ interpret.js+py computeFriction (단계3) |
+| 대시보드 마찰표시 | 단락별 인지 상태 | ✅ dashboard.js (단계4) |
+| 보드 모드 | 텍스트↔보드, 우측 흔적전개, 마찰 색상위계 | ✅ viewer-shell.js (단계5) + 흔적 블록카드(2026-06-09) |
+| 티키타카 챗봇 | 촛불 클릭 → 대화 | ✅ chat.js (2.5.4) + 실제 Gemini 라이브 검증(2026-06-09) |
+| 패턴분류 + DB | 유형분류 + vercel/neon | ❌ Phase 3 (보류 합의) |
 
-빌드 순서(이 세션): 단계1 신호 → 단계2 촛불 Seam2/3 → 단계3 마찰계수 → 단계4 대시보드 → 단계5 보드모드.
+**다음 후보**: 2.5.6 Micro 리포트(Mental Model Map) · 2.5.7 Active Zone 신호 보강.
 
 - [x] **2.5.1** 촛불(Stick Candle) 1차 초안 — 신호 기반 개입의 의인화
   - `candle.js` + `styles.css` 의 `.candle-mount` 섹션. `.para` 우측 여백에 등장 → 멘트 → 후~ 사라짐 (SVG flame flicker + smoke).
@@ -87,7 +88,7 @@
   - 쿨다운: 같은 단락 2분 / 전역 25초. 클릭 또는 12초 무반응 시 후~ 소멸. 새 소스 로드 시 제거.
   - 데모 훅: `window.__layer2Candle.fire("stuck"|"reread"|"welcome")` (DevTools 에서).
   - 새 신호 추가: `candle_intervene`, `candle_dismiss` — 이후 interpret/대시보드에서 활용 가능.
-- [ ] **2.5.2** 개입 프로토콜 v1 — Seam 타겟팅으로 정식화 (디벨롭 §13, 문헌 확정판)
+- [x] **2.5.2** 개입 프로토콜 v1 — Seam 타겟팅으로 정식화 (디벨롭 §13, 문헌 확정판) ✅ 3 Seam 모두 구현 (annotation/isolation/transition, candle.js v0.3 + friction_high 결합 2026-06-08). 멘트 풀·티키타카 연결 완료. 남은 미세조정은 2.5.4 ⏳ 참고.
   - 읽기의 물리적 관성을 *부자연스럽게 꺾지 않는* 경계면 3종에서만 비선형 삽입:
     - **annotation_seam** — `onAnnotationSaved(paragraph_i)`. 주석 확정 *직후* 인라인 one-click prompt 1회 ("왜 중요해?" / "네 말로?"). 목적 = Active→Constructive 승격 (Qlarify 근거). ✅ **1차 구현 완료** (candle.js, 2026-06-03) — 품질 임계 통과 시 발동, 전역 쿨다운 우회. 진짜 티키타카(2.5.4) 붙으면 완성.
     - **isolation_seam** ⚠️ 현재 `reread`(visit≥2) 단순버전만 — 정식 조건: `revisit_i ≥ 3 AND reverseRate_i ≥ 0.5 AND friction_i 상위20% AND 무흔적(annotation·highlight 없음)`. 단계2에서 행동조건(revisit·reverseRate·무흔적) 1차 → 단계3 후 friction 결합. 누적 증거 생겼을 때만 진단형 prompt (D'Mello).
@@ -108,7 +109,7 @@
   - ⏳ 남은 일: LLM 생성 첫 질문(현재 정적 멘트) / 대화를 신호로 기록(상호작용 축) / 보드 카드에서 직접 열기 / 서버 프록시(키 노출 해소, Phase 3).
 - [~] **2.5.5** 해석 레이어 — *마찰 계수* 프레임워크 (디벨롭 §10~§11, 문헌 명세). ✅ 산출 1차 구현 (interpret.js+py `computeFriction`, 2026-06-03)
   - ✅ `refine()` 에서 단락별 `friction`(z합)·`friction_pct`·`friction_high`(상위20%)·`icap_mode`·`load_tag` 산출. attention=visibility-weighted, revisit·return_effort·reverse_rate 결합. interpret.py 동일 미러 + 합성 세션 검증 완료.
-  - ⏳ 남은 일: candle isolation_seam 에 friction_high 실시간 결합(현재 행동조건만) / 대시보드 표시(단계4) / 보드 색상위계(단계5).
+  - ✅ candle isolation_seam 에 friction_high 실시간 결합(2026-06-08) / ✅ 대시보드 표시(단계4) / ✅ 보드 색상위계(단계5). 마찰계수 줄기 완료.
   - `interpret.js` LLM 호출 *전 단계* 에서 단락별 **behavioral state object** 산출 (raw DOM 로그를 LLM 에 넘기지 않음).
   - **(a) 가시성 가중 주의량** — raw dwell 대신 "보인 만큼" 가중 (Grusky UVAM 단순화):
     `attention_i = Σ_k(Δt_k · visibleFrac_ik) / Σ_j Σ_k(Δt_k · visibleFrac_jk)`

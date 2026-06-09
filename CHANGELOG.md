@@ -4,6 +4,21 @@
 
 ---
 
+## 2026-06-09
+
+### 라이브 데모 + 실제 Gemini 검증
+- **헤드풀 E2E 데모 영상**(`tests/demo-e2e.spec.js`) — 실제 창 + 비디오 녹화. 위→아래 정독(위아래 스크롤), 흔적 3종 실제 마우스 제스처(밑줄·**circle 단어 동그라미**·밑줄+주석), 촛불→티키타카, 보드 좌우 패닝, 회상(cloze)·내 말 요약, 대시보드까지 한 바퀴. 키 없으면 폴백으로 완주. `npm run test:live`.
+- **API 키 env 주입** — `.env.local`(gitignore) → `playwright.config.js` 무의존 파서 → spec `addInitScript` 가 `localStorage(layer2.llm.*)` 에 주입. 키는 채팅/코드/git 어디에도 안 남음(`.env.example` 템플릿). 모델 오버라이드(`layer2.llm.model`)를 `chat.js`/`summary.js`/`dashboard.js` 에 추가 — env `GEMINI_MODEL` 로 선택, 없으면 기존 기본값.
+- **실제 Gemini 라이브 검증** — `gemini-3-flash-preview` 로 티키타카 실제 왕복 + 내 말 요약 초안 생성 확인. (Gemini 모델 리스트 2026-06 기준 재확인: 2.5-flash/pro 안정, 3.x preview, 2.0 종료.)
+
+### 보드(시맨틱 뷰) 흔적 → 블록 카드
+- 우측 흔적을 "한 줄 텍스트 쭈루룩"에서 **"라벨+내용" 블록 카드**(`.board-block`)로 재설계 — ✎ 주석(내용)·﹏ 밑줄(실제 밑줄 문구를 인용처럼)·◯ 표시. 상태(ICAP·마찰↑)·🧠 회상은 칩으로 분리. 남아있던 흔적 카드 좌측 컬러 라인(`.board-trace--*`) 제거.
+
+### 마찰 → 촛불 결합 + 내재화
+- candle isolation_seam 에 `friction_high`(상위20%) 실시간 결합(2초 캐시 폴백). B v1.1 보드 회상(cloze)·C 보드 "내 말 요약"(`summary.js`).
+
+---
+
 ## 2026-06-03
 
 2026-06-03 발표 PDF(이원화 뷰어 + 촛불 3 Seam 정식 조건 + 신호 처리 3단계)를 코드로 빌드. 신호 인프라 → 촛불 Seam 정식화 → 마찰 계수 → 대시보드 → 보드 모드를 순서대로 완성, 데모에서 보이는 단계까지 끌어올렸다.
