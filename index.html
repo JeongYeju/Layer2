@@ -19,9 +19,6 @@
     <div class="topbar-left">
       <span class="brand"><span class="brand-dot"></span>Layer2</span>
       <nav class="menu">
-        <button type="button" class="menu-item" id="open-sources">
-          <i data-lucide="folder-open"></i> 모든 도구
-        </button>
         <button type="button" class="menu-item" id="menu-open">
           <i data-lucide="file-plus-2"></i> 열기
         </button>
@@ -34,6 +31,10 @@
       </nav>
     </div>
     <div class="topbar-right">
+      <button type="button" class="menu-item" id="btn-finish"
+        title="독서 끝내기 — 세션을 닫고 이해 점검 대화를 연다">
+        <i data-lucide="circle-check"></i> 독서 끝내기
+      </button>
       <button type="button" class="menu-item demo-btn" id="demo-run"
         title="데모 — 읽기 신호를 재생해 촛불까지 자동 시연">
         <i data-lucide="play"></i> 데모
@@ -102,9 +103,6 @@
       </button>
       <button type="button" class="rail-btn" id="btn-capture" title="캡쳐">
         <i data-lucide="camera"></i>
-      </button>
-      <button type="button" class="rail-btn" id="btn-records" title="기록 / 대시보드">
-        <i data-lucide="bar-chart-3"></i>
       </button>
 
       <div class="font-control" title="본문 크기">

@@ -12,7 +12,7 @@ test("회상 워크시트: 밑줄 → cloze 카드 → 풀이/공개", async ({ 
   await page.evaluate(() => window.__layer2Demo.seed());
 
   // 대시보드(기록) 플라이아웃 열기 → 워크시트 생성
-  await page.click("#btn-records");
+  await page.click("#menu-records");
   await page.click("#recall-gen");
 
   // 카드 + 빈칸이 떠야 한다 (cued recall)
@@ -35,7 +35,7 @@ test('회상 워크시트: "더 어렵게" = 문맥 가린 자유 회상', async
   await page.waitForSelector(".para[data-paragraph-id]");
   await page.evaluate(() => window.__layer2Demo.seed());
 
-  await page.click("#btn-records");
+  await page.click("#menu-records");
   await page.check("#recall-hard");
   await page.click("#recall-gen");
 

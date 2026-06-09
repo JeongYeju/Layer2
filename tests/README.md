@@ -26,6 +26,7 @@ npm run test:ui         # Playwright UI 모드(스텝별로 보기)
 `tests/*.spec.js` 에 케이스를 더한다. 셀렉터/전역 참고:
 - 데모 시드: `window.__layer2Demo.seed()` / `.play()` / `.seedSessions()`
 - 데모 글: 사이드바 `#src-demo-doc` (표면장력)
-- 대시보드 열기: 우측 레일 `#btn-records`
+- 대시보드 열기: 헤더 `#menu-records` ("기록")
+- 독서 끝내기(세션 종료): 헤더 `#btn-finish` (또는 사이드바 `#src-session-end`)
 - 촛불 강제: `window.__layer2Candle.fire("annotation"|"isolation"|"transition"|"stuck")`
 - 복습 대화 열기: `window.__layer2Chat.review()`

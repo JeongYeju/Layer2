@@ -456,7 +456,6 @@ function wireMenusAndDrawer() {
 
   document.body.classList.add("drawer-open"); // default expanded
   handle?.addEventListener("click", toggleDrawer);
-  document.getElementById("open-sources")?.addEventListener("click", toggleDrawer);
   document.getElementById("menu-open")?.addEventListener("click", openDrawer);
   document.getElementById("menu-saved")?.addEventListener("click", () => {
     openDrawer();
@@ -465,24 +464,29 @@ function wireMenusAndDrawer() {
       ?.scrollIntoView({ behavior: "smooth", block: "start" });
   });
 
-  // Dashboard stays a right flyout, toggled from the rail or the 기록 menu item.
+  // "독서 끝내기" — 세션 종료의 발견성 강화(헤더 노출). 실제 종료 로직은 sidebar
+  // 의 #src-session-end 가 소유하므로, 그 버튼을 위임 클릭해 재사용한다(활성
+  // 세션이 없으면 그 버튼이 없으니 무동작). session_end → 다중세션 누적 +
+  // 이해 점검 대화(chat.js) 트리거.
+  document.getElementById("btn-finish")?.addEventListener("click", (e) => {
+    const end = document.getElementById("src-session-end");
+    if (end) {
+      end.click();
+      flash(e.currentTarget);
+    }
+  });
+
+  // Dashboard stays a right flyout, toggled from the 기록 메뉴(단일 진입점).
   const dashboardEl = document.getElementById("dashboard");
-  const recordsBtn = document.getElementById("btn-records");
   const recordsMenu = document.getElementById("menu-records");
   const toggleDash = (e) => {
     e?.stopPropagation?.();
     dashboardEl?.classList.toggle("as-flyout");
   };
-  recordsBtn?.addEventListener("click", toggleDash);
   recordsMenu?.addEventListener("click", toggleDash);
   document.addEventListener("click", (e) => {
     if (!dashboardEl?.classList.contains("as-flyout")) return;
-    if (
-      dashboardEl.contains(e.target) ||
-      recordsBtn?.contains(e.target) ||
-      recordsMenu?.contains(e.target)
-    )
-      return;
+    if (dashboardEl.contains(e.target) || recordsMenu?.contains(e.target)) return;
     dashboardEl.classList.remove("as-flyout");
   });
 }
