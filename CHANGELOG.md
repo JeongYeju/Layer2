@@ -32,6 +32,15 @@
 ### 마찰 → 촛불 결합 + 내재화
 - candle isolation_seam 에 `friction_high`(상위20%) 실시간 결합(2초 캐시 폴백). B v1.1 보드 회상(cloze)·C 보드 "내 말 요약"(`summary.js`).
 
+### 브랜치 정리 — `claude/viewer-layout` 단일 최신 통합
+- 흩어져 있던 기능 브랜치(e2e-harness · recall-worksheet · sync-extension-build · viewer-layout-fixes 등)가 모두 `claude/viewer-layout` 에 이미 병합돼 있음을 확인. main 에만 있던 **코드리뷰 노트**(`CODE_REVIEW.md`, `CODE_REVIEW_viewer-layout.md`)를 viewer-layout 으로 흡수해 **완전체**로 만들고, `main` 을 viewer-layout 으로 fast-forward(86커밋)해 둘을 동일 지점으로 동기화.
+- 이후 작업은 `claude/viewer-layout` 단일 브랜치에서 진행. (병합 끝난 옛 브랜치 삭제는 환경 권한상 보류 — 필요 시 github.com Branches 탭에서 수동 정리.)
+
+### 발표 핸드오프 — Codex 브리프
+- `docs/presentation/codex-brief.md` 신규. **데모(`demo.js` 재생)와 발표를 한 흐름으로 엮는 통합 진행 스크립트**를 Codex 가 작성하도록 재료를 정리한 핸드오프 문서.
+- 구성: 산출물 형식(비트 테이블 + 길이 조절 가이드) / 실제 화면 안무(데모 버튼·촛불·티키타카·보드·멀티세션 대시보드, `roleFor` 단락별 인지상태 매핑) / 재료 A 서비스·UX / 재료 B 기술 11종 / 재료 C 사고흐름·정직성 / 톤·제약.
+- 설계 원칙: **3축(UX·기술·사고흐름) 균형 + 모듈식(`[핵심]`/`[선택]`)** 으로 5/10/15분 길이 조절. "코드에 있는 것만 시연·주장 / 마찰=상대값 과장 금지" 정직성 제약 명시.
+
 ---
 
 ## 2026-06-03
