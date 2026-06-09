@@ -266,26 +266,55 @@ function renderBoardCards() {
 
     // Right column: a state chip + the interaction traces. Paragraphs with
     // neither a notable state nor a trace fold down to a dot.
+    // 각 흔적을 "라벨 + 내용" 블록 카드로 쌓는다(쭈루룩 한 줄 대신).
     const traces = collectTraces(para);
-    const cards = [];
+    const annos = traces.filter((t) => t.kind === "annotation");
+    const hasUnderlineTrace = traces.some((t) => t.kind === "underline");
+    const hasCircle = traces.some((t) => t.kind === "circle");
+    const blocks = [];
+
+    // 상태(ICAP·마찰) — 카드 묶음 맨 위 작은 헤더 칩
     if (f && (icap !== "P" || f.friction_high)) {
-      const hot = f.friction_high ? ` · 마찰↑` : "";
-      cards.push(
+      const hot = f.friction_high
+        ? `<span class="board-hot">마찰↑</span>`
+        : "";
+      blocks.push(
         `<div class="board-state board-state--${icap.toLowerCase()}">${ICAP_LABEL[icap] || icap}${hot}</div>`,
       );
     }
-    for (const t of traces) {
-      cards.push(
-        `<div class="board-trace board-trace--${t.kind}">${escapeHtml(t.text)}</div>`,
+    // 주석 블록 — 실제 내가 쓴 내용
+    for (const t of annos) {
+      blocks.push(
+        `<div class="board-block board-block--note"><span class="board-block-tag">✎ 주석</span><div class="board-block-text">${escapeHtml(t.text)}</div></div>`,
       );
     }
-    // B v1.1 — underlined paragraphs get a recall button (active retrieval).
+    // 밑줄 블록 — 실제 밑줄 친 문구를 인용처럼(없으면 라벨만)
     if (underlines.length) {
-      cards.push(
+      const quotes = underlines
+        .slice(0, 4)
+        .map((u) => `<div class="board-block-quote">${escapeHtml(u)}</div>`)
+        .join("");
+      blocks.push(
+        `<div class="board-block board-block--underline"><span class="board-block-tag">﹏ 밑줄 ${underlines.length}</span>${quotes}</div>`,
+      );
+    } else if (hasUnderlineTrace) {
+      blocks.push(
+        `<div class="board-block board-block--underline"><span class="board-block-tag">﹏ 밑줄</span></div>`,
+      );
+    }
+    // 동그라미 블록
+    if (hasCircle) {
+      blocks.push(
+        `<div class="board-block board-block--circle"><span class="board-block-tag">◯ 표시</span></div>`,
+      );
+    }
+    // B v1.1 — 밑줄 단락엔 회상 버튼(능동 인출)
+    if (underlines.length) {
+      blocks.push(
         `<button type="button" class="board-recall-btn">🧠 회상 ${underlines.length}</button>`,
       );
     }
-    if (!cards.length) {
+    if (!blocks.length) {
       const dot = document.createElement("span");
       dot.className = "board-dot";
       para.appendChild(dot);
@@ -294,7 +323,7 @@ function renderBoardCards() {
     para.classList.add("has-board-card");
     const card = document.createElement("div");
     card.className = "board-card";
-    card.innerHTML = cards.join("");
+    card.innerHTML = blocks.join("");
     para.appendChild(card);
 
     const rb = card.querySelector(".board-recall-btn");

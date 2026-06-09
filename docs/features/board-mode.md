@@ -36,6 +36,7 @@
 - 모든 `.para[data-paragraph-id]`를 순회.
 - `collectTraces(para)` — DOM에서 그 단락의 흔적을 읽는다: `.anno-marker .anno-tooltip`(주석 텍스트), `.is-annotated`/`.is-underlined`(밑줄), `.word-circle-mark`(동그라미). highlight.js가 남긴 시각 흔적을 *그대로 재활용* — 새 신호 수집 없음.
 - 흔적 있으면 `.board-card`를 `.para` 자식으로 `position:absolute`(left:100%) 배치, 없으면 `.board-dot`.
+- 흔적은 한 줄짜리가 아니라 **"라벨 + 내용" 블록 카드**(`.board-block`)로 쌓는다: ✎ 주석(내가 쓴 글), ﹏ 밑줄(실제 밑줄 친 문구를 인용처럼), ◯ 표시(동그라미). 상태(ICAP·마찰)와 🧠 회상은 작은 칩으로 분리.
 - `frictionByPid()` — `window.__lastInterpretation.refined.paragraphs`에서 `friction_pct`를 읽어 단락에 `--friction-pct` CSS 변수 설정 → 배경 워시 농도. (실시간 경로는 §7 참조)
 - 보드 모드인 동안 `signalBus`를 구독해 highlight/annotation/circle 신호가 오면 200ms 디바운스 후 재렌더.
 
@@ -66,6 +67,7 @@
 **한계 / 다음:**
 - **활성 단락 확대 미구현** — 디벨롭 §4의 "활성 블록만 펼치고 지나간 건 압축"은 아직 균일. 현재는 흔적 유무로만 접기.
 - ~~마찰 색상은 batch 후에만~~ → ✅ **실시간 시맨틱** (2026-06-03): 보드 진입 시 `refineExport(buildSessionExport())` 로 현재 SignalLog 에서 friction/ICAP 즉시 계산 → 문단마다 *마찰 배경 톤(은은) × ICAP 상태 칩*. (좌측 컬러 보더는 "AI가 만든 카드"처럼 보여서 제거 — 마킹은 배경/칩으로만.) 해석하기 없이도 시맨틱 뷰. (LLM 해석 결과가 있으면 폴백으로 사용.)
+- **흔적 = 블록 카드** (2026-06-09): 우측 흔적을 한 줄 텍스트에서 "라벨+내용" 블록(`.board-block`)으로 재설계 — 밑줄 블록은 실제 밑줄 친 문구를 인용처럼 담고(밑줄 하이라이트 포함), 주석 블록은 내가 쓴 글, 상태·회상은 칩으로 분리. ("태그+여러 줄 쭈루룩" 인상 제거.)
 - **데모 시드** — `window.__layer2Demo.seed()`(즉시) / `.play()`(시간순 재생 → 촛불·티키타카 자연 발동)로 더미 독서 신호를 채워 전체 흐름을 체감 (demo.js).
 - **AI 티키타카 카드 자리뿐** — 보드의 "대화" 카드는 2.5.4 채팅 모듈이 서야 채워진다.
 - **좁은 화면** — 우측 360px 고정이라 좁은 뷰포트에서 가로 스크롤. 반응형 미흡.

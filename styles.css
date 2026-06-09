@@ -1259,32 +1259,56 @@ ol.para-list .para-item {
   width: 300px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 7px;
   z-index: 4;
 }
-.board-trace {
-  font-family: "Inter", "Noto Serif KR", system-ui, sans-serif;
-  font-size: 12px;
-  line-height: 1.5;
-  padding: 6px 10px;
-  border-radius: 8px;
+.board-hot {
+  margin-left: 6px;
+  font-size: 9px;
+  font-weight: 700;
+  opacity: 0.92;
+}
+/* 흔적 블록 — 각 흔적을 "라벨 + 내용"의 균일한 카드/블록으로.
+   유형 구분은 카드 안의 라벨(✎/﹏/◯)로만(좌측 컬러 라인 없음). */
+.board-block {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 9px 11px;
+  border-radius: 10px;
   border: 1px solid var(--line, #e6e1d4);
   background: var(--paper, #fff);
-  color: var(--text, #1a1a1a);
   box-shadow: var(--shadow-soft);
 }
-/* 흔적 카드 — 좌측 컬러 라인은 "AI가 만든 카드"처럼 보여 제거.
-   유형 구분은 카드 안의 라벨(✎/밑줄/◯)로만. */
-.board-trace--annotation {
-  background: var(--paper, #fff);
+.board-block-tag {
+  align-self: flex-start;
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--muted, #8a8378);
 }
-.board-trace--underline {
-  color: var(--muted, #6b6b6b);
-  font-size: 11px;
+.board-block-text {
+  font-family: "Noto Serif KR", serif;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--text, #1a1a1a);
 }
-.board-trace--circle {
-  color: var(--muted, #6b6b6b);
-  font-size: 11px;
+.board-block-quote {
+  font-family: "Noto Serif KR", serif;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text, #2a2a2a);
+  padding: 2px 0 2px 10px;
+  border-left: 2px solid var(--rule, #ddd6c6);
+  background-image: linear-gradient(transparent 82%, rgba(217, 54, 43, 0.16) 0);
+  background-repeat: no-repeat;
+}
+.board-block-quote + .board-block-quote { margin-top: 4px; }
+/* 내용 없는 표시(밑줄만/동그라미만) 블록은 라벨 하나라 컴팩트하게 */
+.board-block--underline:not(:has(.board-block-quote)),
+.board-block--circle {
+  padding: 6px 11px;
 }
 
 /* B v1.1 — inline recall (cloze) inside the board card */
@@ -1405,8 +1429,9 @@ ol.para-list .para-item {
 }
 
 @media (prefers-color-scheme: dark) {
-  .board-trace { background: #2a2622; color: #ece7df; border-color: #3a352e; }
-  .board-trace--annotation { background: #3a2c1e; }
+  .board-block { background: #2a2622; border-color: #3a352e; }
+  .board-block-text { color: #ece7df; }
+  .board-block-quote { color: #ddd6cc; border-left-color: #4a4438; }
   .board-cloze { background: #2a2622; color: #ece7df; border-color: #3a352e; }
   .board-recall-btn { background: #2e2640; color: #d9c8f0; border-color: #4a3d6a; }
   .board-summary { background: #232019; border-color: #3a352e; }
