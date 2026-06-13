@@ -14,7 +14,7 @@ let readerEl = null;
 
 export function initDemo(opts) {
   readerEl = opts.readerEl;
-  window.__layer2Demo = { seed, play, runDemo, clear, roleFor, seedSessions };
+  window.__layer2Demo = { seed, seedRich, play, runDemo, clear, roleFor, seedSessions };
   wireDemoButtons();
 }
 
@@ -150,7 +150,7 @@ function emitFor(pid, text, role, baseTop) {
     pushSignal({
       type: "highlight_annotation", paragraph_id: pid,
       anchor_text: slice(4, 22),
-      annotation_text: "이게 핵심 개념이구나 — 앞 단락의 주장과 이렇게 연결되는 듯.",
+      annotation_text: "이게 핵심 개념이구나 : 앞 단락의 주장과 이렇게 연결되는 듯.",
       underline_start_t: now, transition_t: now + 1800,
       textarea_appeared_t: now + 5400, confirm_t: now + 12000, total_duration_ms: 12000,
     });
@@ -168,6 +168,53 @@ function seed() {
     emitFor(p.dataset.paragraphId, p.textContent, roleFor(i, ps.length), i * 300),
   );
   console.log(`[demo] seeded reading signals for ${ps.length} paragraphs`);
+  return ps.length;
+}
+
+// 발표/스크린샷용 풍성한 시드 — 많은 단락에 흔적을 남겨 멘탈맵을 별자리처럼.
+// 각 노드의 임베딩 입력(밑줄=단락 텍스트 조각, 일부 주석)이 단락마다 달라
+// 의미 엣지가 여러 개 뜬다. window.__layer2Demo.seedRich().
+function seedRich() {
+  const ps = paras();
+  const notes = [
+    null,
+    "이게 핵심 개념이구나 : 앞 단락의 주장과 이렇게 연결되는 듯.",
+    null,
+    "여기는 잘 안 잡혀서 다시 읽었다.",
+    "이 문장이 제일 중요해 보인다.",
+    null,
+    "내 말로 다시 정리해두고 싶은 부분.",
+    null,
+    "앞에서 말한 개념이 여기서 또 나온다.",
+    "결론이 여기서 한 번에 모이는 느낌.",
+  ];
+  ps.forEach((p, i) => {
+    const pid = p.dataset.paragraphId;
+    const t = (p.textContent || "").replace(/💬?\s*대화\s*$/, "").trim();
+    if (t.length < 6) return;
+    const slice = (a, b) => t.slice(a, b) || t.slice(0, 16);
+    const now = performance.now();
+    pushSignal({ type: "dwell", paragraph_id: pid, duration_ms: 4000 + i * 300, visible_frac: 0.86, enter_count: 1, total_ms: 4000 + i * 300 });
+    // 대부분 단락에 밑줄 → 노드 + 임베딩 가능한 텍스트(단락마다 내용이 달라 별자리)
+    pushSignal({ type: "highlight_underline", paragraph_id: pid, selected_text: slice(0, Math.min(46, t.length)), char_range: [0, Math.min(46, t.length)], duration_ms: 1400, draw_speed: 11 });
+    if (notes[i]) {
+      pushSignal({
+        type: "highlight_annotation", paragraph_id: pid,
+        anchor_text: slice(0, 18), annotation_text: notes[i],
+        underline_start_t: now, transition_t: now + 1800,
+        textarea_appeared_t: now + 5400, confirm_t: now + 12000, total_duration_ms: 12000,
+      });
+    }
+  });
+  if (ps[3]) pushSignal({ type: "circle_gesture", enclosed_paragraph: ps[3].dataset.paragraphId, enclosed_text: "표시", radius: 40 });
+  if (ps[6]) pushSignal({ type: "reread", paragraph_id: ps[6].dataset.paragraphId, visit_count: 3, enter_count: 3, reverse_rate: 0.62, scroll_top: 1200 });
+  if (ps[1]) {
+    const pid = ps[1].dataset.paragraphId;
+    pushSignal({ type: "chat_opened", paragraph_id: pid, reason: "annotation" });
+    pushSignal({ type: "chat_turn", role: "user", len: 38, paragraph_id: pid, reason: "annotation" });
+    pushSignal({ type: "chat_turn", role: "assistant", len: 96, paragraph_id: pid, reason: "annotation" });
+  }
+  console.log(`[demo] seedRich: ${ps.length} paragraphs marked`);
   return ps.length;
 }
 

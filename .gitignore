@@ -13,3 +13,6 @@ playwright-report/
 .env
 .env.*
 !.env.example
+
+# 발표 스크린샷(2x) — 재생성 가능(npx playwright test shots), 용량상 미추적
+docs/presentation/shots/*.png
