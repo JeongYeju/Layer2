@@ -6,7 +6,7 @@
   (예: "Branch 메뉴 → New Branch", "Push origin 버튼" 등)
 - 터미널/CLI 명령어(`git checkout`, `git push` 등)를 답변에 노출하지 말 것.
 
-## 프로젝트 상태 (2026-06-02 기준)
+## 프로젝트 상태 (2026-06-14 기준)
 
 ### 브랜치
 - `main` — README.md, .gitattributes 만 있는 거의 백지 (변동 없음).
@@ -22,7 +22,7 @@
 - `signals.js` — 신호 단일 진입점 (`pushSignal` / `signalBus` EventTarget). baseline collectors: dwell·reread (IntersectionObserver 기반), scroll, mouse_trail, circle_gesture.
 - `highlight.js` — 밑줄 → 동그라미 → 주석 상태머신. `highlight_underline` / `highlight_annotation` 신호 발화.
 - `attention.js` — 비활성 5s / 무활동 20s → `.article` 점진 블러. `attention_pause` / `attention_resume` 발화.
-- `candle.js` ★ 촛불(Stick Candle) v0.2 — 신호 → Seam 개입 (annotation_seam + 주석 품질 휴리스틱 / reread / welcome / stuck). `candle_intervene` / `candle_dismiss` 발화. **기능 문서: `docs/features/candle.md`.**
+- `candle.js` ★ 촛불(Stick Candle) v0.3 — 신호 → Seam 3종 개입: annotation_seam(주석 직후+품질 휴리스틱) / isolation_seam(reverse_rate·무흔적·**friction 상위20% 실시간 결합**) / transition_seam(탭 복귀·비활성 180s) + stuck. `candle_intervene` / `candle_dismiss` 발화. **기능 문서: `docs/features/candle.md`.**
 - `viewer-shell.js` `viewer-layout.css` — 스크롤 vs 스프레드 레이아웃 전환 (CSS 클래스 토글, DOM 재사용).
 - `portal.js` — 독서 모드(Pointer Lock 가상 커서). `window.__portal` 로 좌표 노출.
 - `dashboard.js` — 우측 패널. `signalBus` 구독 + interpret 결과 JSON 불러오기 + 단락별 마찰 섹션 + 다중 세션 거시 리포트.
@@ -63,12 +63,13 @@
 - **주석 품질 = 행동 휴리스틱** (실시간 AI X / UI 라벨 X). 선택 범위 비율 + 전이 시간 + 산출물 밀도 3종으로 Constructive 판별. 데이터는 `highlight_annotation` 페이로드(char_range/transition_t/annotation_text/total_duration_ms)에 *이미 있음*. 고품질만 세션 끝 batch AI (Lazy Evaluation).
 - **리포트 2 레벨** — Micro = Mental Model Map (single source). Macro = 시간대별 인지 리듬 + 관심사 크로스오버 맵 + 마찰 추이 곡선.
 
-### 진행 우선순위 (PDF Next Plan + Appendix 04 + 디벨롭 §8)
-- 촛불 v1 정식화 — Seam 3종으로 재정의. **annotation_seam(주석 직후)이 최우선 신규** — friction percentile 이 v0.1 의 45s/30s 추정값 대체.
-- 마찰 계수 구현 — signals.js dwell observer 에 visibleFrac(intersectionRatio) 누적 추가 → interpret.js 에서 z-score/percentile 산출. (문헌 W1 완료, 구현 남음)
-- 결과 화면 와이어 1차 — Mental Map(Micro) + 거시 대시보드 3카드.
-- 보드 모드 와이어 — 텍스트 ↔ 보드 토글 + 의미론적 접기(마찰 계수 색상 위계).
-- 미루기로 결정: 디자인 비주얼 polish, 캐릭터 비주얼 추가 (촛불 외).
+### 진행 상태 (2026-06-14)
+**기능 구현 거의 완료** — 5 레이어(수집/해석/뷰어/개입/리포트) 다 작동:
+- ✅ 촛불 v0.3 (Seam 3종 + friction 결합) / ✅ 마찰 계수(signals.js visibleFrac·reverse_rate → interpret.js z-score·percentile) / ✅ 보드 모드(흔적 블록 카드) / ✅ 다중 세션 거시 리포트(sessions.js)
+- ✅ **Micro 리포트 = Mental Model Map**(report.js): 척추 노드 + 개념 엣지(어휘 중첩 기본, 키 있으면 `gemini-embedding-001` 코사인 의미 엣지로 동의어·의역까지)
+- ✅ AI 티키타카(chat.js, 실제 Gemini 왕복 검증) / ✅ UI 진입점 MECE 정리(대시보드 단일 진입 `#menu-records`, 헤더 `#btn-finish` 독서끝내기 노출, "모든 도구" 제거)
+- **현재 = 발표 준비** (15일 모의 / 17일 최종): 대본 `docs/presentation/15일-script.md`, 발표용 스크린샷 `docs/presentation/shots/`(재생성: `npx playwright test shots`), **Figma 슬라이드 작업** `docs/presentation/figma-progress.md` 참고. 발표 스킬 = `figma-korean-design-system`.
+- 보류(합의): 재독 디프 · 다회독 거울(시간 가로지르는 패턴) · DB/배포(Vercel/Neon) · 디자인 polish.
 
 ### 모듈 결합 메모 (브랜치 머지할 때 충돌 주의)
 - `window.__portal` (portal.js 가 owner) — highlight.js / signals.js 가 읽기만.
