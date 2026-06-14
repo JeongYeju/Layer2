@@ -110,7 +110,7 @@ function drawEdges() {
   const yOf = new Map();
   for (const el of spine.querySelectorAll(".rp-node[data-ni]"))
     yOf.set(+el.dataset.ni, el.offsetTop + 9); // dot 중심 (top:4 + r:5)
-  const X = 16;
+  const X = 30;
   const NS = "http://www.w3.org/2000/svg";
   const svg = document.createElementNS(NS, "svg");
   svg.setAttribute("class", "rp-edges");
@@ -121,14 +121,14 @@ function drawEdges() {
     const y1 = yOf.get(e.a);
     const y2 = yOf.get(e.b);
     if (y1 == null || y2 == null) continue;
-    const bulge = Math.min(13, 4 + Math.abs(y2 - y1) * 0.04);
-    const cx = Math.max(2, X - bulge);
+    const bulge = Math.min(26, 6 + Math.abs(y2 - y1) * 0.09);
+    const cx = Math.max(3, X - bulge);
     const path = document.createElementNS(NS, "path");
     path.setAttribute("d", `M ${X} ${y1} Q ${cx} ${(y1 + y2) / 2} ${X} ${y2}`);
     path.setAttribute("class", "rp-edge");
     const s = e.w / maxW;
-    path.setAttribute("stroke-width", (1 + s * 1.6).toFixed(2));
-    path.style.opacity = (0.3 + s * 0.4).toFixed(2);
+    path.setAttribute("stroke-width", (1.4 + s * 2.2).toFixed(2));
+    path.style.opacity = (0.4 + s * 0.45).toFixed(2);
     const title = document.createElementNS(NS, "title");
     title.textContent = e.title || `공유 개념: ${(e.terms || []).join(", ")}`;
     path.appendChild(title);
