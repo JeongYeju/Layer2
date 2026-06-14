@@ -152,6 +152,8 @@ const ICAP_HELP = {
   C: "주석으로 내 생각을 적은 단락 (구성적 읽기)",
   I: "촛불과 대화까지 한 단락 (상호작용 읽기)",
 };
+// 보드 카드 접힘 높이(px) — 이보다 길면 끝을 그라디언트로 흐리고 펼침 화살표 노출.
+const BOARD_COLLAPSE_PX = 116;
 
 function frictionByPid() {
   const map = new Map();
@@ -320,49 +322,49 @@ function renderBoardCards() {
       );
     }
 
-    // ----- 접혔을 때 한눈에 보일 요약(흔적 개수) -----
-    const summaryBits = [];
-    if (annos.length) summaryBits.push(`✎ ${annos.length}`);
-    if (underlines.length) summaryBits.push(`﹏ ${underlines.length}`);
-    else if (hasUnderlineTrace) summaryBits.push("﹏");
-    if (hasCircle) summaryBits.push("◯");
-
     para.classList.add("has-board-card");
     const card = document.createElement("div");
-    card.className = "board-card" + (hasBody ? " is-collapsible" : "");
+    card.className = "board-card";
 
-    // 항상 보이는 헤더 = 상태 칩(+설명) · 흔적 요약 · 펼침 화살표. 기본은 접힘.
-    const head = document.createElement("button");
-    head.type = "button";
-    head.className = "board-card-head";
-    head.innerHTML =
-      (showState
-        ? `<span class="board-state board-state--${icap.toLowerCase()}" title="${escapeHtml(ICAP_HELP[icap] || "")}">${ICAP_LABEL[icap] || icap}</span>`
-        : "") +
-      (f?.friction_high
-        ? `<span class="board-hot" title="이 글에서 되돌아읽기·체류가 상위 20%인 단락">마찰↑</span>`
-        : "") +
-      (hasBody
-        ? `<span class="board-card-summary">${summaryBits.join(" · ")}</span><span class="board-card-chev" aria-hidden="true">▾</span>`
-        : "");
-    card.appendChild(head);
+    // 상태 칩(+설명) 은 맨 위, 그 아래 흔적 블록. 전부 inner 안에 — inner 가 접힘 대상.
+    const inner = document.createElement("div");
+    inner.className = "board-card-inner";
+    let stateHtml = "";
+    if (showState)
+      stateHtml += `<span class="board-state board-state--${icap.toLowerCase()}" title="${escapeHtml(ICAP_HELP[icap] || "")}">${ICAP_LABEL[icap] || icap}</span>`;
+    if (f?.friction_high)
+      stateHtml += `<span class="board-hot" title="이 글에서 되돌아읽기·체류가 상위 20%인 단락">마찰↑</span>`;
+    inner.innerHTML =
+      (stateHtml ? `<div class="board-card-state">${stateHtml}</div>` : "") +
+      blocks.join("");
+    card.appendChild(inner);
 
-    let cardBody = null;
-    if (hasBody) {
-      cardBody = document.createElement("div");
-      cardBody.className = "board-card-body";
-      cardBody.innerHTML = blocks.join("");
-      card.appendChild(cardBody);
-      head.addEventListener("click", () => card.classList.toggle("is-expanded"));
-    }
+    // 펼침/접힘 화살표 — 내용이 접힘 높이를 넘칠 때만(is-clipped) 보인다.
+    const chev = document.createElement("button");
+    chev.type = "button";
+    chev.className = "board-card-toggle";
+    chev.setAttribute("aria-label", "카드 펼치기 / 접기");
+    chev.innerHTML = `<span class="board-card-chev" aria-hidden="true">▾</span>`;
+    chev.addEventListener("click", (e) => {
+      e.stopPropagation();
+      card.classList.toggle("is-expanded");
+    });
+    card.appendChild(chev);
+
     para.appendChild(card);
+
+    // 길쭉한 카드만 접는다: 접힘 높이를 넘으면 끝을 그라디언트로 흐리고(텍스트가
+    // 안으로 숨는 느낌) 화살표를 띄운다. 짧은 카드는 그대로 다 보인다.
+    if (hasBody && inner.scrollHeight > BOARD_COLLAPSE_PX + 16) {
+      card.classList.add("is-clipped");
+    }
 
     const rb = card.querySelector(".board-recall-btn");
     if (rb) {
       const bodyText = paraText(para);
       rb.addEventListener("click", (e) => {
         e.stopPropagation();
-        toggleRecall(card, pid, underlines, bodyText, rb, cardBody);
+        toggleRecall(card, pid, underlines, bodyText, rb, inner);
       });
     }
   }

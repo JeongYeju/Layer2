@@ -1456,51 +1456,56 @@ ol.para-list .para-item {
   opacity: 0.92;
 }
 
-/* 접기/펼치기 — 기본은 헤더(상태칩+흔적요약)만 보이고, 누르면 본문이 펼쳐진다.
-   이렇게 해야 카드가 길어도 평소엔 짧아 옆 카드와 안 겹친다. */
-.board-card-head {
+/* 접기/펼치기 — 긴 카드는 기본 접힘. 접힌 모습은 끝을 그라디언트로 흐려서
+   "텍스트가 안으로 숨은" 느낌 + 펼침 화살표. 짧은 카드는 그대로 다 보인다. */
+.board-card-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: relative;
+}
+.board-card-state {
   display: flex;
   align-items: center;
-  gap: 8px;
-  width: 100%;
-  text-align: left;
-  font: inherit;
-  padding: 7px 12px;
+  gap: 6px;
+}
+.board-card.is-clipped:not(.is-expanded) .board-card-inner {
+  max-height: 116px;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(to bottom, #000 55%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 55%, transparent 100%);
+}
+.board-card-toggle {
+  display: none;
+  align-self: center;
+  margin-top: -12px;
+  width: 32px;
+  height: 22px;
+  align-items: center;
+  justify-content: center;
   border: 1px solid var(--line, #e6e1d4);
   border-radius: 999px;
   background: var(--paper, #fff);
   box-shadow: var(--shadow-soft);
-  cursor: default;
-}
-.board-card.is-collapsible .board-card-head {
-  cursor: pointer;
-}
-.board-card.is-collapsible .board-card-head:hover {
-  border-color: var(--accent, #2d5e4c);
-}
-.board-card-summary {
-  font-family: "Inter", system-ui, sans-serif;
-  font-size: 12px;
   color: var(--muted, #8a8378);
-  letter-spacing: 0.02em;
+  cursor: pointer;
+  position: relative;
+  z-index: 1;
+}
+.board-card-toggle:hover {
+  border-color: var(--accent, #2d5e4c);
+  color: var(--accent, #2d5e4c);
+}
+.board-card.is-clipped .board-card-toggle {
+  display: flex;
 }
 .board-card-chev {
-  margin-left: auto;
   font-size: 11px;
-  color: var(--muted, #8a8378);
+  line-height: 1;
   transition: transform 0.15s ease;
 }
 .board-card.is-expanded .board-card-chev {
   transform: rotate(180deg);
-}
-.board-card-body {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.board-card.is-collapsible:not(.is-expanded) .board-card-body,
-.board-card.is-collapsible:not(.is-expanded) .board-recall-zone {
-  display: none;
 }
 /* 흔적 블록 — 각 흔적을 "라벨 + 내용"의 균일한 카드/블록으로.
    유형 구분은 카드 안의 라벨(✎/﹏/◯)로만(좌측 컬러 라인 없음). */
