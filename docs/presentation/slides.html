@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Layer 2 — 15일 모의발표</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Noto+Serif+KR:wght@500;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --paper:#faf8f3; --ink:#1b1714; --accent:#2d5e4c; --accent-2:#3a7a62;
+    --soft:#eaf0ec; --muted:#8c857a; --line:#e7e1d4; --hot:#c0863a;
+    --sans:"Pretendard","Pretendard Variable",system-ui,sans-serif;
+    --serif:"Newsreader","Noto Serif KR",Georgia,serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;background:#0d0c0b;font-family:var(--sans);color:var(--ink);overflow:hidden}
+  #viewport{position:fixed;inset:0;display:grid;place-items:center}
+  #stage{width:1920px;height:1080px;position:relative;transform-origin:center center;box-shadow:0 40px 120px rgba(0,0,0,.5)}
+  .slide{position:absolute;inset:0;background:var(--paper);padding:80px 40px;display:none;flex-direction:column;overflow:hidden}
+  .slide.on{display:flex}
+  /* type */
+  .eyebrow{font-size:24px;font-weight:700;letter-spacing:.14em;color:var(--accent);text-transform:uppercase}
+  .eyebrow.m{color:var(--muted)}
+  .display{font-size:176px;font-weight:800;line-height:.98;letter-spacing:-.02em}
+  .big{font-size:100px;font-weight:800;line-height:1.04;letter-spacing:-.015em}
+  .h3{font-size:50px;font-weight:800;line-height:1.1}
+  .lead{font-size:46px;font-weight:600;line-height:1.3;letter-spacing:-.01em}
+  .body{font-size:30px;font-weight:400;line-height:1.55;color:#4a443c;max-width:1180px}
+  .muted{color:var(--muted)}
+  .ac{color:var(--accent)}
+  .serif{font-family:var(--serif)}
+  /* layout helpers */
+  .grow{flex:1}
+  .center{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:26px}
+  .vcenter{flex:1;display:flex;flex-direction:column;justify-content:center;gap:22px}
+  .split{flex:1;display:grid;grid-template-columns:1.05fr .95fr;gap:90px;align-items:center}
+  .split.rev{grid-template-columns:.95fr 1.05fr}
+  .stack{display:flex;flex-direction:column;gap:22px}
+  .foot{display:flex;justify-content:space-between;align-items:flex-end;color:var(--muted);font-size:20px;letter-spacing:.04em}
+  .foot b{color:var(--accent);font-weight:700}
+
+  /* 1. Title */
+  .s-title .center{gap:34px}
+  .wordmark{font-family:var(--serif);font-size:280px;font-weight:500;line-height:.9;letter-spacing:-.02em}
+  .s-title .sub{font-size:40px;color:var(--muted);font-style:italic;font-family:var(--serif)}
+  .triad{font-size:42px;font-weight:800;color:var(--accent);letter-spacing:.02em;margin-top:14px}
+  .triad-kr{font-size:28px;color:var(--muted)}
+
+  /* 3 teaser underline */
+  .s-teaser .big span.u{position:relative;color:var(--accent)}
+  .s-teaser .big span.u::after{content:"";position:absolute;left:0;right:0;bottom:.08em;height:.14em;background:var(--hot);opacity:.5}
+
+  /* 4 Context HBI diagram */
+  .hbi{display:flex;flex-direction:column;align-items:center;gap:0;position:relative}
+  .hbi .dot{width:54px;height:54px;border-radius:50%;background:#cfc8b8}
+  .hbi .axis{width:3px;height:64px;background:var(--line)}
+  .hbi .layers{display:flex;flex-direction:column;gap:14px;position:relative;padding:8px 0}
+  .hbi .ly{width:340px;padding:20px 26px;border-radius:14px;background:#fff;border:1px solid var(--line);box-shadow:0 8px 24px rgba(60,50,30,.06);font-size:26px;color:#5a5347;text-align:center}
+  .hbi .rich{position:absolute;right:-150px;top:50%;transform:translateY(-50%);writing-mode:vertical-rl;font-size:24px;font-weight:700;color:var(--accent);border-left:2px solid var(--accent);padding-left:14px;height:230px;display:flex;align-items:center}
+  .hbi .book{font-size:60px;margin-top:8px;opacity:.5}
+
+  /* 5 Problem fan */
+  .fan{display:flex;align-items:center;gap:20px;margin:30px 0 10px}
+  .fan .chip{font-size:26px;color:var(--muted);background:#fff;border:1px solid var(--line);border-radius:999px;padding:14px 24px}
+  .fan .void{width:200px;height:120px;border:2px dashed #d8b9a6;border-radius:16px;display:grid;place-items:center;color:#c08a72;font-size:40px}
+
+  /* 6 Innovation flip */
+  .flip{display:flex;align-items:center;gap:48px;margin:8px 0 4px}
+  .acr{font-size:200px;font-weight:800;letter-spacing:-.02em;color:#c9c2b4}
+  .acr b{color:var(--ink)}
+  .acr.to b{color:var(--accent)}
+  .flip .arrow{font-size:120px;color:var(--muted);font-weight:300}
+  .acr-exp{display:flex;gap:60px;font-size:28px;color:var(--muted);margin-bottom:30px}
+  .acr-exp .ac{color:var(--accent);font-weight:700}
+
+  /* 7 How cards */
+  .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:32px;margin-top:auto;margin-bottom:auto}
+  .card{background:#fff;border:1px solid var(--line);border-radius:22px;padding:46px 42px;display:flex;flex-direction:column;gap:14px;box-shadow:0 14px 36px rgba(60,50,30,.05)}
+  .card .num{font-size:22px;font-weight:700;color:var(--muted);letter-spacing:.1em}
+  .card h3{font-size:52px;font-weight:800}
+  .card .kr{font-size:30px;font-weight:700;color:var(--accent)}
+  .card p{font-size:27px;color:#4a443c;line-height:1.5}
+
+  /* 8 Development chips + bar */
+  .chips{display:flex;flex-wrap:wrap;gap:16px;margin:34px 0}
+  .chips span{font-size:30px;font-weight:600;color:#4a443c;background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px 28px}
+  .fbar{height:26px;border-radius:999px;background:#ece7da;overflow:hidden;max-width:1180px;display:flex}
+  .fbar .cool{flex:4;background:#ece7da}
+  .fbar .hot{flex:1;background:linear-gradient(90deg,#d9a86a,var(--hot))}
+
+  /* 9 / 10 screenshot */
+  .shotwrap{flex:1;display:flex;flex-direction:column;gap:24px;min-height:0}
+  .shotwrap .cap{display:flex;align-items:baseline;gap:22px}
+  .shotwrap .cap h3{font-size:46px;font-weight:800}
+  .shot{flex:1;min-height:0;border-radius:18px;border:1px solid var(--line);background:#fff;overflow:hidden;box-shadow:0 24px 60px rgba(60,50,30,.10)}
+  .shot img{width:100%;height:100%;object-fit:cover;object-position:top center;display:block}
+  .map-img{width:100%;border-radius:18px;border:1px solid var(--line);box-shadow:0 24px 60px rgba(60,50,30,.10);max-height:880px;object-fit:cover;object-position:top}
+
+  /* 13 future */
+  .two{display:flex;align-items:center;gap:50px;margin:30px 0}
+  .two .col{background:#fff;border:1px solid var(--line);border-radius:20px;padding:34px 40px;min-width:380px}
+  .two .tag{font-size:22px;font-weight:700;letter-spacing:.08em;color:var(--muted);margin-bottom:16px}
+  .two .tag.ac{color:var(--accent)}
+  .two ul{list-style:none;display:flex;flex-direction:column;gap:10px}
+  .two li{font-size:32px;color:#9a9486;text-decoration:line-through;text-decoration-color:#cfc8b8}
+  .two .now p{font-size:32px;color:var(--ink);font-weight:600;line-height:1.4}
+  .two .arrow{font-size:80px;color:var(--muted);font-weight:300}
+  .next{font-size:34px;line-height:1.5}
+  .next .ac{font-weight:800}
+
+  /* nav */
+  #hud{position:fixed;right:22px;bottom:18px;color:#9a9486;font-size:15px;font-family:var(--sans);letter-spacing:.05em;z-index:10;user-select:none}
+  #hud b{color:#e8e2d4}
+  .hint{position:fixed;left:22px;bottom:18px;color:#6a6458;font-size:13px;z-index:10}
+
+  @media print{
+    html,body{overflow:visible;background:#fff}
+    #viewport{display:block}
+    #stage{transform:none!important;box-shadow:none;width:auto;height:auto}
+    .slide{display:flex!important;position:relative;inset:auto;width:1920px;height:1080px;page-break-after:always;break-after:page}
+    #hud,.hint{display:none}
+  }
+</style>
+</head>
+<body>
+<div id="viewport"><div id="stage">
+
+  <!-- 1 TITLE -->
+  <section class="slide s-title on">
+    <div class="center">
+      <div class="eyebrow">A second layer on reading</div>
+      <h1 class="wordmark">Layer 2</h1>
+      <div class="triad">Wrestle&nbsp;·&nbsp;Trace&nbsp;·&nbsp;Mirror</div>
+      <div class="triad-kr">씨름하고 · 흔적을 남기고 · 그 흔적으로 나를 비춘다</div>
+    </div>
+    <div class="foot"><span>2026 · 인터랙션 디자인 융합</span><span><b>강민서</b></span></div>
+  </section>
+
+  <!-- 2 ONE SENTENCE -->
+  <section class="slide s-stmt">
+    <div class="eyebrow">One sentence</div>
+    <div class="vcenter">
+      <h2 class="big">나를 아는 독서.</h2>
+      <p class="lead">씨름한 흔적이 거울이 되는 읽기.</p>
+      <p class="body" style="margin-top:18px">“안다”는 AI가 나를 꿰뚫는다는 뜻이 아닙니다. 내가 남긴 흔적을 모아, 내가 어떻게 읽는지 다시 비춘다는 뜻입니다.</p>
+    </div>
+  </section>
+
+  <!-- 3 DEMO TEASER -->
+  <section class="slide s-teaser">
+    <div class="eyebrow m">밑줄 · 머묾 · 되돌아감</div>
+    <div class="vcenter">
+      <h2 class="display">흔적이 <span class="u">선</span>이<br>되는 순간</h2>
+      <p class="lead muted" style="margin-top:20px">“읽은 척”이 아니라, 실제로 글과 지지고 볶은 자국.</p>
+    </div>
+  </section>
+
+  <!-- 4 CONTEXT -->
+  <section class="slide s-context">
+    <div class="eyebrow">Context · Human-Book Interaction</div>
+    <div class="split">
+      <div class="stack">
+        <h2 class="big">지지고 볶기</h2>
+        <p class="lead">종이책은 좁지만, 깊었다.</p>
+        <p class="body">막히면 밑줄 치고, 메모하고, 옆에 그림 그리고, 뒷장 보다 앞장 다시. 어젯밤 읽던 걸 아침에 또. 비효율적이지만 책과 씨름하며 혼자 이해에 도달했다.</p>
+      </div>
+      <div class="hbi">
+        <div class="dot"></div>
+        <div class="axis"></div>
+        <div class="layers">
+          <div class="ly">되돌아읽기</div>
+          <div class="ly">메모 · 주석</div>
+          <div class="ly">하이라이트</div>
+          <div class="rich">풍부하다</div>
+        </div>
+        <div class="axis"></div>
+        <div class="book">📖</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 PROBLEM -->
+  <section class="slide s-problem">
+    <div class="eyebrow">Problem · Human-Document Interaction</div>
+    <div class="vcenter">
+      <h2 class="display">평평해진 읽기</h2>
+      <div class="fan">
+        <span class="chip">검색</span><span class="chip">GPT</span>
+        <div class="void">?</div>
+        <span class="chip">요약</span><span class="chip">번역</span>
+      </div>
+      <p class="lead">좌우로 넓어졌지만, <span class="ac">가운데</span>가 비었다.</p>
+      <p class="body muted">문장에 바로 밑줄 긋고 메모하던, 지지고 볶는 깊이가 얇아졌다.</p>
+    </div>
+  </section>
+
+  <!-- 6 INNOVATION -->
+  <section class="slide s-flip">
+    <div class="eyebrow">Innovation</div>
+    <div class="vcenter" style="justify-content:center">
+      <div class="flip">
+        <span class="acr"><b>H</b>DI</span>
+        <span class="arrow">→</span>
+        <span class="acr to"><b>D</b>HI</span>
+      </div>
+      <p class="acr-exp"><span>Human-Document Interaction</span><span class="ac">Document-Human Interaction</span></p>
+      <h2 class="big">문서가, 이제 내 흔적을 읽는다.</h2>
+      <p class="body muted">흔적의 의미를 독자만 알던 종이책과 달리, 시스템이 그 흔적을 읽고 움직인다. 비어 있던 가운데, 지지고 볶는 영역을 복원한다.</p>
+    </div>
+  </section>
+
+  <!-- 7 HOW -->
+  <section class="slide s-how">
+    <div class="eyebrow">How · 작동 원리</div>
+    <h2 class="big" style="margin:18px 0 4px">씨름하고, 흔적을 남기고, 나를 비춘다</h2>
+    <div class="cards">
+      <div class="card"><span class="num">01 — WRESTLE</span><h3>씨름</h3><p>어려운 글과 부딪힌 행동(왔다갔다·머묾·밑줄)을 읽기의 실패가 아니라 이해가 만들어지는 신호로 본다.</p></div>
+      <div class="card"><span class="num">02 — TRACE</span><h3>흔적</h3><p>하이라이트·주석·체류·되돌아읽기를 모아 마찰로. 절대 점수가 아니라 이 글 안에서의 백분위.</p></div>
+      <div class="card"><span class="num">03 — MIRROR</span><h3>거울</h3><p>촛불이 개념을 짚어 텍스트를 더 알게 하고, 맵·리포트가 내가 어떻게 읽는지 되비춘다.</p></div>
+    </div>
+  </section>
+
+  <!-- 8 DEVELOPMENT -->
+  <section class="slide s-dev">
+    <div class="eyebrow">Development</div>
+    <div class="vcenter">
+      <h2 class="big">신호를 먼저 만들었다</h2>
+      <p class="lead">읽는 행동을, 데이터로.</p>
+      <div class="chips">
+        <span>﹏ 밑줄</span><span>✎ 주석</span><span>◯ 동그라미</span><span>⏱ 체류</span><span>↩ 되돌아읽기</span><span>⇅ 스크롤</span>
+      </div>
+      <div class="fbar"><div class="cool"></div><div class="hot"></div></div>
+      <p class="body muted">마찰 계수 = 이 글 안에서 상대적으로 치열했던 곳. 문서 내 백분위 <b class="ac">상위 20%</b>를 개입·리포트의 재료로.</p>
+    </div>
+  </section>
+
+  <!-- 9 DEMO -->
+  <section class="slide s-shot">
+    <div class="shotwrap">
+      <div class="cap"><span class="eyebrow">Demo</span><h3>읽고, 촛불이 말을 걸고, 흔적이 지도가 된다</h3></div>
+      <div class="shot"><img src="shots/03-tikitaka.png" alt="읽기 + 촛불 + 티키타카" /></div>
+    </div>
+  </section>
+
+  <!-- 10 MENTAL MAP -->
+  <section class="slide s-map">
+    <div class="eyebrow">Mental Model Map</div>
+    <div class="split rev">
+      <div class="stack">
+        <h2 class="big">내 읽기가 만든<br>작은 세계</h2>
+        <p class="body">개념이 가까운 단락이 곡선으로 이어진다. 시간 · 마찰 · 개념 · 상호작용처럼 여러 차원이던 읽기를, 한 장으로 정사영한 지형.</p>
+        <p class="body ac" style="font-weight:600">동의어·의역까지 잇는 의미 연결 — Gemini 임베딩 코사인.</p>
+      </div>
+      <div><img class="map-img" src="shots/05-mentalmap-panel.png" alt="멘탈 모델 맵 별자리" /></div>
+    </div>
+  </section>
+
+  <!-- 11 VALIDATION -->
+  <section class="slide s-valid">
+    <div class="eyebrow">Validation</div>
+    <div class="vcenter">
+      <h2 class="big">“AI가 당신을 안다”고<br>말하지 않습니다.</h2>
+      <p class="lead ac">정답보다, 경향.</p>
+      <p class="body muted">흔적을 모아 경향을 비출 뿐, 정답을 내리지 않는다. 마찰도 절대 점수가 아니라 이 글 안에서 어디가 상대적으로 치열했나(문서 내 백분위). 검증도 정확도보다, 사용자가 자기 읽기를 납득하는지에 맞춘다.</p>
+    </div>
+  </section>
+
+  <!-- 12 CONCLUSION -->
+  <section class="slide s-concl">
+    <div class="eyebrow">Conclusion</div>
+    <div class="vcenter" style="justify-content:center">
+      <h2 class="display">책과 나 사이의 <span class="serif ac">아교</span></h2>
+      <p class="lead" style="margin-top:18px">효율로 사라진 지지고 볶기를 다시 살리고, 그 흔적을 모아 내가 어떻게 읽는 사람인지 조용히 비춘다.</p>
+      <p class="body" style="font-size:34px;margin-top:18px">= 읽기 위의 한 겹, <b class="serif" style="font-size:40px">Layer 2</b>.</p>
+    </div>
+  </section>
+
+  <!-- 13 FUTURE -->
+  <section class="slide s-future">
+    <div class="eyebrow">Future</div>
+    <div class="vcenter">
+      <h2 class="big">할 일이던 게, 다 됐다</h2>
+      <div class="two">
+        <div class="col was"><div class="tag">6 / 5 계획</div>
+          <ul><li>촛불 개입</li><li>보드 뷰</li><li>멘탈 모델 맵</li><li>다중 세션 리포트</li></ul>
+        </div>
+        <div class="arrow">→</div>
+        <div class="col now"><div class="tag ac">지금</div>
+          <p>지난 며칠 만에<br>작동하는 형태까지.<br><span style="font-size:24px;color:var(--muted);font-weight:400">약간 무리했습니다. 그래도 살아 있습니다.</span></p>
+        </div>
+      </div>
+      <p class="next"><span class="ac">다음 층 — 시간을 가로지르는 거울 :</span> 재독 디프(지난 나와 비교) · 다회독 패턴. 여러 번의 씨름이 쌓이며 내가 어떤 독자인지 더 선명해진다.</p>
+    </div>
+  </section>
+
+</div></div>
+
+<div id="hud"><b id="cur">1</b> / <span id="tot">13</span></div>
+<div class="hint">← → 이동 · F 전체화면 · P 인쇄(PDF)</div>
+
+<script>
+  const stage=document.getElementById('stage');
+  const slides=[...document.querySelectorAll('.slide')];
+  const tot=document.getElementById('tot'), cur=document.getElementById('cur');
+  tot.textContent=slides.length;
+  let i=0;
+  function show(n){ i=Math.max(0,Math.min(slides.length-1,n)); slides.forEach((s,k)=>s.classList.toggle('on',k===i)); cur.textContent=i+1; }
+  function fit(){ const s=Math.min(innerWidth/1920, innerHeight/1080); stage.style.transform=`scale(${s})`; }
+  addEventListener('resize',fit); fit(); show(0);
+  addEventListener('keydown',e=>{
+    if(e.key==='ArrowRight'||e.key==='PageDown'||e.key===' ') show(i+1);
+    else if(e.key==='ArrowLeft'||e.key==='PageUp') show(i-1);
+    else if(e.key==='Home') show(0);
+    else if(e.key==='End') show(slides.length-1);
+    else if(e.key==='f'||e.key==='F'){ document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen(); }
+    else if(e.key==='p'||e.key==='P'){ window.print(); }
+  });
+  addEventListener('click',e=>{ if(e.clientX<innerWidth*0.25) show(i-1); else show(i+1); });
+</script>
+</body>
+</html>
