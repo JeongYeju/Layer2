@@ -237,20 +237,31 @@ body {
 .topbar {
   flex: 0 0 auto;
   height: 46px;
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  justify-content: space-between;
   gap: 16px;
   padding: 0 14px;
   border-bottom: 1px solid var(--rule);
   background: var(--paper);
   font-size: 13px;
 }
-.topbar-left,
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-self: start;
+}
+.topbar-center {
+  display: flex;
+  align-items: center;
+  justify-self: center;
+}
 .topbar-right {
   display: flex;
   align-items: center;
   gap: 12px;
+  justify-self: end;
 }
 .brand {
   display: flex;
@@ -279,6 +290,18 @@ body {
 }
 .menu-item:hover {
   background: var(--paper-edge);
+}
+/* Pressed/active toggle (열기, 기록) — 펼쳐져 있으면 눌린 상태로 보인다. */
+.menu-item[aria-pressed="true"] {
+  background: var(--ink);
+  color: #fff;
+}
+.menu-item[aria-pressed="true"] svg.lucide {
+  color: #fff;
+}
+.menu-item[aria-pressed="true"]:hover {
+  background: var(--ink);
+  color: #fff;
 }
 /* Presenter demo button — accent so it's easy to find mid-talk. */
 .demo-btn {
@@ -389,6 +412,15 @@ body {
 .rail-btn:hover {
   background: var(--paper-edge);
   color: var(--text);
+}
+/* 아직 동작 안 하는 버튼(북마크·캡처)은 흐리게 — 준비 중 표시. */
+.rail-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+.rail-btn:disabled:hover {
+  background: none;
+  color: var(--muted);
 }
 .rail-btn.is-active {
   background: var(--text);

@@ -19,16 +19,27 @@
     <div class="topbar-left">
       <span class="brand"><span class="brand-dot"></span>Layer2</span>
       <nav class="menu">
-        <button type="button" class="menu-item" id="menu-open">
-          <i data-lucide="file-plus-2"></i> 열기
+        <button type="button" class="menu-item" id="menu-open" aria-pressed="false"
+          title="소스 패널 열기 / 닫기">
+          <i data-lucide="panel-left"></i> 열기
         </button>
         <button type="button" class="menu-item" id="menu-saved">
           <i data-lucide="library"></i> 저장된 글
         </button>
-        <button type="button" class="menu-item" id="menu-records">
-          <i data-lucide="bar-chart-3"></i> 기록
-        </button>
       </nav>
+    </div>
+    <div class="topbar-center">
+      <div class="view-toggle" id="view-toggle" role="group" aria-label="읽기 레이아웃">
+        <button type="button" data-mode="scroll" title="무한 스크롤">
+          <i data-lucide="align-justify"></i> 스크롤
+        </button>
+        <button type="button" data-mode="spread" title="종이책 스프레드">
+          <i data-lucide="book-open"></i> 스프레드
+        </button>
+        <button type="button" data-mode="board" title="보드 — 흔적 전개">
+          <i data-lucide="layout-grid"></i> 보드
+        </button>
+      </div>
     </div>
     <div class="topbar-right">
       <button type="button" class="menu-item" id="btn-finish"
@@ -43,17 +54,10 @@
         title="데모 리셋 — 신호 비우고 새로고침">
         <i data-lucide="rotate-ccw"></i>
       </button>
-      <div class="view-toggle" id="view-toggle" role="group" aria-label="읽기 레이아웃">
-        <button type="button" data-mode="scroll" title="무한 스크롤">
-          <i data-lucide="align-justify"></i> 스크롤
-        </button>
-        <button type="button" data-mode="spread" title="종이책 스프레드">
-          <i data-lucide="book-open"></i> 스프레드
-        </button>
-        <button type="button" data-mode="board" title="보드 — 흔적 전개">
-          <i data-lucide="layout-grid"></i> 보드
-        </button>
-      </div>
+      <button type="button" class="menu-item" id="menu-records" aria-pressed="false"
+        title="기록 / 대시보드 열기 · 닫기">
+        <i data-lucide="bar-chart-3"></i> 기록
+      </button>
     </div>
   </header>
 
@@ -98,10 +102,10 @@
     </div>
 
     <nav class="rail rail-right" aria-label="actions">
-      <button type="button" class="rail-btn" id="btn-bookmark" title="북마크">
+      <button type="button" class="rail-btn" id="btn-bookmark" disabled title="북마크 (준비 중)">
         <i data-lucide="bookmark"></i>
       </button>
-      <button type="button" class="rail-btn" id="btn-capture" title="캡쳐">
+      <button type="button" class="rail-btn" id="btn-capture" disabled title="캡쳐 (준비 중)">
         <i data-lucide="camera"></i>
       </button>
 

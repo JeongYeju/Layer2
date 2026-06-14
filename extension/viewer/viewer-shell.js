@@ -305,7 +305,7 @@ function renderBoardCards() {
     // 동그라미 블록
     if (hasCircle) {
       blocks.push(
-        `<div class="board-block board-block--circle"><span class="board-block-tag">◯ 표시</span></div>`,
+        `<div class="board-block board-block--circle"><span class="board-block-tag">◯ 동그라미</span></div>`,
       );
     }
     // B v1.1 — 밑줄 단락엔 회상 버튼(능동 인출)
@@ -451,14 +451,25 @@ function wireHighlightPopup() {
 function wireMenusAndDrawer() {
   const sidebarEl = document.getElementById("sidebar");
   const handle = document.getElementById("drawer-handle");
-  const openDrawer = () => document.body.classList.add("drawer-open");
-  const toggleDrawer = () => document.body.classList.toggle("drawer-open");
+  const openBtn = document.getElementById("menu-open");
+  // 단일 진실: body.drawer-open. 버튼 aria-pressed 를 항상 그 상태에 맞춘다
+  // → 펼쳐져 있으면 "열기" 버튼이 눌린 상태로 보이고, 다시 누르면 닫힌다.
+  const syncDrawerBtn = () =>
+    openBtn?.setAttribute(
+      "aria-pressed",
+      document.body.classList.contains("drawer-open") ? "true" : "false",
+    );
+  const setDrawer = (open) => {
+    document.body.classList.toggle("drawer-open", open);
+    syncDrawerBtn();
+  };
+  const toggleDrawer = () => setDrawer(!document.body.classList.contains("drawer-open"));
 
-  document.body.classList.add("drawer-open"); // default expanded
+  setDrawer(true); // default expanded
   handle?.addEventListener("click", toggleDrawer);
-  document.getElementById("menu-open")?.addEventListener("click", openDrawer);
+  openBtn?.addEventListener("click", toggleDrawer);
   document.getElementById("menu-saved")?.addEventListener("click", () => {
-    openDrawer();
+    setDrawer(true);
     sidebarEl
       ?.querySelector("#ext-saved-head")
       ?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -476,21 +487,27 @@ function wireMenusAndDrawer() {
     }
   });
 
-  // Dashboard stays a right flyout, toggled from the 기록 메뉴(단일 진입점).
+  // Dashboard stays a right flyout, toggled from the 기록 메뉴(단일 진입점, 맨 오른쪽).
   const dashboardEl = document.getElementById("dashboard");
   const recordsMenu = document.getElementById("menu-records");
+  const syncRecordsBtn = () =>
+    recordsMenu?.setAttribute(
+      "aria-pressed",
+      dashboardEl?.classList.contains("as-flyout") ? "true" : "false",
+    );
   const toggleDash = (e) => {
     e?.stopPropagation?.();
-    dashboardEl?.classList.toggle("as-flyout");
+    const open = dashboardEl?.classList.toggle("as-flyout");
+    syncRecordsBtn();
     // 패널을 열 때 멘탈맵을 새로 그린다 → 키 있으면 의미(임베딩) 엣지가 켜진다.
-    if (dashboardEl?.classList.contains("as-flyout"))
-      window.__layer2Report?.render?.();
+    if (open) window.__layer2Report?.render?.();
   };
   recordsMenu?.addEventListener("click", toggleDash);
   document.addEventListener("click", (e) => {
     if (!dashboardEl?.classList.contains("as-flyout")) return;
     if (dashboardEl.contains(e.target) || recordsMenu?.contains(e.target)) return;
     dashboardEl.classList.remove("as-flyout");
+    syncRecordsBtn();
   });
 }
 
