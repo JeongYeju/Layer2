@@ -1400,6 +1400,11 @@ ol.para-list .para-item {
 .reader.mode-board .para.board-friction {
   background: rgba(216, 96, 43, calc(0.04 + 0.14 * var(--friction-pct, 0)));
 }
+/* 흔적 카드가 붙은 단락은 세로 여백을 늘려 옆 카드끼리 겹침을 완화. */
+.reader.mode-board .para.has-board-card {
+  min-height: 132px;
+  margin-bottom: 40px;
+}
 
 /* State chip at the top of the right card */
 .board-state {
@@ -1435,7 +1440,7 @@ ol.para-list .para-item {
   top: -2px;
   left: 100%;
   margin-left: 28px;
-  width: 400px;
+  width: 340px;
   display: flex;
   flex-direction: column;
   gap: 8px;
