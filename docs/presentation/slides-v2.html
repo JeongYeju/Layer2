@@ -1,0 +1,1291 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Layer 2</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+  <style>
+    :root {
+      --paper: #f3eadb;
+      --paper-2: #efe2cf;
+      --ink: #25211b;
+      --muted: #746a5b;
+      --green: #2d5e4c;
+      --green-2: #6b8f7a;
+      --rust: #ad5f3d;
+      --clay: #d6a66e;
+      --line: rgba(45, 94, 76, 0.24);
+      --shadow: 0 28px 80px rgba(41, 31, 18, 0.18);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #1e1b17;
+      color: var(--ink);
+      font-family: "Pretendard", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    body {
+      cursor: pointer;
+    }
+
+    .viewport {
+      position: fixed;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+    }
+
+    .deck {
+      position: relative;
+      width: 1920px;
+      height: 1080px;
+      transform-origin: center center;
+      background: var(--paper);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      width: 1920px;
+      height: 1080px;
+      padding: 70px 40px 58px;
+      display: none;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 16% 12%, rgba(255, 255, 255, 0.42), transparent 28%),
+        linear-gradient(135deg, #f5eddf 0%, #efe0cd 100%);
+    }
+
+    .slide.active {
+      display: block;
+    }
+
+    .slide::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(45, 94, 76, 0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(45, 94, 76, 0.028) 1px, transparent 1px);
+      background-size: 42px 42px;
+      mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.5), transparent 70%);
+    }
+
+    .content {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      height: 100%;
+    }
+
+    .eyebrow {
+      color: var(--green);
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: 0;
+      text-transform: none;
+      margin-bottom: 28px;
+    }
+
+    .headline {
+      margin: 0;
+      font-size: 112px;
+      line-height: 0.98;
+      letter-spacing: 0;
+      color: var(--ink);
+      font-weight: 900;
+      word-break: keep-all;
+    }
+
+    .display {
+      margin: 0;
+      font-size: 150px;
+      line-height: 0.95;
+      letter-spacing: 0;
+      font-weight: 900;
+      color: var(--ink);
+      word-break: keep-all;
+    }
+
+    .lead {
+      font-size: 44px;
+      line-height: 1.22;
+      font-weight: 760;
+      letter-spacing: 0;
+      color: var(--green);
+      word-break: keep-all;
+    }
+
+    .body {
+      font-size: 32px;
+      line-height: 1.55;
+      font-weight: 560;
+      color: var(--ink);
+      word-break: keep-all;
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    .page-no {
+      position: fixed;
+      right: 46px;
+      bottom: 34px;
+      z-index: 50;
+      color: rgba(37, 33, 27, 0.58);
+      font-size: 23px;
+      font-weight: 700;
+      letter-spacing: 0;
+      pointer-events: none;
+    }
+
+    .serif {
+      font-family: Georgia, "Times New Roman", serif;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 62px;
+      padding: 0 28px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.42);
+      border: 2px solid rgba(45, 94, 76, 0.18);
+      color: var(--green);
+      font-size: 30px;
+      font-weight: 850;
+      white-space: nowrap;
+      box-shadow: 0 12px 34px rgba(77, 58, 35, 0.08);
+    }
+
+    .paper-card {
+      background: rgba(255, 252, 245, 0.55);
+      border: 2px solid rgba(45, 94, 76, 0.16);
+      box-shadow: 0 24px 54px rgba(65, 46, 25, 0.08);
+    }
+
+    .slide-title .content {
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      align-items: center;
+      text-align: center;
+    }
+
+    .wordmark {
+      margin: 0;
+      font-size: 210px;
+      line-height: 0.9;
+      font-weight: 700;
+      color: var(--green);
+      letter-spacing: 0;
+    }
+
+    .title-stack {
+      align-self: center;
+      transform: translateY(-10px);
+    }
+
+    .triad {
+      margin-top: 34px;
+      font-size: 54px;
+      font-weight: 800;
+      color: var(--ink);
+    }
+
+    .triad-kr {
+      margin: 18px auto 0;
+      max-width: 1100px;
+      font-size: 38px;
+      font-weight: 700;
+      color: var(--muted);
+      word-break: keep-all;
+    }
+
+    .title-line {
+      width: 100%;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, rgba(45, 94, 76, 0.52), transparent);
+      margin-bottom: 18px;
+    }
+
+    .slide-one .content {
+      display: grid;
+      grid-template-columns: 1.08fr 0.92fr;
+      gap: 70px;
+      align-items: center;
+    }
+
+    .slide-one .headline {
+      font-size: 154px;
+      color: var(--green);
+    }
+
+    .slide-one .lead {
+      margin-top: 34px;
+      font-size: 52px;
+      color: var(--ink);
+    }
+
+    .note-box {
+      padding: 52px 56px;
+      border-radius: 8px;
+      position: relative;
+    }
+
+    .note-box::before {
+      content: "";
+      position: absolute;
+      left: 34px;
+      top: 38px;
+      bottom: 38px;
+      width: 8px;
+      border-radius: 99px;
+      background: var(--green);
+    }
+
+    .note-box .body {
+      padding-left: 24px;
+      font-size: 36px;
+    }
+
+    .slide-teaser .content {
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+    }
+
+    .teaser-canvas {
+      position: relative;
+      height: 640px;
+      margin-top: 30px;
+    }
+
+    .trace-word {
+      position: absolute;
+      font-size: 74px;
+      font-weight: 900;
+      color: rgba(37, 33, 27, 0.9);
+    }
+
+    .trace-word:nth-child(1) {
+      left: 170px;
+      top: 120px;
+      transform: rotate(-2deg);
+    }
+
+    .trace-word:nth-child(2) {
+      left: 640px;
+      top: 70px;
+      transform: rotate(2deg);
+      color: var(--green);
+    }
+
+    .trace-word:nth-child(3) {
+      right: 220px;
+      top: 180px;
+      transform: rotate(-1deg);
+    }
+
+    .trace-word:nth-child(4) {
+      left: 460px;
+      bottom: 120px;
+      transform: rotate(1deg);
+    }
+
+    .scribble {
+      position: absolute;
+      inset: 20px 150px 20px;
+    }
+
+    .scribble path {
+      fill: none;
+      stroke: var(--green);
+      stroke-width: 12;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      opacity: 0.82;
+    }
+
+    .scribble .thin {
+      stroke: var(--rust);
+      stroke-width: 7;
+      opacity: 0.72;
+    }
+
+    .slide-teaser .display {
+      max-width: 1250px;
+      color: var(--ink);
+    }
+
+    .slide-teaser .lead {
+      align-self: end;
+      max-width: 1180px;
+      margin: 0 0 6px;
+    }
+
+    .slide-context .content {
+      display: grid;
+      grid-template-columns: 0.82fr 1.18fr;
+      gap: 76px;
+      align-items: center;
+    }
+
+    .slide-context .headline {
+      color: var(--green);
+    }
+
+    .slide-context .lead {
+      margin: 34px 0 28px;
+      color: var(--ink);
+    }
+
+    .book-diagram {
+      position: relative;
+      height: 760px;
+      padding: 34px;
+      border-radius: 8px;
+      background: linear-gradient(90deg, #e9d7bd 0 49%, #f9f0df 50% 100%);
+      border: 2px solid rgba(45, 94, 76, 0.22);
+      box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.25), 0 24px 68px rgba(50, 33, 14, 0.13);
+    }
+
+    .book-diagram::after {
+      content: "";
+      position: absolute;
+      top: 34px;
+      bottom: 34px;
+      left: 50%;
+      width: 4px;
+      background: rgba(67, 45, 20, 0.18);
+      border-radius: 99px;
+    }
+
+    .book-line {
+      height: 16px;
+      border-radius: 999px;
+      background: rgba(37, 33, 27, 0.12);
+      margin: 34px 60px;
+    }
+
+    .book-line.short {
+      width: 58%;
+    }
+
+    .book-mark {
+      position: absolute;
+      border-radius: 999px;
+      border: 5px solid var(--green);
+      color: var(--green);
+      font-size: 28px;
+      font-weight: 900;
+      padding: 16px 24px;
+      background: rgba(255, 252, 245, 0.68);
+    }
+
+    .book-mark.m1 {
+      left: 112px;
+      top: 160px;
+      transform: rotate(-7deg);
+    }
+
+    .book-mark.m2 {
+      right: 126px;
+      top: 240px;
+      transform: rotate(5deg);
+    }
+
+    .book-mark.m3 {
+      left: 260px;
+      bottom: 190px;
+      transform: rotate(3deg);
+    }
+
+    .book-mark.m4 {
+      right: 260px;
+      bottom: 110px;
+      transform: rotate(-4deg);
+      color: var(--rust);
+      border-color: var(--rust);
+    }
+
+    .slide-problem .content {
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+    }
+
+    .spread-zone {
+      position: relative;
+      height: 620px;
+      margin-top: 20px;
+    }
+
+    .spread-line {
+      position: absolute;
+      left: 230px;
+      right: 230px;
+      top: 50%;
+      height: 4px;
+      background: linear-gradient(90deg, rgba(45, 94, 76, 0), rgba(45, 94, 76, 0.55), rgba(45, 94, 76, 0));
+    }
+
+    .void {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 250px;
+      height: 250px;
+      transform: translate(-50%, -50%);
+      border-radius: 50%;
+      border: 4px dashed rgba(37, 33, 27, 0.28);
+      display: grid;
+      place-items: center;
+      font-size: 122px;
+      font-weight: 900;
+      color: rgba(37, 33, 27, 0.42);
+      background: rgba(243, 234, 219, 0.78);
+    }
+
+    .problem-chip {
+      position: absolute;
+      min-width: 190px;
+      height: 84px;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      font-size: 34px;
+      font-weight: 900;
+      color: var(--green);
+      background: rgba(255, 255, 255, 0.56);
+      border: 2px solid rgba(45, 94, 76, 0.16);
+    }
+
+    .problem-chip.c1 {
+      left: 80px;
+      top: 140px;
+    }
+
+    .problem-chip.c2 {
+      left: 340px;
+      bottom: 104px;
+    }
+
+    .problem-chip.c3 {
+      right: 340px;
+      top: 96px;
+    }
+
+    .problem-chip.c4 {
+      right: 90px;
+      bottom: 142px;
+    }
+
+    .slide-problem .bottom-copy {
+      display: grid;
+      grid-template-columns: 0.92fr 1.08fr;
+      gap: 56px;
+      align-items: end;
+    }
+
+    .slide-problem .display {
+      max-width: 1040px;
+      color: var(--ink);
+    }
+
+    .slide-problem .lead {
+      margin: 0 0 18px;
+    }
+
+    .slide-problem .body {
+      max-width: 720px;
+    }
+
+    .slide-innovation .content {
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+    }
+
+    .flip-row {
+      display: grid;
+      grid-template-columns: 1fr 220px 1fr;
+      gap: 34px;
+      align-items: center;
+      margin-top: 56px;
+    }
+
+    .flip-card {
+      min-height: 410px;
+      border-radius: 8px;
+      padding: 48px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      border: 2px solid rgba(45, 94, 76, 0.2);
+      background: rgba(255, 255, 255, 0.42);
+    }
+
+    .flip-title {
+      font-size: 132px;
+      line-height: 0.9;
+      font-weight: 950;
+      letter-spacing: 0;
+      color: rgba(37, 33, 27, 0.82);
+    }
+
+    .flip-title .hot {
+      color: var(--green);
+    }
+
+    .flip-exp {
+      margin-top: 32px;
+      color: var(--muted);
+      font-size: 32px;
+      font-weight: 780;
+    }
+
+    .flip-arrow {
+      display: grid;
+      place-items: center;
+      font-size: 96px;
+      color: var(--rust);
+      font-weight: 900;
+    }
+
+    .innovation-copy {
+      display: grid;
+      grid-template-columns: 0.9fr 1.1fr;
+      gap: 60px;
+      align-items: end;
+      margin-bottom: 22px;
+    }
+
+    .slide-innovation .headline {
+      font-size: 92px;
+      color: var(--green);
+    }
+
+    .slide-innovation .body {
+      font-size: 34px;
+      max-width: 850px;
+    }
+
+    .slide-how .content {
+      display: grid;
+      grid-template-rows: auto auto 1fr;
+    }
+
+    .slide-how .headline {
+      font-size: 92px;
+      color: var(--ink);
+      margin-bottom: 52px;
+    }
+
+    .how-cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 28px;
+      height: 650px;
+    }
+
+    .how-card {
+      border-radius: 8px;
+      padding: 38px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      background: rgba(255, 252, 245, 0.58);
+      border: 2px solid rgba(45, 94, 76, 0.16);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .how-card:nth-child(2) {
+      background: rgba(242, 228, 208, 0.75);
+    }
+
+    .how-card:nth-child(3) {
+      background: rgba(228, 237, 224, 0.68);
+    }
+
+    .how-label {
+      color: var(--rust);
+      font-size: 26px;
+      font-weight: 900;
+    }
+
+    .how-title {
+      margin: 0;
+      font-size: 86px;
+      line-height: 1;
+      font-weight: 950;
+      color: var(--green);
+    }
+
+    .how-desc {
+      margin: 0;
+      font-size: 31px;
+      line-height: 1.5;
+      font-weight: 620;
+      color: var(--ink);
+      word-break: keep-all;
+    }
+
+    .slide-dev .content {
+      display: grid;
+      grid-template-columns: 0.78fr 1.22fr;
+      gap: 64px;
+      align-items: center;
+    }
+
+    .slide-dev .headline {
+      color: var(--green);
+      font-size: 98px;
+    }
+
+    .slide-dev .lead {
+      margin-top: 36px;
+      color: var(--ink);
+    }
+
+    .signal-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 26px;
+    }
+
+    .signal {
+      min-height: 178px;
+      border-radius: 8px;
+      padding: 26px 30px;
+      background: rgba(255, 252, 245, 0.62);
+      border: 2px solid rgba(45, 94, 76, 0.16);
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      font-size: 34px;
+      font-weight: 900;
+      color: var(--ink);
+    }
+
+    .signal b {
+      width: 74px;
+      height: 74px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: var(--green);
+      color: #fff8ec;
+      font-size: 32px;
+      flex: 0 0 auto;
+    }
+
+    .friction-band {
+      grid-column: 1 / -1;
+      margin-top: 4px;
+      padding: 34px;
+      border-radius: 8px;
+      background: var(--green);
+      color: #fff8ec;
+      font-size: 31px;
+      line-height: 1.45;
+      font-weight: 720;
+      word-break: keep-all;
+    }
+
+    .slide-demo .content {
+      display: grid;
+      grid-template-rows: auto auto 1fr;
+      gap: 24px;
+    }
+
+    .shot-frame {
+      height: 790px;
+      border-radius: 8px;
+      padding: 18px;
+      background: rgba(37, 33, 27, 0.1);
+      border: 2px solid rgba(45, 94, 76, 0.18);
+      box-shadow: 0 28px 74px rgba(43, 31, 15, 0.16);
+    }
+
+    .shot-frame img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+      border-radius: 6px;
+      background: #f8f4eb;
+    }
+
+    .caption {
+      font-size: 54px;
+      line-height: 1.14;
+      font-weight: 900;
+      color: var(--green);
+      word-break: keep-all;
+    }
+
+    .slide-map .content {
+      display: grid;
+      grid-template-columns: 0.82fr 1.18fr;
+      gap: 42px;
+      align-items: center;
+    }
+
+    .slide-map .headline {
+      color: var(--ink);
+      font-size: 88px;
+      margin-bottom: 34px;
+    }
+
+    .slide-map .body {
+      font-size: 33px;
+      margin-bottom: 36px;
+    }
+
+    .accent {
+      padding: 26px 30px;
+      border-left: 8px solid var(--green);
+      background: rgba(255, 252, 245, 0.52);
+      font-size: 28px;
+      line-height: 1.42;
+      font-weight: 820;
+      color: var(--green);
+      word-break: keep-all;
+    }
+
+    .map-frame {
+      height: 820px;
+      border-radius: 8px;
+      padding: 18px;
+      background: rgba(37, 33, 27, 0.1);
+      border: 2px solid rgba(45, 94, 76, 0.18);
+      box-shadow: 0 26px 72px rgba(43, 31, 15, 0.16);
+    }
+
+    .map-frame img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+      border-radius: 6px;
+      background: #f8f4eb;
+    }
+
+    .slide-validation .content {
+      display: grid;
+      grid-template-columns: 1fr 0.94fr;
+      gap: 70px;
+      align-items: center;
+    }
+
+    .slide-validation .headline {
+      color: var(--green);
+      font-size: 96px;
+    }
+
+    .slide-validation .lead {
+      margin: 34px 0 26px;
+      color: var(--ink);
+    }
+
+    .validation-scale {
+      display: grid;
+      gap: 24px;
+    }
+
+    .scale-item {
+      min-height: 150px;
+      padding: 30px 34px;
+      border-radius: 8px;
+      display: grid;
+      grid-template-columns: 180px 1fr;
+      align-items: center;
+      gap: 26px;
+      background: rgba(255, 252, 245, 0.62);
+      border: 2px solid rgba(45, 94, 76, 0.16);
+    }
+
+    .scale-item strong {
+      color: var(--green);
+      font-size: 38px;
+      font-weight: 950;
+    }
+
+    .scale-item span {
+      color: var(--ink);
+      font-size: 30px;
+      line-height: 1.42;
+      font-weight: 640;
+      word-break: keep-all;
+    }
+
+    .slide-conclusion .content {
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      align-items: center;
+      text-align: center;
+    }
+
+    .slide-conclusion .display {
+      color: var(--green);
+      font-size: 146px;
+    }
+
+    .slide-conclusion .lead {
+      margin: 44px auto 0;
+      max-width: 1240px;
+      color: var(--ink);
+      font-size: 46px;
+    }
+
+    .closer {
+      color: var(--green);
+      font-size: 56px;
+      font-weight: 900;
+      margin-bottom: 8px;
+    }
+
+    .glue-line {
+      width: 1180px;
+      height: 16px;
+      margin: 56px auto 0;
+      border-radius: 999px;
+      background: linear-gradient(90deg, transparent, var(--clay), var(--green), transparent);
+    }
+
+    .slide-future .content {
+      display: grid;
+      grid-template-rows: auto auto 1fr auto;
+      gap: 28px;
+    }
+
+    .slide-future .headline {
+      font-size: 94px;
+      color: var(--green);
+    }
+
+    .future-board {
+      display: grid;
+      grid-template-columns: 0.92fr 1.08fr;
+      gap: 30px;
+      height: 520px;
+      margin-top: 8px;
+    }
+
+    .future-panel {
+      border-radius: 8px;
+      padding: 34px;
+      background: rgba(255, 252, 245, 0.62);
+      border: 2px solid rgba(45, 94, 76, 0.16);
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .future-tag {
+      align-self: flex-start;
+      padding: 12px 22px;
+      border-radius: 999px;
+      background: var(--green);
+      color: #fff8ec;
+      font-size: 24px;
+      font-weight: 900;
+    }
+
+    .was-list {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 18px;
+      margin-top: auto;
+    }
+
+    .was-item {
+      min-height: 120px;
+      border-radius: 8px;
+      border: 2px solid rgba(45, 94, 76, 0.16);
+      display: grid;
+      place-items: center;
+      text-align: center;
+      font-size: 31px;
+      font-weight: 900;
+      color: var(--ink);
+      background: rgba(239, 224, 205, 0.62);
+      word-break: keep-all;
+    }
+
+    .now-text {
+      margin: auto 0;
+      font-size: 44px;
+      line-height: 1.28;
+      font-weight: 900;
+      color: var(--ink);
+      word-break: keep-all;
+    }
+
+    .next-layer {
+      padding: 28px 34px;
+      border-radius: 8px;
+      background: var(--green);
+      color: #fff8ec;
+      font-size: 32px;
+      line-height: 1.38;
+      font-weight: 760;
+      word-break: keep-all;
+    }
+
+    @media print {
+      html,
+      body {
+        width: auto;
+        height: auto;
+        overflow: visible;
+        background: white;
+      }
+
+      .viewport {
+        position: static;
+        display: block;
+        overflow: visible;
+      }
+
+      .deck {
+        width: auto;
+        height: auto;
+        transform: none !important;
+        box-shadow: none;
+        overflow: visible;
+        background: transparent;
+      }
+
+      .slide {
+        position: relative;
+        display: block !important;
+        page-break-after: always;
+        break-after: page;
+        width: 1920px;
+        height: 1080px;
+      }
+
+      .page-no {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="viewport">
+    <main class="deck" id="deck" aria-live="polite">
+      <section class="slide slide-title active">
+        <div class="content">
+          <div class="eyebrow">A second layer on reading</div>
+          <div class="title-stack">
+            <h1 class="wordmark serif">Layer 2</h1>
+            <div class="triad">Wrestle · Trace · Mirror</div>
+            <div class="triad-kr">씨름하고 · 흔적을 남기고 · 그 흔적으로 나를 비춘다</div>
+          </div>
+          <div class="title-line"></div>
+        </div>
+      </section>
+
+      <section class="slide slide-one">
+        <div class="content">
+          <div>
+            <div class="eyebrow">One sentence</div>
+            <h2 class="headline">나를 비추는 독서.</h2>
+            <div class="lead">씨름한 흔적이 내 읽기의 거울이 된다.</div>
+          </div>
+          <div class="note-box paper-card">
+            <div class="body">시스템이 나를 꿰뚫는다는 뜻은 아닙니다. 내가 글 위에 남긴 흔적을 모아, 나는 어디서 멈추고 어디로 돌아갔는지 다시 보여준다는 뜻입니다.</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide slide-teaser">
+        <div class="content">
+          <div>
+            <div class="eyebrow">밑줄 · 머묾 · 되돌아감</div>
+            <h2 class="display">흔적이 선이 되는 순간</h2>
+          </div>
+          <div class="teaser-canvas">
+            <svg class="scribble" viewBox="0 0 1400 520" aria-hidden="true">
+              <path d="M58 286 C210 116, 372 392, 530 238 S840 112, 1030 288 S1250 410, 1340 218"></path>
+              <path class="thin" d="M188 368 C320 306, 414 338, 548 310 C704 276, 838 356, 984 310 C1090 278, 1168 244, 1282 292"></path>
+              <path class="thin" d="M500 88 C560 40, 646 38, 710 92 C758 132, 760 206, 706 244 C630 296, 518 246, 498 164 C492 136, 490 110, 500 88"></path>
+            </svg>
+            <div class="trace-word">머문다</div>
+            <div class="trace-word">밑줄</div>
+            <div class="trace-word">다시 간다</div>
+            <div class="trace-word">메모한다</div>
+          </div>
+          <div class="lead">읽은 척 말고, 글이랑 진짜 지지고 볶은 자국.</div>
+        </div>
+      </section>
+
+      <section class="slide slide-context">
+        <div class="content">
+          <div>
+            <div class="eyebrow">Context · Human-Book Interaction</div>
+            <h2 class="headline">지지고 볶기</h2>
+            <div class="lead">종이책은 좁았지만, 깊었다.</div>
+            <div class="body">막히면 밑줄 긋고, 메모하고, 앞장을 다시 넘겼다. 느리고 비효율적이지만, 그 귀찮은 씨름 속에서 이해가 생겼다.</div>
+          </div>
+          <div class="book-diagram">
+            <div class="book-line"></div>
+            <div class="book-line short"></div>
+            <div class="book-line"></div>
+            <div class="book-line short"></div>
+            <div class="book-line"></div>
+            <div class="book-line short"></div>
+            <div class="book-mark m1">되돌아읽기</div>
+            <div class="book-mark m2">메모 · 주석</div>
+            <div class="book-mark m3">하이라이트</div>
+            <div class="book-mark m4">깊어진다</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide slide-problem">
+        <div class="content">
+          <div class="eyebrow">Problem · Human-Document Interaction</div>
+          <div class="spread-zone">
+            <div class="spread-line"></div>
+            <div class="problem-chip c1">검색</div>
+            <div class="problem-chip c2">GPT</div>
+            <div class="problem-chip c3">요약</div>
+            <div class="problem-chip c4">번역</div>
+            <div class="void">?</div>
+          </div>
+          <div class="bottom-copy">
+            <h2 class="display">평평해진 읽기</h2>
+            <div>
+              <div class="lead">넓어졌는데, 가운데가 비었다.</div>
+              <div class="body">답은 빨리 오고 길은 많아졌지만, 문장과 붙잡고 씨름하던 밀도는 얇아졌다.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide slide-innovation">
+        <div class="content">
+          <div class="eyebrow">Innovation</div>
+          <div class="flip-row">
+            <div class="flip-card">
+              <div class="flip-title"><span class="hot">H</span>DI</div>
+              <div class="flip-exp">Human-Document Interaction</div>
+            </div>
+            <div class="flip-arrow">→</div>
+            <div class="flip-card">
+              <div class="flip-title"><span class="hot">D</span>HI</div>
+              <div class="flip-exp">Document-Human Interaction</div>
+            </div>
+          </div>
+          <div class="innovation-copy">
+            <h2 class="headline">문서가 내 흔적을 되읽는다.</h2>
+            <div class="body">종이책의 흔적은 독자만 알아봤다. Layer 2는 밑줄, 머묾, 되돌아읽기를 읽고, 비어 있던 지지고 볶기의 자리를 다시 움직이게 한다.</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide slide-how">
+        <div class="content">
+          <div class="eyebrow">How · 작동 원리</div>
+          <h2 class="headline">씨름하고, 남기고, 비춘다</h2>
+          <div class="how-cards">
+            <article class="how-card">
+              <div class="how-label">01 : WRESTLE</div>
+              <h3 class="how-title">씨름</h3>
+              <p class="how-desc">어려운 글 앞에서 왔다 갔다 하고, 오래 머물고, 밑줄 긋는 행동을 실패가 아니라 이해가 만들어지는 신호로 본다.</p>
+            </article>
+            <article class="how-card">
+              <div class="how-label">02 : TRACE</div>
+              <h3 class="how-title">흔적</h3>
+              <p class="how-desc">하이라이트, 주석, 체류, 되돌아읽기를 모아 마찰을 만든다. 절대 점수가 아니라 이 글 안에서 어디가 상대적으로 치열했는지다.</p>
+            </article>
+            <article class="how-card">
+              <div class="how-label">03 : MIRROR</div>
+              <h3 class="how-title">거울</h3>
+              <p class="how-desc">촛불은 막힌 개념을 짚고, 맵과 리포트는 내가 어떤 식으로 읽었는지 조용히 되비춘다.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide slide-dev">
+        <div class="content">
+          <div>
+            <div class="eyebrow">Development</div>
+            <h2 class="headline">먼저, 흔적이 보이게 했다</h2>
+            <div class="lead">읽는 행동을 남기는 일부터 시작했다.</div>
+          </div>
+          <div class="signal-grid">
+            <div class="signal"><b>﹏</b><span>밑줄</span></div>
+            <div class="signal"><b>✎</b><span>주석</span></div>
+            <div class="signal"><b>◯</b><span>동그라미</span></div>
+            <div class="signal"><b>⏱</b><span>체류</span></div>
+            <div class="signal"><b>↩</b><span>되돌아읽기</span></div>
+            <div class="signal"><b>⇅</b><span>스크롤</span></div>
+            <div class="friction-band">마찰 계수는 이 글 안에서 상대적으로 치열했던 구간이다. 문서 내 백분위 상위 20%를 촛불과 리포트의 재료로 쓴다.</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide slide-demo">
+        <div class="content">
+          <div class="eyebrow">Demo</div>
+          <div class="caption">읽고, 촛불이 살짝 끼어들고, 흔적이 지도가 된다</div>
+          <div class="shot-frame">
+            <img src="shots/03-tikitaka.png" alt="Layer 2 데모 화면">
+          </div>
+        </div>
+      </section>
+
+      <section class="slide slide-map">
+        <div class="content">
+          <div>
+            <div class="eyebrow">Mental Model Map</div>
+            <h2 class="headline">내 읽기가 만든 작은 세계</h2>
+            <div class="body">개념이 가까운 단락들이 곡선으로 이어진다. 시간, 마찰, 개념, 상호작용으로 흩어져 있던 읽기를 한 장의 지형으로 접었다.</div>
+            <div class="accent">동의어와 의역까지 잇는 의미 연결 : Gemini 임베딩 코사인</div>
+          </div>
+          <div class="map-frame">
+            <img src="shots/05-mentalmap-panel.png" alt="멘탈 모델 맵 패널">
+          </div>
+        </div>
+      </section>
+
+      <section class="slide slide-validation">
+        <div class="content">
+          <div>
+            <div class="eyebrow">Validation</div>
+            <h2 class="headline">꿰뚫는 척하지 않는다</h2>
+            <div class="lead">정답보다, 경향을 본다.</div>
+            <div class="body">Layer 2는 내가 남긴 흔적을 모아 읽기의 경향을 비출 뿐, 나에 대한 결론을 내리지 않는다. 마찰도 절대 점수가 아니라 이 글 안에서 어디가 상대적으로 치열했는지다.</div>
+          </div>
+          <div class="validation-scale">
+            <div class="scale-item">
+              <strong>흔적</strong>
+              <span>밑줄, 주석, 체류, 되돌아읽기처럼 실제 행동에서 출발한다.</span>
+            </div>
+            <div class="scale-item">
+              <strong>경향</strong>
+              <span>맞고 틀림보다, 어떤 방식으로 읽었는지의 패턴을 본다.</span>
+            </div>
+            <div class="scale-item">
+              <strong>납득</strong>
+              <span>검증은 정확도보다, 사용자가 자기 읽기를 이해할 수 있는지에 둔다.</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide slide-conclusion">
+        <div class="content">
+          <div class="eyebrow">Conclusion</div>
+          <div>
+            <h2 class="display">책과 나 사이의 아교</h2>
+            <div class="lead">효율 속에서 사라진 지지고 볶기를 다시 살리고, 그 흔적으로 내가 어떻게 읽는 사람인지 조용히 비춘다.</div>
+            <div class="glue-line"></div>
+          </div>
+          <div class="closer">= 읽기 위의 한 겹, Layer 2.</div>
+        </div>
+      </section>
+
+      <section class="slide slide-future">
+        <div class="content">
+          <div class="eyebrow">Future</div>
+          <h2 class="headline">할 일이던 게, 거의 다 됐다</h2>
+          <div class="future-board">
+            <div class="future-panel">
+              <div class="future-tag">6 / 5 계획</div>
+              <div class="was-list">
+                <div class="was-item">촛불 개입</div>
+                <div class="was-item">보드 뷰</div>
+                <div class="was-item">멘탈 모델 맵</div>
+                <div class="was-item">다중 세션 리포트</div>
+              </div>
+            </div>
+            <div class="future-panel">
+              <div class="future-tag">지금</div>
+              <div class="now-text">지난 며칠 사이에 작동하는 형태까지 끌고 왔다. 조금 무리했습니다. 그래도 지금, 움직입니다.</div>
+            </div>
+          </div>
+          <div class="next-layer">다음 층 : 시간을 가로지르는 거울. 재독 디프, 다회독 패턴, 여러 번의 씨름이 쌓이면서 내가 어떤 독자인지 더 선명해진다.</div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="page-no" id="pageNo">1/13</div>
+
+  <script>
+    const deck = document.getElementById("deck");
+    const slides = Array.from(document.querySelectorAll(".slide"));
+    const pageNo = document.getElementById("pageNo");
+    let index = 0;
+
+    function fit() {
+      const scale = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+      deck.style.transform = `scale(${scale})`;
+    }
+
+    function show(nextIndex) {
+      index = (nextIndex + slides.length) % slides.length;
+      slides.forEach((slide, i) => {
+        slide.classList.toggle("active", i === index);
+      });
+      pageNo.textContent = `${index + 1}/${slides.length}`;
+    }
+
+    function next() {
+      show(index + 1);
+    }
+
+    function prev() {
+      show(index - 1);
+    }
+
+    window.addEventListener("resize", fit);
+    window.addEventListener("keydown", (event) => {
+      if (event.key === "ArrowRight" || event.key === "PageDown" || event.key === " ") {
+        event.preventDefault();
+        next();
+      }
+      if (event.key === "ArrowLeft" || event.key === "PageUp") {
+        event.preventDefault();
+        prev();
+      }
+      if (event.key === "Home") {
+        event.preventDefault();
+        show(0);
+      }
+      if (event.key === "End") {
+        event.preventDefault();
+        show(slides.length - 1);
+      }
+    });
+
+    document.addEventListener("click", (event) => {
+      const selection = window.getSelection();
+      if (selection && selection.toString()) return;
+      next();
+    });
+
+    fit();
+    show(0);
+  </script>
+</body>
+</html>
