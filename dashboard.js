@@ -165,6 +165,7 @@ function renderSessions() {
   );
   parts.push(`<div class="interp-subhead">시간대별 인지 리듬</div>`);
   parts.push(hourBuckets(m.byHour));
+  parts.push(bestTimeNote(m.byHour));
   parts.push(`<div class="interp-subhead">마찰량 추이 (세션 순)</div>`);
   parts.push(sparkline(m.trend.map((x) => x.mean)));
   parts.push(`<div class="interp-subhead">관심사</div>`);
@@ -189,6 +190,33 @@ function renderSessions() {
       .join("")}</ul>`,
   );
   sessionsRoot.innerHTML = parts.join("");
+}
+
+// 콜드오픈을 뒷받침하는 한 줄 — 가장 깊게(평균 마찰↑) 읽은 시간대를 추천으로.
+const TIME_BUCKETS = [
+  { label: "밤", hrs: [0, 1, 2, 3, 4, 5] },
+  { label: "오전", hrs: [6, 7, 8, 9, 10, 11] },
+  { label: "오후", hrs: [12, 13, 14, 15, 16, 17] },
+  { label: "저녁", hrs: [18, 19, 20, 21, 22, 23] },
+];
+function bestTimeNote(byHour) {
+  let best = null;
+  for (const b of TIME_BUCKETS) {
+    let count = 0,
+      fsum = 0;
+    for (const h of b.hrs) {
+      const x = byHour[h];
+      if (x) {
+        count += x.count;
+        fsum += x.frictionSum;
+      }
+    }
+    if (!count) continue;
+    const avg = fsum / count;
+    if (!best || avg > best.avg) best = { label: b.label, avg, count };
+  }
+  if (!best) return "";
+  return `<div class="sess-insight">📖 <b>${best.label}</b>에 가장 깊게 읽었어요 — 다음 무거운 글은 <b>${best.label}</b> 시간대를 추천해요.</div>`;
 }
 
 // 시간대 4구간 막대 — 길이=세션 수, 색 농도=평균 마찰 (딥리딩 시간대일수록 진함).

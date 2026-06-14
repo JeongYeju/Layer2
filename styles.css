@@ -672,6 +672,16 @@ ol.para-list .para-item {
   font-weight: 600;
   margin-bottom: 6px;
 }
+.sess-insight {
+  margin: 6px 0 10px;
+  padding: 8px 11px;
+  font-size: 12px;
+  line-height: 1.5;
+  border-radius: 9px;
+  background: #e8f1ec;
+  border: 1px solid var(--accent, #2d5e4c);
+  color: #234a3b;
+}
 .sess-bars { display: flex; flex-direction: column; gap: 5px; margin: 4px 0 6px; }
 .sess-bar-row { display: flex; align-items: center; gap: 8px; font-size: 11px; }
 .sess-bar-label { width: 28px; color: var(--muted, #6b6b6b); flex: 0 0 28px; }
@@ -1670,9 +1680,15 @@ ol.para-list .para-item {
 /* 보드 카드는 다크모드에서도 밝은 양피지 톤 유지(검정 카드 X). 전역은 라이트 톤. */
 
 /* ===== AI 티키타카 — 촛불 대화 버튼 + 채팅 패널 (chat.js) ===== */
-.candle-chat-btn {
-  display: inline-block;
+.candle-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
   margin-top: 8px;
+}
+.candle-chat-btn,
+.candle-map-btn {
+  display: inline-block;
   padding: 3px 10px;
   font-size: 11px;
   font-family: "Inter", system-ui, sans-serif;
@@ -1683,7 +1699,16 @@ ol.para-list .para-item {
   cursor: pointer;
   transition: background 0.15s ease;
 }
-.candle-chat-btn:hover { background: #fdeec2; }
+.candle-chat-btn:hover,
+.candle-map-btn:hover { background: #fdeec2; }
+/* "펼쳐줘" 는 개념 지도 전환 — accent 로 살짝 구분. */
+.candle-map-btn {
+  border-color: var(--accent, #2d5e4c);
+  background: #e8f1ec;
+  color: #2d5e4c;
+  font-weight: 600;
+}
+.candle-map-btn:hover { background: #dcebe2; }
 
 .chat-panel {
   position: fixed;

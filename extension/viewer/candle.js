@@ -358,11 +358,16 @@ function showCandle(pid, reason) {
   const mount = document.createElement("div");
   mount.className = "candle-mount";
   mount.dataset.reason = reason;
+  // isolation/transition 이음새에선 "개념 지도 펼치기"(보드 전환)를 먼저 권한다.
+  const showMap = reason === "isolation" || reason === "transition";
   mount.innerHTML = `
     <button type="button" class="candle-fig" aria-label="촛불 닫기">${FIG_SVG}</button>
     <div class="candle-bubble">
       <span class="candle-line"></span>
-      <button type="button" class="candle-chat-btn">💬 대화</button>
+      <div class="candle-actions">
+        ${showMap ? `<button type="button" class="candle-map-btn">🗺 펼쳐줘</button>` : ""}
+        <button type="button" class="candle-chat-btn">💬 대화</button>
+      </div>
     </div>
   `;
   mount.querySelector(".candle-line").textContent = line;
@@ -402,6 +407,16 @@ function showCandle(pid, reason) {
 
   mount.querySelector(".candle-fig")
     .addEventListener("click", () => dismissActive("user"));
+
+  // "펼쳐줘" → 보드 뷰로 전환(흔적이 곡선으로 이어진 개념 지도). DHI 가 살아나는 장면.
+  mount.querySelector(".candle-map-btn")?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    document
+      .querySelector('#view-toggle button[data-mode="board"]')
+      ?.click();
+    pushSignal({ type: "candle_expand_map", paragraph_id: pid, reason });
+    dismissActive("expand");
+  });
 
   // 대화 버튼 → 티키타카 요청 발화 (chat.js 가 구독) + 촛불은 후~.
   mount.querySelector(".candle-chat-btn").addEventListener("click", (e) => {
