@@ -39,6 +39,10 @@ export function renderDashboard(rootEl) {
     <h2>다중 세션</h2>
     <div id="m-sessions" class="sessions"></div>
 
+    <!-- AI 해석 패널 — 멘탈 모델 맵 + 이해 점검 대화와 기능이 겹쳐 숨김(2026-06-14).
+         코드/배선은 남겨둠(되살리려면 이 래퍼의 hidden 제거). 자체 API 키 입력칸도
+         여기 있어 중복 키 프롬프트의 원인이었음. -->
+    <div id="interp-section" hidden>
     <h2>AI 해석
       <button type="button" id="interp-run" class="interp-load-btn">해석하기</button>
       <button type="button" id="interp-load" class="interp-load-btn">불러오기</button>
@@ -56,6 +60,7 @@ export function renderDashboard(rootEl) {
       <div class="interp-empty">"해석하기"로 지금 세션을 분석하거나, interpret.py 결과 JSON을 불러오세요.</div>
     </div>
     <input type="file" id="interp-file" accept="application/json,.json" hidden />
+    </div>
 
     <h2>회상 워크시트</h2>
     <div id="m-recall" class="recall"></div>
