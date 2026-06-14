@@ -144,7 +144,14 @@ function liveDigest() {
   }
 }
 
-const ICAP_LABEL = { P: "훑어봄", A: "표시", C: "구성", I: "대화" };
+const ICAP_LABEL = { P: "훑어봄", A: "표시함", C: "내 생각", I: "AI 대화" };
+// 칩에 마우스 올리면 뜨는 설명 — ICAP(읽기 관여도 4단계)을 쉬운 말로.
+const ICAP_HELP = {
+  P: "눈으로 훑기만 한 단락 (소극적 읽기)",
+  A: "밑줄·동그라미로 표시한 단락 (능동적 읽기)",
+  C: "주석으로 내 생각을 적은 단락 (구성적 읽기)",
+  I: "촛불과 대화까지 한 단락 (상호작용 읽기)",
+};
 
 function frictionByPid() {
   const map = new Map();
@@ -194,7 +201,7 @@ function paraText(para) {
 // B v1.1 — turn this paragraph's underlines into inline cloze cards inside the
 // board card (active retrieval). Reuses recall.js sentenceContaining + the
 // recall_attempt signal contract, so it shares B v1's theory base.
-function toggleRecall(card, pid, underlines, bodyText, btn) {
+function toggleRecall(card, pid, underlines, bodyText, btn, container) {
   const existing = card.querySelector(".board-recall-zone");
   if (existing) {
     existing.remove();
@@ -243,7 +250,7 @@ function toggleRecall(card, pid, underlines, bodyText, btn) {
     });
     zone.appendChild(cl);
   }
-  card.appendChild(zone);
+  (container || card).appendChild(zone);
 }
 
 function renderBoardCards() {
@@ -271,24 +278,24 @@ function renderBoardCards() {
     const annos = traces.filter((t) => t.kind === "annotation");
     const hasUnderlineTrace = traces.some((t) => t.kind === "underline");
     const hasCircle = traces.some((t) => t.kind === "circle");
-    const blocks = [];
+    const hasBody = !!(annos.length || underlines.length || hasUnderlineTrace || hasCircle);
+    const showState = !!(f && (icap !== "P" || f.friction_high));
 
-    // 상태(ICAP·마찰) — 카드 묶음 맨 위 작은 헤더 칩
-    if (f && (icap !== "P" || f.friction_high)) {
-      const hot = f.friction_high
-        ? `<span class="board-hot">마찰↑</span>`
-        : "";
-      blocks.push(
-        `<div class="board-state board-state--${icap.toLowerCase()}">${ICAP_LABEL[icap] || icap}${hot}</div>`,
-      );
+    // 흔적도 없고 특별한 상태도 아니면 점으로 접는다(의미론적 접기).
+    if (!hasBody && !showState) {
+      const dot = document.createElement("span");
+      dot.className = "board-dot";
+      para.appendChild(dot);
+      continue;
     }
-    // 주석 블록 — 실제 내가 쓴 내용
+
+    // ----- 펼쳤을 때 보일 본문 블록 -----
+    const blocks = [];
     for (const t of annos) {
       blocks.push(
         `<div class="board-block board-block--note"><span class="board-block-tag">✎ 주석</span><div class="board-block-text">${escapeHtml(t.text)}</div></div>`,
       );
     }
-    // 밑줄 블록 — 실제 밑줄 친 문구를 인용처럼(없으면 라벨만)
     if (underlines.length) {
       const quotes = underlines
         .slice(0, 4)
@@ -302,36 +309,61 @@ function renderBoardCards() {
         `<div class="board-block board-block--underline"><span class="board-block-tag">﹏ 밑줄</span></div>`,
       );
     }
-    // 동그라미 블록
     if (hasCircle) {
       blocks.push(
         `<div class="board-block board-block--circle"><span class="board-block-tag">◯ 동그라미</span></div>`,
       );
     }
-    // B v1.1 — 밑줄 단락엔 회상 버튼(능동 인출)
     if (underlines.length) {
       blocks.push(
         `<button type="button" class="board-recall-btn">🧠 회상 ${underlines.length}</button>`,
       );
     }
-    if (!blocks.length) {
-      const dot = document.createElement("span");
-      dot.className = "board-dot";
-      para.appendChild(dot);
-      continue;
-    }
+
+    // ----- 접혔을 때 한눈에 보일 요약(흔적 개수) -----
+    const summaryBits = [];
+    if (annos.length) summaryBits.push(`✎ ${annos.length}`);
+    if (underlines.length) summaryBits.push(`﹏ ${underlines.length}`);
+    else if (hasUnderlineTrace) summaryBits.push("﹏");
+    if (hasCircle) summaryBits.push("◯");
+
     para.classList.add("has-board-card");
     const card = document.createElement("div");
-    card.className = "board-card";
-    card.innerHTML = blocks.join("");
+    card.className = "board-card" + (hasBody ? " is-collapsible" : "");
+
+    // 항상 보이는 헤더 = 상태 칩(+설명) · 흔적 요약 · 펼침 화살표. 기본은 접힘.
+    const head = document.createElement("button");
+    head.type = "button";
+    head.className = "board-card-head";
+    head.innerHTML =
+      (showState
+        ? `<span class="board-state board-state--${icap.toLowerCase()}" title="${escapeHtml(ICAP_HELP[icap] || "")}">${ICAP_LABEL[icap] || icap}</span>`
+        : "") +
+      (f?.friction_high
+        ? `<span class="board-hot" title="이 글에서 되돌아읽기·체류가 상위 20%인 단락">마찰↑</span>`
+        : "") +
+      (hasBody
+        ? `<span class="board-card-summary">${summaryBits.join(" · ")}</span><span class="board-card-chev" aria-hidden="true">▾</span>`
+        : "");
+    card.appendChild(head);
+
+    let cardBody = null;
+    if (hasBody) {
+      cardBody = document.createElement("div");
+      cardBody.className = "board-card-body";
+      cardBody.innerHTML = blocks.join("");
+      card.appendChild(cardBody);
+      head.addEventListener("click", () => card.classList.toggle("is-expanded"));
+    }
     para.appendChild(card);
 
     const rb = card.querySelector(".board-recall-btn");
     if (rb) {
-      const body = paraText(para);
-      rb.addEventListener("click", () =>
-        toggleRecall(card, pid, underlines, body, rb),
-      );
+      const bodyText = paraText(para);
+      rb.addEventListener("click", (e) => {
+        e.stopPropagation();
+        toggleRecall(card, pid, underlines, bodyText, rb, cardBody);
+      });
     }
   }
 

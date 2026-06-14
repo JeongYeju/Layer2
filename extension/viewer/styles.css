@@ -1400,10 +1400,9 @@ ol.para-list .para-item {
 .reader.mode-board .para.board-friction {
   background: rgba(216, 96, 43, calc(0.04 + 0.14 * var(--friction-pct, 0)));
 }
-/* 흔적 카드가 붙은 단락은 세로 여백을 늘려 옆 카드끼리 겹침을 완화. */
+/* 카드는 기본 접힘(짧음)이라 평소엔 안 겹침. 약간의 여백만. */
 .reader.mode-board .para.has-board-card {
-  min-height: 132px;
-  margin-bottom: 40px;
+  margin-bottom: 32px;
 }
 
 /* State chip at the top of the right card */
@@ -1446,11 +1445,62 @@ ol.para-list .para-item {
   gap: 8px;
   z-index: 4;
 }
+/* 펼친 카드는 길어지므로 옆/아래 카드 위로 올라오게. */
+.board-card.is-expanded {
+  z-index: 12;
+}
 .board-hot {
   margin-left: 6px;
   font-size: 10.5px;
   font-weight: 700;
   opacity: 0.92;
+}
+
+/* 접기/펼치기 — 기본은 헤더(상태칩+흔적요약)만 보이고, 누르면 본문이 펼쳐진다.
+   이렇게 해야 카드가 길어도 평소엔 짧아 옆 카드와 안 겹친다. */
+.board-card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  padding: 7px 12px;
+  border: 1px solid var(--line, #e6e1d4);
+  border-radius: 999px;
+  background: var(--paper, #fff);
+  box-shadow: var(--shadow-soft);
+  cursor: default;
+}
+.board-card.is-collapsible .board-card-head {
+  cursor: pointer;
+}
+.board-card.is-collapsible .board-card-head:hover {
+  border-color: var(--accent, #2d5e4c);
+}
+.board-card-summary {
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 12px;
+  color: var(--muted, #8a8378);
+  letter-spacing: 0.02em;
+}
+.board-card-chev {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--muted, #8a8378);
+  transition: transform 0.15s ease;
+}
+.board-card.is-expanded .board-card-chev {
+  transform: rotate(180deg);
+}
+.board-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.board-card.is-collapsible:not(.is-expanded) .board-card-body,
+.board-card.is-collapsible:not(.is-expanded) .board-recall-zone {
+  display: none;
 }
 /* 흔적 블록 — 각 흔적을 "라벨 + 내용"의 균일한 카드/블록으로.
    유형 구분은 카드 안의 라벨(✎/﹏/◯)로만(좌측 컬러 라인 없음). */
