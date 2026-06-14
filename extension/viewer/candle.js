@@ -370,19 +370,29 @@ function showCandle(pid, reason) {
   // position: fixed on <body> so the candle floats above the reader's overflow
   // /stacking context. Place it in the right margin of the paragraph; if that
   // would run off-screen (narrow viewport / board mode), flip to the left.
-  const r = para.getBoundingClientRect();
   const W = 200;
   const GAP = 24;
-  let left = r.right + GAP;
-  if (left + W + 16 > window.innerWidth) {
-    left = Math.max(12, r.left - W - GAP);
+  function positionMount() {
+    const r = para.getBoundingClientRect();
+    let left = r.right + GAP;
+    if (left + W + 16 > window.innerWidth) {
+      left = Math.max(12, r.left - W - GAP);
+    }
+    const top = Math.max(8, Math.min(r.top - 4, window.innerHeight - 120));
+    mount.style.left = `${Math.round(left)}px`;
+    mount.style.top = `${Math.round(top)}px`;
   }
-  const top = Math.max(8, Math.min(r.top - 4, window.innerHeight - 120));
-  mount.style.left = `${Math.round(left)}px`;
-  mount.style.top = `${Math.round(top)}px`;
+  positionMount();
 
   document.body.appendChild(mount);
   activeMount = mount;
+
+  // Follow the paragraph as the reader scrolls/resizes. Capture phase catches
+  // scroll from any scrolling ancestor (scroll events don't bubble).
+  const onMove = () => requestAnimationFrame(positionMount);
+  window.addEventListener("scroll", onMove, { capture: true, passive: true });
+  window.addEventListener("resize", onMove, { passive: true });
+  mount.__onMove = onMove;
 
   // Two RAFs: first lets the browser register the initial style, second triggers the
   // transition. Without this the mount appears already lit.
@@ -417,6 +427,11 @@ function dismissActive(reason) {
   if (!m) return;
   activeMount = null;
   clearTimeout(m.__dismissTimer);
+  if (m.__onMove) {
+    window.removeEventListener("scroll", m.__onMove, { capture: true });
+    window.removeEventListener("resize", m.__onMove);
+    m.__onMove = null;
+  }
   m.classList.add("is-puff");
   pushSignal({ type: "candle_dismiss", reason });
   setTimeout(() => m.remove(), 900);
