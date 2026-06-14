@@ -264,7 +264,7 @@ async function send() {
   if (!apiKey) {
     addBubble(
       "assistant",
-      "API 키가 없어 대화를 못 해요. 우측 대시보드의 'AI 해석'에서 키를 넣어주세요.",
+      "API 키가 없어 대화를 못 해요. 로컬에서는 `npm run key` 로 .env.local 의 키를 넣으면 자동으로 잡혀요.",
     );
     return;
   }
