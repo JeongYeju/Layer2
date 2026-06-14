@@ -4,6 +4,24 @@
 
 ---
 
+## 2026-06-14
+
+발표(6/15 모의) 준비 중 실사용 점검에서 나온 UI/UX 버그 수정 묶음.
+
+### 멘탈 모델 맵 — 엣지 가독성 (report.js + styles.css)
+- 개념 엣지가 폭 16px 좌측 거터에 겹쳐 쌓여 "갈색 세로 막대"처럼 보이던 문제. 거터를 48px로 넓히고(척추·노드·dot 우측 이동), 엣지 끝점 `X 16→30`·`bulge 13→26`·stroke·opacity 상향 → 서로 분리된 또렷한 호. 색도 탁한 갈색(#c0863a)→accent 초록(#2d5e4c).
+
+### 보드(시맨틱 뷰) 카드 확대 (styles.css)
+- `.board-card` width 300→400, 본문 12.5→15.5px·인용 12→14.5px·태그 10→11.5px·패딩 확대. 발표 화면에서 항목이 작고 빽빽하던 것 해소.
+
+### 촛불 — 스크롤 추적 (candle.js)
+- `position:fixed` 촛불이 등장 시점 좌표에 한 번만 고정돼 스크롤하면 단락과 어긋나던 버그. `positionMount()`를 scroll(capture)·resize 마다 재호출해 단락을 따라가게 하고, 소멸 시 리스너 해제.
+
+### 데모 편의 — 로컬 Gemini 키 자동 주입 (신규)
+- 기존 `.env.local` 키 주입은 Playwright 하니스 전용이라, 브라우저(VS Code "Go Live")로 열면 매번 대시보드에 키를 다시 넣어야 했음(localStorage 는 origin 별). `npm run key`(`scripts/gen-local-key.mjs`)가 `.env.local`에서 `GEMINI_API_KEY`(+선택 `GEMINI_MODEL`)를 읽어 gitignore된 `local-key.js` 생성 → `index.html`이 로드해 localStorage 에 주입. 확장 빌드는 chrome.storage 로 키를 받으므로 build 스크립트가 해당 태그를 strip. 키는 git 에 안 올라감.
+
+---
+
 ## 2026-06-09
 
 ### 라이브 데모 + 실제 Gemini 검증

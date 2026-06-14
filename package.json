@@ -5,6 +5,7 @@
   "type": "module",
   "description": "Headed Playwright verification harness for the Layer 2 viewer.",
   "scripts": {
+    "key": "node scripts/gen-local-key.mjs",
     "test:e2e": "playwright test",
     "test:headed": "playwright test --headed",
     "test:live": "playwright test demo-e2e --headed",

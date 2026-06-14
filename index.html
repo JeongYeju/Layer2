@@ -139,6 +139,9 @@
   <svg id="ink-layer" class="ink-layer" xmlns="http://www.w3.org/2000/svg"></svg>
   <div id="annotation-host"></div>
 
+  <!-- 로컬 데모용 Gemini 키 자동 주입 (gitignore). `npm run key` 로 .env.local 에서 생성.
+       파일 없으면 무시(404, 무해) — 그땐 대시보드에서 키 직접 입력. -->
+  <script src="./local-key.js"></script>
   <script type="module" src="./app.js"></script>
 </body>
 </html>

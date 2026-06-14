@@ -49,6 +49,10 @@ perl -i -pe 's|https://esm.sh/markdown-it\@14|../vendor/markdown-stub.js|' "$OUT
 # chrome.storage) instead of app.js directly.
 perl -i -pe 's|src="./app.js"|src="./boot-ext.js"|' "$OUT/index.html"
 
+# local-key.js is a gitignored dev convenience for the browser (Go Live). The
+# extension gets its key from chrome.storage, so strip the tag (and its comment).
+perl -i -ne 'print unless m{local-key\.js} || m{로컬 데모용 Gemini} || m{파일 없으면 무시}' "$OUT/index.html"
+
 echo "Built extension/viewer/ ($(find "$OUT" -type f | wc -l | tr -d ' ') files)"
 if grep -rn "esm.sh" "$OUT" >/dev/null 2>&1; then
   echo "WARNING: a CDN (esm.sh) reference remains in the bundle:" >&2

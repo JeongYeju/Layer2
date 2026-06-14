@@ -13,6 +13,8 @@ playwright-report/
 .env
 .env.*
 !.env.example
+# 로컬 데모용 키 주입 파일 (npm run key 로 .env.local 에서 생성)
+local-key.js
 
 # 발표 스크린샷(2x) — 재생성 가능(npx playwright test shots), 용량상 미추적
 docs/presentation/shots/*.png
