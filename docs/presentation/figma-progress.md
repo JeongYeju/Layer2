@@ -2,11 +2,18 @@
 
 15일 모의발표 슬라이드를 Figma에 직접 작도 중. `use_figma` MCP + `figma-korean-design-system` 스킬.
 
-## 어디까지 했나
-- ✅ **Main 02 — Innovation (HDI → DHI)** 한 장 완성. node `408:8`.
-- 기존 **Main 01 — 나를 아는 독서**(node `398:1546`) 오른쪽에 이어 붙임.
-- 대본 원본: [15일-script.md](15일-script.md) (12비트, 민서님이 촛불 카피 등 추가 편집함).
-- 배치할 스크린샷: [shots/](shots/) (01-reading · 02-candle · 03-tikitaka · 04-board · 05-mentalmap-panel/full). 재생성 `npx playwright test shots`.
+## 어디까지 했나 (2026-06-14: 14장 전부 완성)
+섹션 `398:1545`("0613 Layer 3", 이제 15300×3200) 안에 2줄로 배치. 전부 스킬 컨벤션 적용.
+
+**1줄 (y=397)**: Main01 컨셉(`398:1546`) · Innovation(`408:8`) · Problem(`415:8`) · How 3카드(`416:8`) · Development(`417:8`) · Mental Map+별자리샷(`419:8`, 이미지 `419:13`) · Demo+티키타카샷(`421:8`, 이미지 `421:12`)
+**2줄 (y=1637)**: Title(`424:8`) · 1문장(`425:8`) · Context(`426:8`) · Validation(`427:8`) · Conclusion(`428:8`) · Future(`429:8`) · Demo teaser(`430:8`)
+
+- 스크린샷 2장은 `upload_assets` → POST → imageHash fill 로 실제 박음. (Demo는 placement 응답 누락돼서 `n.fills=[{type:"IMAGE",imageHash,scaleMode:"FILL"}]`로 직접 적용)
+- 대본 원본: [15일-script.md](15일-script.md). 스크린샷: [shots/](shots/) (재생성 `npx playwright test shots`).
+
+## ⚠️ 다음 세션 첫 할 일: 발표 순서대로 드래그 재배치
+지금 캔버스 순서 = 만든 순서라 뒤섞임. Figma에서 프레임을 아래 **발표 순서**로 드래그(오토레이아웃이라 안 깨짐):
+Title(424) → 1문장(425) → Demo teaser(430) → Context(426) → Problem(415) → Innovation(408) → How(416) → Development(417) → Demo(421) → Mental Map(419) → Validation(427) → Conclusion(428) → Future(429). (Main01 컨셉은 Context/Title 중 택일로 흡수하거나 부록)
 
 ## 좌표/파일 (그대로 이어쓰기)
 - fileKey: `nmGpVp0Op56V2P8tUmsVdl`
