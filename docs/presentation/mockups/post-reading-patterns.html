@@ -1,0 +1,553 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Layer 2 — 후(post-reading) · 내 패턴 목업</title>
+  <style>
+    /* ─────────────────────────────────────────────────────────────
+       발표 첨부용 목업 (하드코딩 더미데이터). 데모 글 = 표면장력.
+       페르소나: 영문학 전공 학생이 무거운 글을 깊게 읽고, 자신의
+       이해 과정·독서 패턴을 보고 싶어한다. 이 페이지는 "읽기 후"
+       에서 내 패턴을 보는 4개 화면을 한 장에 모은 목업 갤러리.
+       실제 데이터 흐름과 정합:
+         · 마찰 = 문서 내 백분위(상위 N%) — 절대 점수 아님
+         · ICAP = 훑어봄(P) < 표시(A) < 내 생각(C) < 대화(I)
+         · 멘탈맵 = 척추 노드 + 개념 엣지
+       각 .frame 을 캡처하면 슬라이드용 이미지가 됩니다.
+       ───────────────────────────────────────────────────────────── */
+    :root {
+      --paper: #fbf9f4;
+      --paper-edge: #efeae0;
+      --paper-sink: #f4f0e7;
+      --text: #1c1a18;
+      --muted: #7a736b;
+      --line: #e6e1d6;
+      --green: #2d5e4c;
+      --green-soft: #e8f1ec;
+      --green-ink: #234a3b;
+      --rust: #ad5f3d;
+      --clay: #d6a66e;
+      --amber: #e9c25a;
+      --red: #d9362b;
+      --shadow-soft:
+        0 0.5px 0.6px rgba(70, 55, 35, 0.13),
+        0 1.8px 2.1px -0.6px rgba(70, 55, 35, 0.14),
+        0 4.3px 4.9px -1.2px rgba(70, 55, 35, 0.15),
+        0 9.6px 10.9px -1.8px rgba(70, 55, 35, 0.16);
+      --shadow-lift:
+        0 1px 1px rgba(70, 55, 35, 0.1),
+        0 8px 18px -4px rgba(70, 55, 35, 0.16),
+        0 24px 46px -10px rgba(70, 55, 35, 0.2);
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; }
+    body {
+      background:
+        radial-gradient(circle at 18% 8%, #2b271f, transparent 40%),
+        #1c1a17;
+      color: var(--text);
+      font-family: "Pretendard", "Pretendard Variable", system-ui, -apple-system,
+        "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+      -webkit-font-smoothing: antialiased;
+      padding: 64px 0 96px;
+    }
+
+    .gallery {
+      width: 1040px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 72px;
+    }
+
+    .lead {
+      color: #efe7d8;
+      text-align: center;
+      margin-bottom: 8px;
+    }
+    .lead h1 {
+      font-size: 26px;
+      letter-spacing: -0.01em;
+      margin: 0 0 8px;
+      font-weight: 800;
+    }
+    .lead p { margin: 0; color: #b3a892; font-size: 14px; }
+
+    .item { }
+    .item > .label {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      margin: 0 0 14px 6px;
+      color: #d8ccb4;
+    }
+    .item > .label .num {
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.14em;
+      color: var(--clay);
+      text-transform: uppercase;
+    }
+    .item > .label .title { font-size: 16px; font-weight: 700; color: #f0e8d8; }
+    .item > .label .sub { font-size: 13px; color: #93886f; }
+
+    /* 한 화면 프레임 (캡처 단위) */
+    .frame {
+      background: var(--paper);
+      border-radius: 20px;
+      box-shadow: var(--shadow-lift);
+      overflow: hidden;
+      border: 1px solid rgba(0, 0, 0, 0.04);
+    }
+    .chrome {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 22px;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(180deg, #fffdf8, var(--paper));
+    }
+    .chrome .dot {
+      width: 11px; height: 11px; border-radius: 50%;
+      background: var(--paper-edge);
+      box-shadow: 0 0 0 1px rgba(0,0,0,0.05) inset;
+    }
+    .chrome .wm {
+      margin-left: 6px;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+      font-size: 14px;
+    }
+    .chrome .wm b { color: var(--green); }
+    .chrome .crumb { margin-left: auto; color: var(--muted); font-size: 13px; }
+    .body { padding: 28px 30px 32px; }
+
+    h2.screen-h {
+      font-size: 22px;
+      margin: 0 0 4px;
+      letter-spacing: -0.01em;
+    }
+    .screen-sub { color: var(--muted); font-size: 13.5px; margin: 0 0 22px; }
+
+    .eyebrow {
+      font-size: 11px; font-weight: 800; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--green);
+      margin: 0 0 10px;
+    }
+
+    .card {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 18px 20px;
+      box-shadow: var(--shadow-soft);
+    }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    .grid-7-5 { display: grid; grid-template-columns: 1.35fr 1fr; gap: 18px; }
+
+    .muted { color: var(--muted); }
+    .chips { display: flex; flex-wrap: wrap; gap: 7px; }
+    .chip {
+      font-size: 12px; padding: 4px 10px; border-radius: 999px;
+      background: var(--paper-sink); border: 1px solid var(--line); color: #5b544b;
+    }
+    .chip.hot { background: #fbe7df; border-color: #f0c5b3; color: #9b4326; }
+    .chip.icap-c { background: var(--green-soft); border-color: #bcd8cb; color: var(--green-ink); }
+    .chip.icap-i { background: #e7eef6; border-color: #c2d2e6; color: #2f4f75; }
+
+    .btn-row { display: flex; gap: 10px; margin-top: 18px; }
+    .btn {
+      font: inherit; font-size: 14px; font-weight: 600;
+      padding: 11px 20px; border-radius: 11px; cursor: default;
+      border: 1px solid var(--line); background: #fff; color: var(--text);
+    }
+    .btn.primary { background: var(--green); color: #fff; border-color: var(--green); }
+
+    /* 1번: 추천 hero */
+    .reco {
+      display: flex; gap: 18px; align-items: flex-start;
+      background: linear-gradient(135deg, #eaf2ec, #e2efe6);
+      border: 1px solid #bcd8cb;
+      border-radius: 16px; padding: 22px 24px;
+    }
+    .reco .moon {
+      flex: 0 0 auto; width: 52px; height: 52px; border-radius: 14px;
+      display: grid; place-items: center; font-size: 26px;
+      background: #fff; box-shadow: var(--shadow-soft);
+    }
+    .reco h3 { margin: 2px 0 6px; font-size: 20px; color: var(--green-ink); }
+    .reco p { margin: 0; color: #3f5b4f; font-size: 14px; line-height: 1.55; }
+
+    .recap-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .recap-cover {
+      flex: 0 0 auto; width: 40px; height: 54px; border-radius: 6px;
+      background: linear-gradient(160deg, #2d5e4c, #1f4436);
+      color: #cfe6da; font-size: 9px; font-weight: 700;
+      display: grid; place-items: center; text-align: center; padding: 4px;
+      box-shadow: var(--shadow-soft);
+    }
+    .recap-head .t { font-weight: 700; font-size: 15px; }
+    .recap-head .s { font-size: 12px; color: var(--muted); }
+    .progress {
+      height: 8px; border-radius: 999px; background: var(--paper-sink);
+      overflow: hidden; margin: 12px 0 6px;
+    }
+    .progress > i { display: block; height: 100%; background: var(--green); border-radius: 999px; }
+
+    /* 시간대 리듬 막대 */
+    .rhythm { display: flex; flex-direction: column; gap: 9px; margin: 6px 0; }
+    .rrow { display: flex; align-items: center; gap: 12px; font-size: 13px; }
+    .rrow .rl { width: 34px; color: var(--muted); flex: 0 0 34px; }
+    .rtrack { flex: 1; height: 16px; background: var(--paper-sink); border-radius: 8px; overflow: hidden; }
+    .rfill { height: 100%; background: var(--green); border-radius: 8px; }
+    .rrow .rv { width: 26px; text-align: right; color: #5b544b; font-variant-numeric: tabular-nums; }
+
+    .insight {
+      margin-top: 14px; padding: 12px 14px; border-radius: 11px;
+      background: var(--green-soft); border: 1px solid var(--green);
+      color: var(--green-ink); font-size: 13.5px; line-height: 1.5;
+    }
+
+    .stat-row { display: flex; gap: 22px; margin-bottom: 18px; }
+    .stat .n { font-size: 26px; font-weight: 800; letter-spacing: -0.02em; }
+    .stat .l { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+    .sessions { list-style: none; margin: 0; padding: 0; }
+    .sessions li {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 0; border-bottom: 1px dashed var(--line); font-size: 13px;
+    }
+    .sessions li:last-child { border-bottom: 0; }
+    .sessions .st { font-weight: 600; }
+    .sessions .sm { margin-left: auto; color: var(--muted); font-variant-numeric: tabular-nums; }
+    .dot-i { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto; }
+
+    /* 3번: 다회독 거울 */
+    .mirror-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+    .mcol { padding: 4px 4px; }
+    .mcol .head {
+      font-size: 12px; font-weight: 700; color: var(--muted);
+      display: flex; align-items: center; gap: 8px; margin-bottom: 12px;
+    }
+    .mcol.now .head { color: var(--green); }
+    .diff-row { padding: 12px 0; border-top: 1px solid var(--line); }
+    .diff-row .pl { font-size: 13px; font-weight: 700; margin-bottom: 6px; }
+    .barpair { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
+    .mini { height: 9px; border-radius: 5px; background: var(--paper-sink); flex: 1; overflow: hidden; }
+    .mini > i { display: block; height: 100%; border-radius: 5px; }
+    .center-rail {
+      display: grid; place-items: center;
+      color: var(--green); font-size: 18px;
+    }
+    .mirror-sum {
+      margin-top: 16px; padding: 14px 16px; border-radius: 12px;
+      background: linear-gradient(135deg, #eaf2ec, #e9eef6);
+      border: 1px solid #c4d6cb; font-size: 14px; color: #2c4a3e; line-height: 1.55;
+    }
+
+    /* 4번: 장기 패턴 */
+    .interest { display: flex; flex-direction: column; gap: 8px; }
+    .irow { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+    .irow .in { width: 92px; flex: 0 0 92px; font-weight: 600; }
+    .ibar { flex: 1; height: 12px; background: var(--paper-sink); border-radius: 6px; overflow: hidden; }
+    .ibar > i { display: block; height: 100%; background: linear-gradient(90deg, #2d5e4c, #6b8f7a); border-radius: 6px; }
+    .irow .ic { width: 30px; text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+    .legend { display: flex; gap: 14px; font-size: 12px; color: var(--muted); margin-top: 8px; }
+    .legend span { display: inline-flex; align-items: center; gap: 5px; }
+    .swatch { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+
+    .icap-bars { display: flex; flex-direction: column; gap: 7px; }
+    .ibrow { display: flex; align-items: center; gap: 10px; font-size: 12.5px; }
+    .ibrow .il { width: 64px; flex: 0 0 64px; color: #5b544b; }
+    .ibseg { flex: 1; height: 14px; border-radius: 7px; overflow: hidden; display: flex; }
+
+    .note { font-size: 11.5px; color: var(--muted); margin-top: 14px; }
+  </style>
+</head>
+<body>
+  <div class="gallery">
+    <div class="lead">
+      <h1>Layer 2 — 읽기 후, 내 패턴을 본다</h1>
+      <p>표면장력: 물방울은 왜 둥근가 · 누적 세션 기반 (목업 · 더미데이터)</p>
+    </div>
+
+    <!-- ════════════ 1. 다음 읽기 전 추천 / 맥락 카드 ════════════ -->
+    <section class="item">
+      <div class="label">
+        <span class="num">후 · 01</span>
+        <span class="title">다음 읽기 전 — 추천 / 맥락 카드</span>
+        <span class="sub">여러 세션이 쌓여 다음 읽기 전으로 돌아온다</span>
+      </div>
+      <div class="frame">
+        <div class="chrome">
+          <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+          <span class="wm">Layer<b>2</b></span>
+          <span class="crumb">다시 열기 · 표면장력</span>
+        </div>
+        <div class="body">
+          <h2 class="screen-h">다시 읽기 전에</h2>
+          <p class="screen-sub">지난 읽기들에서 모인 당신의 패턴이 다음 읽기를 준비해요.</p>
+
+          <div class="reco">
+            <div class="moon">☾</div>
+            <div>
+              <h3>이 글, 저녁에 읽는 걸 추천해요</h3>
+              <p>지난 6번의 깊은 읽기 중 <b>5번이 저녁(20–23시)</b>이었어요.
+                무거운 글일수록 저녁에 더 오래 붙잡았고, 되돌아읽기도 그때 가장 생산적이었어요.</p>
+            </div>
+          </div>
+
+          <div style="height:18px"></div>
+
+          <div class="grid-7-5">
+            <div class="card">
+              <div class="eyebrow">이어서 읽기</div>
+              <div class="recap-head">
+                <div class="recap-cover">표면<br>장력</div>
+                <div>
+                  <div class="t">표면장력: 물방울은 왜 둥근가</div>
+                  <div class="s">3장 중 2장 · 지난번 <b>§3 곡률과 라플라스 압력</b>에서 멈춤</div>
+                </div>
+              </div>
+              <div class="progress"><i style="width:62%"></i></div>
+              <div class="muted" style="font-size:12px">62% 읽음 · 마지막 읽기 6일 전(화 22:10)</div>
+            </div>
+
+            <div class="card">
+              <div class="eyebrow">지난번 어려웠던 곳</div>
+              <p class="muted" style="font-size:12.5px;margin:0 0 10px">다시 만나면 촛불이 곁에 있을 거예요.</p>
+              <div class="chips">
+                <span class="chip hot">곡률 ↔ 압력 관계</span>
+                <span class="chip hot">계면 자유에너지</span>
+                <span class="chip">응집력 vs 부착력</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="btn-row">
+            <button class="btn primary">§3부터 이어 읽기 →</button>
+            <button class="btn">처음부터</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ════════════ 2. 다중세션 리포트 / 시간대별 리듬 ════════════ -->
+    <section class="item">
+      <div class="label">
+        <span class="num">후 · 02</span>
+        <span class="title">다중세션 리포트 — 시간대별 독서 리듬</span>
+        <span class="sub">언제, 얼마나 깊게 읽는 사람인지</span>
+      </div>
+      <div class="frame">
+        <div class="chrome">
+          <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+          <span class="wm">Layer<b>2</b></span>
+          <span class="crumb">기록 · 다중 세션</span>
+        </div>
+        <div class="body">
+          <h2 class="screen-h">독서 리듬</h2>
+          <p class="screen-sub">최근 6세션을 가로질러 본 나의 인지 리듬.</p>
+
+          <div class="stat-row">
+            <div class="stat"><div class="n">6</div><div class="l">세션</div></div>
+            <div class="stat"><div class="n">142<span style="font-size:15px">분</span></div><div class="l">총 읽은 시간</div></div>
+            <div class="stat"><div class="n">상위 23%</div><div class="l">평균 마찰(문서 내)</div></div>
+            <div class="stat"><div class="n">3</div><div class="l">재독한 글</div></div>
+          </div>
+
+          <div class="grid-7-5">
+            <div class="card">
+              <div class="eyebrow">시간대별 인지 리듬</div>
+              <div class="rhythm">
+                <div class="rrow"><span class="rl">밤</span><span class="rtrack"><span class="rfill" style="width:22%;opacity:.55"></span></span><span class="rv">1</span></div>
+                <div class="rrow"><span class="rl">오전</span><span class="rtrack"><span class="rfill" style="width:18%;opacity:.45"></span></span><span class="rv">1</span></div>
+                <div class="rrow"><span class="rl">오후</span><span class="rtrack"><span class="rfill" style="width:40%;opacity:.6"></span></span><span class="rv">2</span></div>
+                <div class="rrow"><span class="rl">저녁</span><span class="rtrack"><span class="rfill" style="width:100%;opacity:1"></span></span><span class="rv">5</span></div>
+              </div>
+              <div class="muted" style="font-size:11.5px;margin-top:6px">막대 길이 = 세션 수 · 색 농도 = 평균 마찰(깊이)</div>
+              <div class="insight">📖 <b>저녁</b>에 가장 깊게 읽었어요 — 다음 무거운 글은 <b>저녁</b> 시간대를 추천해요.</div>
+            </div>
+
+            <div class="card">
+              <div class="eyebrow">마찰량 추이 (세션 순)</div>
+              <svg viewBox="0 0 260 70" width="100%" height="70" preserveAspectRatio="none" style="margin:4px 0 10px">
+                <polyline points="6,52 48,30 90,40 132,18 174,26 216,14"
+                  fill="none" stroke="#ad5f3d" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+                <circle cx="216" cy="14" r="3.5" fill="#ad5f3d"/>
+              </svg>
+              <div class="eyebrow" style="margin-top:6px">최근 세션</div>
+              <ul class="sessions">
+                <li><span class="dot-i" style="background:#2d5e4c"></span><span class="st">표면장력 · 물방울</span><span class="sm">저녁 · 28분</span></li>
+                <li><span class="dot-i" style="background:#6b8f7a"></span><span class="st">계면현상 개관</span><span class="sm">저녁 · 22분</span></li>
+                <li><span class="dot-i" style="background:#d6a66e"></span><span class="st">표면장력 · 물방울 (재독)</span><span class="sm">오후 · 19분</span></li>
+                <li><span class="dot-i" style="background:#6b8f7a"></span><span class="st">에리히 프롬, 사랑의 기술</span><span class="sm">저녁 · 31분</span></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ════════════ 3. 재독 Diff / 다회독 거울 ════════════ -->
+    <section class="item">
+      <div class="label">
+        <span class="num">후 · 03</span>
+        <span class="title">다회독 거울 — 재독 Diff</span>
+        <span class="sub">지난 나 vs 오늘 나, 같은 글에서</span>
+      </div>
+      <div class="frame">
+        <div class="chrome">
+          <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+          <span class="wm">Layer<b>2</b></span>
+          <span class="crumb">시간을 가로지르는 거울</span>
+        </div>
+        <div class="body">
+          <h2 class="screen-h">표면장력 — 1차 vs 2차 읽기</h2>
+          <p class="screen-sub">같은 글을 두 번 읽은 흔적을 나란히 비춰봐요. 마찰이 줄고 관여가 깊어진 곳을 짚어줘요.</p>
+
+          <div class="card">
+            <div class="mirror-cols" style="grid-template-columns:1fr 40px 1fr">
+              <div class="mcol past">
+                <div class="head">◷ 1차 · 6일 전 (화 22:10)</div>
+              </div>
+              <div></div>
+              <div class="mcol now">
+                <div class="head">◉ 2차 · 오늘 (수 21:40)</div>
+              </div>
+            </div>
+
+            <!-- §3 -->
+            <div class="mirror-cols" style="grid-template-columns:1fr 40px 1fr">
+              <div class="mcol past diff-row" style="border-top:1px solid var(--line)">
+                <div class="pl">§3 곡률과 라플라스 압력</div>
+                <div class="barpair"><span>되돌아읽기 5회</span><span class="mini"><i style="width:90%;background:#d9362b"></i></span></div>
+                <div class="chips" style="margin-top:8px"><span class="chip hot">마찰 상위 8%</span><span class="chip">ICAP: 표시(A)</span></div>
+              </div>
+              <div class="center-rail diff-row" style="border-top:1px solid var(--line)">→</div>
+              <div class="mcol now diff-row" style="border-top:1px solid var(--line)">
+                <div class="pl">§3 곡률과 라플라스 압력</div>
+                <div class="barpair"><span>되돌아읽기 1회</span><span class="mini"><i style="width:24%;background:#2d5e4c"></i></span></div>
+                <div class="chips" style="margin-top:8px"><span class="chip">마찰 상위 41%</span><span class="chip icap-c">ICAP: 내 생각(C) ↑</span></div>
+              </div>
+            </div>
+
+            <!-- §5 -->
+            <div class="mirror-cols" style="grid-template-columns:1fr 40px 1fr">
+              <div class="mcol past diff-row">
+                <div class="pl">§5 계면 자유에너지</div>
+                <div class="barpair"><span>머묾 1:40</span><span class="mini"><i style="width:80%;background:#ad5f3d"></i></span></div>
+                <div class="chips" style="margin-top:8px"><span class="chip hot">마찰 상위 15%</span><span class="chip">주석 없음</span></div>
+              </div>
+              <div class="center-rail diff-row">→</div>
+              <div class="mcol now diff-row">
+                <div class="pl">§5 계면 자유에너지</div>
+                <div class="barpair"><span>머묾 0:35</span><span class="mini"><i style="width:30%;background:#2d5e4c"></i></span></div>
+                <div class="chips" style="margin-top:8px"><span class="chip">마찰 상위 52%</span><span class="chip icap-i">촛불과 대화(I)</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="mirror-sum">
+            🪞 두 번째 읽기에서 <b>곡률 문단의 마찰이 상위 8% → 41%</b>로 크게 줄었어요.
+            처음엔 표시만 했던 곳에 이제 <b>네 말로 주석</b>을 남겼고, 계면에너지 문단은 촛불과
+            한 번 주고받자 머무는 시간이 절반으로 줄었어요. — <b>이해의 지형이 평평해지고 있어요.</b>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ════════════ 4. 장기 패턴 대시보드 (관심사 / 마찰 추이) ════════════ -->
+    <section class="item">
+      <div class="label">
+        <span class="num">후 · 04</span>
+        <span class="title">장기 패턴 — 관심사 / 마찰 추이</span>
+        <span class="sub">한 번의 독서가 아니라, 쌓인 나</span>
+      </div>
+      <div class="frame">
+        <div class="chrome">
+          <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+          <span class="wm">Layer<b>2</b></span>
+          <span class="crumb">나의 읽기 패턴 · 지난 30일</span>
+        </div>
+        <div class="body">
+          <h2 class="screen-h">나의 읽기 패턴</h2>
+          <p class="screen-sub">지난 30일, 12세션을 가로지른 장기 패턴.</p>
+
+          <div class="stat-row">
+            <div class="stat"><div class="n">12</div><div class="l">세션</div></div>
+            <div class="stat"><div class="n">4.2<span style="font-size:15px">시간</span></div><div class="l">깊게 읽은 시간</div></div>
+            <div class="stat"><div class="n">▽ 31%</div><div class="l">평균 마찰 추이</div></div>
+            <div class="stat"><div class="n">C·I 48%</div><div class="l">구성·상호작용 비중</div></div>
+          </div>
+
+          <div class="grid2">
+            <div class="card">
+              <div class="eyebrow">마찰 추이 — 다회독할수록 ↓</div>
+              <svg viewBox="0 0 300 110" width="100%" height="120" style="margin:6px 0 2px">
+                <line x1="8" y1="92" x2="292" y2="92" stroke="#e6e1d6"/>
+                <polyline points="10,28 50,40 90,34 130,52 170,48 210,66 250,72 290,84"
+                  fill="none" stroke="#2d5e4c" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+                <circle cx="10" cy="28" r="3" fill="#2d5e4c"/>
+                <circle cx="290" cy="84" r="4" fill="#2d5e4c"/>
+                <text x="10" y="106" font-size="9" fill="#7a736b">30일 전</text>
+                <text x="262" y="106" font-size="9" fill="#7a736b">오늘</text>
+              </svg>
+              <p class="muted" style="font-size:12px;margin:6px 0 0">같은 주제를 다시 읽을수록 마찰(되돌아읽기·머묾)이 줄어듭니다 = 내재화.</p>
+            </div>
+
+            <div class="card">
+              <div class="eyebrow">관심사 (밑줄·주석 밀도)</div>
+              <div class="interest">
+                <div class="irow"><span class="in">표면장력</span><span class="ibar"><i style="width:100%"></i></span><span class="ic">38</span></div>
+                <div class="irow"><span class="in">계면현상</span><span class="ibar"><i style="width:72%"></i></span><span class="ic">27</span></div>
+                <div class="irow"><span class="in">물리화학</span><span class="ibar"><i style="width:55%"></i></span><span class="ic">21</span></div>
+                <div class="irow"><span class="in">응집·부착력</span><span class="ibar"><i style="width:40%"></i></span><span class="ic">15</span></div>
+                <div class="irow"><span class="in">사랑의 기술</span><span class="ibar"><i style="width:30%"></i></span><span class="ic">11</span></div>
+              </div>
+              <div class="chips" style="margin-top:12px">
+                <span class="chip icap-c">크로스오버: 표면장력 ↔ 계면현상</span>
+              </div>
+            </div>
+          </div>
+
+          <div style="height:18px"></div>
+
+          <div class="card">
+            <div class="eyebrow">관여 깊이(ICAP)의 변화 — 훑어봄 → 표시 → 내 생각 → 대화</div>
+            <div class="icap-bars">
+              <div class="ibrow">
+                <span class="il">초기 4세션</span>
+                <span class="ibseg">
+                  <i style="width:46%;background:#cdbf9f"></i>
+                  <i style="width:34%;background:#d6a66e"></i>
+                  <i style="width:14%;background:#6b8f7a"></i>
+                  <i style="width:6%;background:#2d5e4c"></i>
+                </span>
+              </div>
+              <div class="ibrow">
+                <span class="il">최근 4세션</span>
+                <span class="ibseg">
+                  <i style="width:22%;background:#cdbf9f"></i>
+                  <i style="width:30%;background:#d6a66e"></i>
+                  <i style="width:30%;background:#6b8f7a"></i>
+                  <i style="width:18%;background:#2d5e4c"></i>
+                </span>
+              </div>
+            </div>
+            <div class="legend">
+              <span><i class="swatch" style="background:#cdbf9f"></i>훑어봄(P)</span>
+              <span><i class="swatch" style="background:#d6a66e"></i>표시(A)</span>
+              <span><i class="swatch" style="background:#6b8f7a"></i>내 생각(C)</span>
+              <span><i class="swatch" style="background:#2d5e4c"></i>대화(I)</span>
+            </div>
+            <p class="note">최근으로 올수록 ‘내 생각(C)·대화(I)’ 비중이 커집니다 — 더 깊이 관여하는 독자가 되어가는 중.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</body>
+</html>

@@ -29,6 +29,12 @@ async function runDemo() {
     return 0;
   }
   _demoRunning = true;
+  // 매크로 리포트(시간대 리듬·저녁 추천)가 비어 보이지 않게, 과거 세션 없으면 시드.
+  try {
+    if (!(window.__layer2Sessions?.load?.() || []).length) seedSessions();
+  } catch {
+    /* best-effort */
+  }
   const btn = document.getElementById("demo-run");
   const orig = btn ? btn.innerHTML : null;
   if (btn) {
