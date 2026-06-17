@@ -17,6 +17,7 @@ import { initCandle, resetCandle } from "./candle.js";
 import { initChat } from "./chat.js";
 import { initDemo } from "./demo.js";
 import { initSessions } from "./sessions.js";
+import { surfaceTensionSource } from "./sources/surface-tension.js";
 
 const reader = document.getElementById("reader");
 const dashboard = document.getElementById("dashboard");
@@ -56,3 +57,5 @@ function setSource(source) {
 initSidebar({ onSelect: setSource, initialSource: window.__layer2InjectedSource });
 
 window.__currentSource = () => currentSource;
+// 데모/시연 훅 — 발표 데모 글(표면장력)을 바로 로드. shots 테스트와 DevTools 용.
+window.__loadSurfaceTension = () => setSource(surfaceTensionSource());

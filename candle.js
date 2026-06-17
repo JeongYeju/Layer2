@@ -287,7 +287,7 @@ function tryFire(pid, reason, opts = {}) {
   if (now - lastP < PER_PARA_COOLDOWN_MS) return false;
   lastTriggerT = now;
   lastPerParaT.set(pid, now);
-  showCandle(pid, reason);
+  showCandle(pid, reason, opts.line);
   pushSignal({ type: "candle_intervene", paragraph_id: pid, reason });
   return true;
 }
@@ -346,14 +346,16 @@ const FIG_SVG = `
   </svg>
 `;
 
-function showCandle(pid, reason) {
+function showCandle(pid, reason, customLine) {
   dismissActive("replace");
   const para = readerEl.querySelector(`[data-paragraph-id="${pid}"]`);
   if (!para) return;
 
   // Capture paragraph text BEFORE building the mount. Used as the 티키타카 anchor.
   const paraText = (para.textContent || "").slice(0, 600);
-  const line = pickLine(reason);
+  // customLine — 데모/시연에서 개념을 콕 집어 짚어줄 때 정해진 멘트를 띄움
+  // (예: 표면장력 재설명). 없으면 reason 풀에서 랜덤.
+  const line = customLine || pickLine(reason);
 
   const mount = document.createElement("div");
   mount.className = "candle-mount";
@@ -454,7 +456,7 @@ function dismissActive(reason) {
 
 // DevTools / demo hooks
 window.__layer2Candle = {
-  fire(reason = "stuck") {
+  fire(reason = "stuck", line = null) {
     const pid = currentParaId();
     if (!pid) {
       console.warn("[candle] no visible paragraph to anchor to");
@@ -463,7 +465,7 @@ window.__layer2Candle = {
     // bypass cooldowns for demo
     lastTriggerT = -Infinity;
     lastPerParaT.delete(pid);
-    return tryFire(pid, reason);
+    return tryFire(pid, reason, { line });
   },
   enable(v) { setCandleEnabled(v); },
   dismiss() { dismissActive("manual"); },

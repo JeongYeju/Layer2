@@ -102,6 +102,9 @@ test("발표용 스크린샷 세트", async ({ page }) => {
   }, KEY);
   await page.goto("/");
   await page.waitForSelector(".para[data-paragraph-id]");
+  // 발표 데모 글(표면장력: 물방울은 왜 둥근가)로 전환 — 데모 고정 텍스트.
+  await page.evaluate(() => window.__loadSurfaceTension && window.__loadSurfaceTension());
+  await page.waitForSelector(".para[data-paragraph-id]");
   await pause(page, 800);
 
   // 1) 읽기 화면 (실제 흔적: 밑줄·동그라미·주석)
@@ -116,10 +119,16 @@ test("발표용 스크린샷 세트", async ({ page }) => {
   await page.evaluate(() => window.__layer2Demo.seedRich());
   await pause(page, 700);
 
-  // 3) 촛불 개입
+  // 3) 촛불 개입 — 표면장력 개념 앞에서 자꾸 앞뒤를 오가면 문서가 눈치채고 다시 짚어준다.
+  await page.locator(".para[data-paragraph-id]").nth(1).scrollIntoViewIfNeeded();
+  await pause(page, 500);
   await page.evaluate(() => {
     document.querySelectorAll(".candle-mount").forEach((c) => c.remove());
-    window.__layer2Candle && window.__layer2Candle.fire("annotation");
+    window.__layer2Candle &&
+      window.__layer2Candle.fire(
+        "isolation",
+        "이 부분 자꾸 되돌아오네. '표면장력'이 어떤 건지 다시 짚어줄까?",
+      );
   });
   const candle = page.locator(".candle-mount:not(.is-puff)").last();
   await candle.waitFor({ state: "visible", timeout: 5000 }).catch(() => {});
@@ -137,7 +146,7 @@ test("발표용 스크린샷 세트", async ({ page }) => {
       const asst = page.locator(".chat-msg--assistant:not(.chat-typing)");
       const before = await asst.count(); // 오프닝 멘트 수
       await input.click();
-      await input.type("이 개념이 왜 중요한지 잘 모르겠어요.", { delay: 22 });
+      await input.type("표면장력이 왜 물방울을 둥글게 만드는지 잘 모르겠어요.", { delay: 22 });
       await page.locator("#chat-send").click().catch(() => {});
       if (KEY) {
         // 새 어시스턴트 답(=before+1)이 실제로 늘어날 때까지 대기
