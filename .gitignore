@@ -16,5 +16,7 @@ playwright-report/
 # 로컬 데모용 키 주입 파일 (npm run key 로 .env.local 에서 생성)
 local-key.js
 
-# 발표 스크린샷(2x) — 재생성 가능(npx playwright test shots), 용량상 미추적
-docs/presentation/shots/*.png
+# 발표 준비물 전체 — 교수님 배포본에서 제외(로컬엔 유지). 발표 스크립트·슬라이드·
+# 목업·데모 영상(mp4/webm/gif)·genimg·refs·제작 핸드북 등 "굴러가는 코드 외" 자료.
+# 의사결정/사고과정 로그(docs/features·theory-base·plan-status·CODE_REVIEW)는 추적 유지.
+docs/presentation/
