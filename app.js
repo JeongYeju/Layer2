@@ -16,6 +16,7 @@ import { initViewerShell, relayoutViewer, flipSpread } from "./viewer-shell.js";
 import { initCandle, resetCandle } from "./candle.js";
 import { initChat } from "./chat.js";
 import { initDemo } from "./demo.js";
+import { initDirector } from "./demo-director.js";
 import { initSessions } from "./sessions.js";
 import { surfaceTensionSource } from "./sources/surface-tension.js";
 
@@ -27,6 +28,7 @@ initAttention({ readerEl: reader });
 initCandle({ readerEl: reader });
 initChat();
 initDemo({ readerEl: reader });
+initDirector({ readerEl: reader });
 initSessions();
 renderDashboard(dashboard);
 initViewerShell();

@@ -353,9 +353,12 @@ function renderBoardCards() {
 
     para.appendChild(card);
 
-    // 길쭉한 카드만 접는다: 접힘 높이를 넘으면 끝을 그라디언트로 흐리고(텍스트가
-    // 안으로 숨는 느낌) 화살표를 띄운다. 짧은 카드는 그대로 다 보인다.
-    if (hasBody && inner.scrollHeight > BOARD_COLLAPSE_PX + 16) {
+    // 접힘 높이 = 이 단락의 세로 높이. 카드가 옆 단락만큼은 펼쳐 보이다, 그보다
+    // 길면 끝을 그라디언트로 흐리고(텍스트가 안으로 숨는 느낌) 화살표를 띄운다.
+    // 짧은 카드는 그대로 다 보인다. (예전엔 고정 116px 라 다 접혀 보였음)
+    const paraH = Math.max(BOARD_COLLAPSE_PX, Math.round(para.offsetHeight));
+    card.style.setProperty("--board-collapse", paraH + "px");
+    if (hasBody && inner.scrollHeight > paraH + 16) {
       card.classList.add("is-clipped");
     }
 

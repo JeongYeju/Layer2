@@ -1,10 +1,11 @@
-> **📊 상태 배너 (2026-06-17, 컨트롤타워 동기화)** — 이 대조표 본문은 2026-06-08 작성분이며 갭 분석은 여전히 유효함. 이후 진척은 *발표 준비 + 메타인지 보드/뷰어 UI 다듬기*에 집중됐고 새 갭은 없음. (이 배너는 컨트롤타워 자동 동기화 메모이며, 본문은 히스토리로 보존.)
+> **📊 상태 배너 (2026-06-19, 컨트롤타워 동기화)** — 이 대조표 본문은 2026-06-08 작성분이며 갭 분석은 여전히 유효함. **6/17 최종 발표 종료** 후 초점이 발표자료 → *데모 영상 재제작*으로 이동했고, 기획 대비 새 갭은 없음. **6/19 점검: 마지막 커밋 `1419bea`(06-17 09:19) 이후 새 커밋 없음 — 조용한 단계.** 데모 산출물(mp4/webm ~13MB)·`demo-director.js`·appendix 목업 2종은 여전히 미커밋 유지(아래 ⚠️ `.gitignore` 결정 미해결). (이 배너는 컨트롤타워 자동 동기화 메모이며, 본문은 히스토리로 보존.)
 >
-> - 🗓 **오늘(6/17) = 최종 발표 당일** (`CLAUDE.md` 일정: 6/15 모의 → 6/17 최종). 브랜치 `claude/viewer-layout`. 기능 구현은 5레이어(수집/해석/뷰어/개입/리포트) "거의 완료".
-> - ⚠️ **워킹트리 미커밋 19건 (06-17 시점).** 06-15 배너의 "클린"에서 바뀜. 발표자료 대량 적재 — `final-presentation-script-v4-draft-0616.md`·`final-presentation-qna-17-0615.md`·`professor-feedback-final-checklist-0616.md`·`presentation-production-handbook-general-v3.md`·목업 4종(`mockups/00~03`)·`Digital Reading.md`. **+ 코드도 미커밋**(`app.js`·`candle.js`·`tests/shots.spec.js`·`slides-v2.html`). → **발표 데모 전 GitHub Desktop에서 커밋해두면** 사고 시 즉시 복구 가능.
-> - **이후 커밋 (6/14–6/15)** — 발표용 보드 표현/중복 정리 + 읽기후 '내 패턴' 목업 4종(`86f9151`), "lot of things"(`e40ef35` 06-15 20:18), 원격 머지(`4650f3a` 21:54). 3절 "진짜 남은 갭 3개"(DB 영속화·추가 내재화 인터랙션·마찰→촛불 연결)는 **변동 없음**.
-> - 참고(6/14 브리핑): MV2 완전 종료(6월 말, Chrome 150/151) 전 `extension/viewer/` MV3 여부 확인 권장. Figma Config 2026 = 6/23–25(발표 직후).
-> - 코드 TODO: 핵심 소스 2건(`pretext_helpers.js:151` — 컨테이너 리사이즈/폰트 로드 시 `preparePara` 재실행, 진행 중 뷰어 레이아웃 작업과 직결).
+> - ✅ **최종 발표(6/17) 종료.** 발표 당일 아침 `1419bea` "Update for final project"(06-17 09:19) 커밋 — 06-17 브리핑의 "데모 전 커밋" 권고가 이행됨(데모 사고 대비 완료). 기능 구현은 5레이어(수집/해석/뷰어/개입/리포트) "거의 완료" 유지.
+> - 🎬 **발표 후 초점 = 데모 영상 재제작.** 미커밋 11건 — 신규 `demo-director.js`(연출 모드: 스크롤·밑줄·주석·촛불·맵을 eased 애니로 미리 짜고 타이밍만 스페이스바, 매 재생 동일) + `docs/presentation/demo-director-guide.md` + `tests/demo-video.spec.js`(AUTO mp4 녹화) + 산출물 `docs/presentation/demo/layer2-demo.mp4`(8.7MB)·`.webm`(4.3MB, 06-17 11:06) + appendix 목업 2종(data-processing-diagram·technical-wireframes). 코드 M: `app.js`·`styles.css`·`viewer-shell.js`·`CLAUDE.md`.
+> - ⚠️ **대용량 바이너리 적재 주의** — `demo/`의 mp4+webm(~13MB)가 워킹트리에 있음. Canon Radar가 이미 `.git 211MB`(바이너리 누적)를 지적. **커밋 전 `demo/` 산출물을 `.gitignore`에 넣을지 결정 권장**(히스토리 추가 부풀림 방지). git 작업은 GitHub Desktop 기준.
+> - **진짜 남은 갭 3개**(DB 영속화·추가 내재화 인터랙션·마찰→촛불 연결)는 **변동 없음**. 발표 D-DAY 압력 해소 → 다음 선택지 = 데모 영상 마무리 / 갭 3개 착수.
+> - 참고(6/14 브리핑): MV2 완전 종료(6월 말, Chrome 150/151) 전 `extension/viewer/` MV3 여부 확인 권장. Figma Config 2026 = 6/23–25(발표 직후, 임박).
+> - 코드 TODO: 핵심 소스 2건(`pretext_helpers.js:151` — 컨테이너 리사이즈/폰트 로드 시 `preparePara` 재실행, 뷰어 레이아웃 작업과 직결).
 
 ---
 

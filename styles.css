@@ -1420,8 +1420,9 @@ ol.para-list .para-item {
   font-family: "Inter", system-ui, sans-serif;
   font-size: 10px;
   font-weight: 700;
+  line-height: 1.4;
   letter-spacing: 0.03em;
-  padding: 3px 9px;
+  padding: 1px 8px;
   border-radius: 999px;
   align-self: flex-start;
   color: #fff;
@@ -1480,7 +1481,7 @@ ol.para-list .para-item {
   gap: 6px;
 }
 .board-card.is-clipped:not(.is-expanded) .board-card-inner {
-  max-height: 116px;
+  max-height: var(--board-collapse, 116px);
   overflow: hidden;
   -webkit-mask-image: linear-gradient(to bottom, #000 55%, transparent 100%);
   mask-image: linear-gradient(to bottom, #000 55%, transparent 100%);

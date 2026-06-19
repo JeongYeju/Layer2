@@ -28,6 +28,7 @@
 - `dashboard.js` — 우측 패널. `signalBus` 구독 + interpret 결과 JSON 불러오기 + 단락별 마찰 섹션 + 다중 세션 거시 리포트.
 - `candle.js` `chat.js` — 촛불(개입) + AI 티키타카(왕복 대화). 내러티브 아교.
 - `demo.js` — 더미 신호 생성기 (`window.__layer2Demo.seed/play/seedSessions`). 데모·검증용.
+- `demo-director.js` ★ 발표 데모 "연출 모드". 모션(스크롤·밑줄·주석 타이핑·촛불·맵·보드)을 eased 로 미리 짜두고 **타이밍만 스페이스바로** 넘긴다. STEP(라이브) / AUTO(Playwright mp4 녹화) 공유. `window.__layer2Director.start()` · 주소에 `#director`. 가이드: `docs/presentation/demo-director-guide.md`, 영상 스펙: `tests/demo-video.spec.js`.
 - `sessions.js` — 다중 세션 누적(`localStorage.layer2.sessions.v1`) + 거시(Macro) 리포트 요약. session_end 시 friction/ICAP 요약 저장.
 - `report.js` — Micro 리포트(Mental Model Map). 대시보드 최상단 마운트. `refineExport` 로 단락별 friction/ICAP/흔적 → 한 줄 진단 + 척추 노드 + "내가 구성한 개념" + **개념 엣지**(어휘 중첩 기본, 키 있으면 `gemini-embedding-001` 코사인으로 동의어·의역까지 잇는 의미 엣지). 코어는 LLM 불필요. `window.__layer2Report`. **기능 문서: `docs/features/mental-model-map.md`.**
 - `sidebar.js` — 소스 패널 + 저장된 글 + localStorage 영속화.
