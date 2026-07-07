@@ -10,12 +10,12 @@
 
 ### 브랜치
 - `main` — README.md, .gitattributes 만 있는 거의 백지 (변동 없음).
-- `Codex/viewer-layout` — **최신 작업 브랜치**. Phase 1 + Phase 2 + Phase 2.5 까지 누적된 본체.
-  과거의 `Codex/add-highlighting-interaction-qtiYn` (2026-05-09 시점) 은 더 이상 최신이 아님 — 이후
-  `Cursor-portal` → `Codex/blissful-maxwell-tGRv7` → 현재 `Codex/viewer-layout` 로 이어졌음.
-- 둘이 협업 중. 각자 본인 브랜치를 따서 작업, `Codex/viewer-layout` 을 base 로 사용.
+- `claude/viewer-layout` — **최신 작업 브랜치**. Phase 1 + Phase 2 + Phase 2.5 까지 누적된 본체.
+  과거의 `claude/add-highlighting-interaction-qtiYn` (2026-05-09 시점) 은 더 이상 최신이 아님 — 이후
+  `Cursor-portal` → `claude/blissful-maxwell-tGRv7` → 현재 `claude/viewer-layout` 로 이어졌음.
+- 둘이 협업 중. 각자 본인 브랜치를 따서 작업, `claude/viewer-layout` 을 base 로 사용.
 
-### 코드 구조 (`Codex/viewer-layout` 기준)
+### 코드 구조 (`claude/viewer-layout` 기준)
 루트 viewer (브라우저에서 직접 실행 + 확장 빌드의 소스):
 - `index.html` `app.js` — 엔트리. 초기화 순서: highlight → attention → candle → dashboard → viewer shell → portal → sidebar.
 - `reader.js` `pretext_helpers.js` — 본문 렌더링 + grapheme/단락 ID 부여. 모든 단락에 `[data-paragraph-id]`, 모든 글자에 `[data-char-index]`.
